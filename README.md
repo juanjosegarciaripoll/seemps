@@ -1,6 +1,6 @@
 # SeeMPS
 
-## introduction
+## Introduction
 
 SEEMPS is the SElf-Explaining Matrix-Product-State library.
 
@@ -24,6 +24,8 @@ and a standard Jupyter environment. We recommend using Anaconda3 or
 Miniconda3, although any other distribution of Python should suffice.
 
 Version: 0.0
+
 Authors:
-Juan José García Ripoll (Institute of Fundamental Physics)
-Burçin Danaci (Istanbul Technical University)
+
+* Burçin Danaci (Istanbul Technical University)
+* Juan José García Ripoll (Institute of Fundamental Physics)
