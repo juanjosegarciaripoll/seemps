@@ -70,13 +70,15 @@ class TestExpectation(unittest.TestCase):
         #
         # When we create a spin wave, 'O' detects the density of the
         # wave with the right magnitude
-        for nbits in range(2,8):
+        for nbits in range(2,14):
             for _ in range(10):
                 # We create a random MPS
                 ψwave = random_wavefunction(nbits)
                 ψmps = mps.state.wavepacket(ψwave)
+                ni = all_expectation1_non_canonical(ψmps, O)
                 for i in range(nbits):
                     si = expectation1_non_canonical(ψmps, O, i)
                     self.assertAlmostEqual(si, ψwave[i]**2)
                     xi = ψmps.expectation1(O, i)
                     self.assertEqual(si, xi)
+                    self.assertAlmostEqual(ni[i], si)
