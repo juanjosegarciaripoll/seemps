@@ -1,4 +1,5 @@
 import numpy as np
+from mps import expectation
 
 
 class TensorArray(object):
@@ -79,17 +80,17 @@ class MPS(TensorArray):
 
     def norm2(self):
         """Return the square of the norm-2 of this state, ‖ψ‖**2 = <ψ|ψ>."""
-        return mps.expectation.scprod(self.data, self._data)
+        return expectation.scprod(self, self)
 
     def expectation1(self, operator, n):
         """Return the expectation value of 'operator' acting on the 'n'-th
         site of the MPS."""
-        return mps.expectation.expectation1_non_canonical(self, operator, n)
+        return expectation.expectation1_non_canonical(self, operator, n)
 
     def all_expectation1(self, operator):
         """Return all expectation values of 'operator' acting on all possible
         sites of the MPS."""
-        return mps.expectation.all_expectation1_non_canonical(self, operator)
+        return expectation.all_expectation1_non_canonical(self, operator)
 
 
 def _mps2vector(data):
@@ -122,13 +123,13 @@ def product(vectors, length=None):
     # it is repeated `length` times to build a product state.
     #
     def to_tensor(v):
-        l = v.size
-        return np.reshape(v, (1, l, 1))
+        v = np.array(v)
+        return np.reshape(v, (1, v.size, 1))
 
     if length is not None:
-        return state.MPS([to_tensor(vectors)] * length)
+        return MPS([to_tensor(vectors)] * length)
     else:
-        return state.MPS(map(to_tensor, vectors))
+        return MPS(map(to_tensor, vectors))
     
 
 
@@ -143,7 +144,7 @@ def GHZ(n):
     data[0] = a[0:1, :, :]
     b = data[n-1]
     data[n-1] = (b[:, :, 1:2] + b[:, :, 0:1])
-    return state.MPS(data)
+    return MPS(data)
 
 
 def W(n):
@@ -155,8 +156,43 @@ def W(n):
     data = [a] * n
     data[0] = a[0:1, :, :]
     data[n-1] = data[n-1][:, :, 1:2]
-    return state.MPS(data)
+    return MPS(data)
 
+
+
+def wavepacket(ψ):
+    #
+    # Create an MPS for a spin 1/2 system with the given amplitude
+    # of the excited state on each site. In other words, we create
+    #
+    #   \sum_i Ψ[i] σ^+ |0000...>
+    #
+    # The MPS is created with a single tensor: A(i,s,j)
+    # The input index "i" can take two values, [0,1]. If it is '0'
+    # it means we have not applied any σ^+ anywhere else, and we can
+    # excite a spin here. Therefore, we have two possible values:
+    #
+    #   A(0,0,0) = 1.0
+    #   A(0,1,1) = ψ[n] (n=given site)
+    #
+    # If i=1, then we cannot excite any further spin and
+    #   A(1,0,1) = 1.0
+    #
+    # All other elements are zero. Of course, we have to impose
+    # boundary conditions that the first site only has A(0,s,j)
+    # and the last site only has A(i,s,1) (at least one spin has
+    # been excited)
+    #
+    ψ = np.array(ψ)
+    data = [0] * ψ.size
+    for n in range(0, ψ.size):
+        B = np.zeros((2, 2, 2), dtype=ψ.dtype)
+        B[0, 0, 0] = B[1, 0, 1] = 1.0
+        B[0, 1, 1] = ψ[n]
+        data[n] = B
+    data[0] = data[0][0:1, :, :]
+    data[-1] = data[-1][:, :, 1:]
+    return MPS(data)
 
 
 def graph(n, mps=True):
@@ -175,7 +211,7 @@ def graph(n, mps=True):
     data[0] = np.dot(np.array([[[1, 0], [0, 1]]]), H)
     data[-1] = np.swapaxes(np.array([[[1, 0], [0, 1]]]), 0, 2) / np.sqrt(2**n)
 
-    return state.MPS(data)
+    return MPS(data)
 
 # open boundary conditions
 # free virtual spins at both ends are taken to be zero
@@ -201,7 +237,7 @@ def AKLT(n, mps=True):
                                  data[-1], iY))/np.sqrt(2)
     data[-1] = np.swapaxes(data[-1], 0, 2)
 
-    return state.MPS(data)
+    return MPS(data)
 
 
 
@@ -217,4 +253,4 @@ def random(d, N, D=1):
         else:
             DR = np.min([DR*d, D, d**(N-i-1)])
         mps[i] = np.random.rand(DL, d, DR)
-    return state.MPS(mps)
+    return MPS(mps)

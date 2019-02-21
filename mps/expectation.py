@@ -1,5 +1,6 @@
 
 import numpy as np
+import mps.state
 
 def begin_environment():
     """Initiate the computation of a left environment from two MPS."""
@@ -14,7 +15,7 @@ def update_left_environment(B, A, rho, operator=None):
     from the bra and ket of a scalar product. If an operator is provided, it
     is contracted with the ket."""
     if operator is not None:
-        A = np.einsum("ji,aib->ajb", O, A)
+        A = np.einsum("ji,aib->ajb", operator, A)
     rho = np.einsum("li,ijk->ljk", rho, A)
     return np.einsum("lmn,lmk->nk", B.conj(), rho)
 
@@ -23,7 +24,7 @@ def udpate_right_environment(B, A, rho, operator=None):
     from the bra and ket of a scalar product. If an operator is provided, it
     is contracted with the ket."""
     if operator is not None:
-        A = np.einsum("ji,aib->ajb", O, A)
+        A = np.einsum("ji,aib->ajb", operator, A)
     rho = np.einsum("ijk,kn->ijn", A, rho)
     return np.einsum("imn,lmn->il", rho, B)
 
@@ -32,19 +33,19 @@ def scprod(ϕ, ψ):
     rho = begin_environment()
     for i in range(ψ.size):
         rho = update_left_environment(ϕ[i], ψ[i], rho)
-    return end_environment(rho)
+    return close_environment(rho)
 
 def expectation1_non_canonical(ψ, O, site):
     """Compute the expectation value <ψ|O|ψ> of an operator O acting on 'site'"""
-    ρL = begin_left_environment()
-    for i in range(0, site):
+    ρL = begin_environment()
+    for i in range(0, ψ.size):
         A = ψ[i]
-        ρL = update_left_environment(A, A, ρL)
         if i == site:
             OL = update_left_environment(A, A, ρL, operator=O)
         elif i > site:
             OL = update_left_environment(A, A, OL)
-    return end_environment(OL)/end_environment(ρL)
+        ρL = update_left_environment(A, A, ρL)
+    return close_environment(OL)/close_environment(ρL)
 
 def get_operator(O, i):
     #
