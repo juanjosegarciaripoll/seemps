@@ -14,14 +14,12 @@ class TensorArray(object):
     """
 
     def __init__(self, data):
-        """Create a new TensorArray from a list of tensors. The list is cloned
+        """Create a new TensorArray from a list of tensors. 'data' is an
+        iterable object, such as a list or other sequence. The list is cloned
         before storing it into this object, so as to avoid side effects when
         destructively modifying the array."""
-        if type(data) is list:
-            self._data = data.copy()
-            self.size = len(self._data)
-        else:
-            raise TypeError()
+        self._data = list(data)
+        self.size = len(self._data)
 
     def __getitem__(self, k):
         #
@@ -72,7 +70,7 @@ class MPS(TensorArray):
 
     def dimension(self):
         """Return the total size of the Hilbert space in which this MPS lives."""
-        return np.product([a.shape[1] for a in self.data])
+        return np.product([a.shape[1] for a in self._data])
 
     def tovector(self):
         """Return one-dimensional complex vector of dimension() elements, with
@@ -81,7 +79,7 @@ class MPS(TensorArray):
 
     def norm2(self):
         """Return the square of the norm-2 of this state, ‖ψ‖**2 = <ψ|ψ>."""
-        return mps.expectation.scprod(self.data, self.data)
+        return mps.expectation.scprod(self.data, self._data)
 
     def expectation1(self, operator, n):
         """Return the expectation value of 'operator' acting on the 'n'-th
@@ -113,3 +111,110 @@ def _mps2vector(data):
         D = D * d
         Ψ = np.reshape(Ψ, (D, β))
     return Ψ.reshape((Ψ.size,))
+
+
+def product(vectors, length=None):
+    #
+    # If `length` is `None`, `vectors` will be a list of complex vectors
+    # representing the elements of the product state.
+    #
+    # If `length` is an integer, `vectors` is a single complex vector and
+    # it is repeated `length` times to build a product state.
+    #
+    def to_tensor(v):
+        l = v.size
+        return np.reshape(v, (1, l, 1))
+
+    if length is not None:
+        return state.MPS([to_tensor(vectors)] * length)
+    else:
+        return state.MPS(map(to_tensor, vectors))
+    
+
+
+def GHZ(n):
+    """Return a GHZ state with `n` qubits in MPS form."""
+    a = np.zeros((2, 2, 2))
+    b = a.copy()
+    a[0, 0, 0] = a[0, 1, 1] = 1.0/np.sqrt(2.0)
+    b[0, 0, 0] = 1.0
+    b[1, 1, 1] = 1.0
+    data = [a]+[b] * (n-1)
+    data[0] = a[0:1, :, :]
+    b = data[n-1]
+    data[n-1] = (b[:, :, 1:2] + b[:, :, 0:1])
+    return state.MPS(data)
+
+
+def W(n):
+    """Return a W with one excitation over `n` qubits."""
+    a = np.zeros((2, 2, 2))
+    a[0, 0, 0] = 1.0
+    a[0, 1, 1] = 1.0/np.sqrt(n)
+    a[1, 0, 1] = 1.0
+    data = [a] * n
+    data[0] = a[0:1, :, :]
+    data[n-1] = data[n-1][:, :, 1:2]
+    return state.MPS(data)
+
+
+
+def graph(n, mps=True):
+    """Create a one-dimensional graph state of `n` qubits."""
+    # Choose entangled pair state as : |00>+|11>
+    # Apply Hadamard H on the left virtual spins (which are the right spins of the entangled bond pairs)
+    H = np.array([[1, 1], [1, -1]])
+    # which gives |0>x(|0>+|1>)+|1>x(|0>-|1>) = |00>+|01>+|10>-|11>
+    # Project as  |0><00| + |1><11|
+    # We get the following MPS projectors:
+    A0 = np.dot(np.array([[1, 0], [0, 0]]), H)
+    A1 = np.dot(np.array([[0, 0], [0, 1]]), H)
+    AA = np.array([A0, A1])
+    AA = np.swapaxes(AA, 0, 1)
+    data = [AA]*n
+    data[0] = np.dot(np.array([[[1, 0], [0, 1]]]), H)
+    data[-1] = np.swapaxes(np.array([[[1, 0], [0, 1]]]), 0, 2) / np.sqrt(2**n)
+
+    return state.MPS(data)
+
+# open boundary conditions
+# free virtual spins at both ends are taken to be zero
+
+
+def AKLT(n, mps=True):
+    """Return an AKL state with `n` spin-1 particles."""
+    # Choose entangled pair state as : |00>+|11>
+    # Apply i * Pauli Y matrix on the left virtual spins (which are the right spins of the entangled bond pairs)
+    iY = np.array([[0, 1], [-1, 0]])
+    # which gives -|01>+|10>
+    # Project as  |-1><00| +|0> (<01|+ <10|)/ \sqrt(2)+ |1><11|
+    # We get the following MPS projectors:
+    A0 = np.dot(np.array([[1, 0], [0, 0]]), iY)
+    A1 = np.dot(np.array([[0, 1], [1, 0]]), iY)
+    A2 = np.dot(np.array([[0, 0], [0, 1]]), iY)
+
+    AA = np.array([A0, A1, A2]) / np.sqrt(2)
+    AA = np.swapaxes(AA, 0, 1)
+    data = [AA]*n
+    data[-1] = np.array([[[1, 0], [0, 1], [0, 0]]])
+    data[0] = np.array(np.einsum('ijk,kl->ijl',
+                                 data[-1], iY))/np.sqrt(2)
+    data[-1] = np.swapaxes(data[-1], 0, 2)
+
+    return state.MPS(data)
+
+
+
+def random(d, N, D=1):
+    """Create a random state with 'N' elements of dimension 'd' and bond
+    dimension 'D'."""
+    mps = [1]*N
+    DR = 1
+    for i in range(N):
+        DL = DR
+        if N > 60 and i != N-1:
+            DR = D
+        else:
+            DR = np.min([DR*d, D, d**(N-i-1)])
+        mps[i] = np.random.rand(DL, d, DR)
+    return state.MPS(mps)
