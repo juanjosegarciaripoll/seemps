@@ -78,3 +78,5 @@ class TestExpectation(unittest.TestCase):
                 for i in range(nbits):
                     si = expectation1_non_canonical(ψmps, O, i)
                     self.assertAlmostEqual(si, ψwave[i]**2)
+                    xi = ψmps.expectation1(O, i)
+                    self.assertEqual(si, xi)
