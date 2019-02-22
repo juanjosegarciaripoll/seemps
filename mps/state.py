@@ -254,3 +254,114 @@ def random(d, N, D=1):
             DR = np.min([DR*d, D, d**(N-i-1)])
         mps[i] = np.random.rand(DL, d, DR)
     return MPS(mps)
+
+
+def _ortho_right(A, tol):
+    α, i, β = A.shape
+    U, s, V = np.linalg.svd(np.reshape(A, (α*i, β)), full_matrices=False)
+    s = _truncate_vector(s, tol)
+    D = s.size
+    return np.reshape(U, (α, i, D)), np.reshape(s, (D, 1)) * V[:D, :]
+
+
+def _ortho_left(A, tol):
+    α, i, β = A.shape
+    U, s, V = np.linalg.svd(np.reshape(A, (α, i*β)), full_matrices=False)
+    s = _truncate_vector(s, tol)
+    D = s.size
+    return np.reshape(V, (D, i, β)), U[:, :D] * np.reshape(s, (1, D))
+
+
+def _update_in_canonical_form(Ψ, A, site, direction, tol=0):
+    """Insert a tensor in canonical form into the MPS Ψ at the given site.
+    Update the neighboring sites in the process."""
+
+    if direction > 0:
+        if site+1 == Ψ.size:
+            Ψ[site] = A
+        else:
+            Ψ[site], sV = _ortho_right(A, tol)
+            site += 1
+            Ψ[site] = np.einsum('ab,bic->aic', sV, Ψ[site])
+    else:
+        if site == 0:
+            Ψ[site] = A
+        else:
+            Ψ[site], Us = _ortho_left(A, tol)
+            site -= 1
+            Ψ[site] = np.einsum('aib,bc->aic', Ψ[site], Us)
+    return site
+
+def _canonicalize(Ψ, center):
+    for i in range(0, center):
+        _update_in_canonical_form(Ψ, Ψ[i], i, +1)
+    for i in range(Ψ.size-1, center, -1):
+        _update_in_canonical_form(Ψ, Ψ[i], i, -1)
+
+
+def _truncate_vector(S, tolerance):
+    #
+    # Input:
+    # - S: a vector containing singular values in descending order
+    # - tolerance: truncation relative tolerance, which specifies an
+    #   upper bound for the sum of the squares of the singular values
+    #   eliminated. 0 <= tolerance <= 1
+    #
+    # Output:
+    # - truncS: truncated version of S
+    #
+    if tolerance == 0:
+        #log('--no truncation')
+        return S
+    # We sum all reduced density matrix eigenvalues, starting from
+    # the smallest ones, to avoid rounding errors
+    err = np.cumsum(np.flip(S, axis=0)**2)
+    #
+    # This is the sum of all values
+    total = err[-1]
+    #
+    # we find the number of values we can drop within the relative
+    # tolerance
+    ndx = np.argmax(err >= tolerance*total)
+    # and use that to estimate the size of the array
+    # log('--S='+str(S))
+    #log('--truncated to '+str(ndx))
+    return S[0:(S.size - ndx)]
+
+
+class CanonicalMPS(MPS):
+    """Canonical MPS class.
+
+    This implements a Matrix Product State object with open boundary
+    conditions, that is always on canonical form with respect to a given site.
+    The tensors have three indices, A[α,i,β], where 'α,β' are the internal
+    labels and 'i' is the physical state of the given site.
+
+    Attributes:
+    size = number of tensors in the array
+    center = site that defines the canonical form of the MPS
+    """
+
+    #
+    # This class contains all the matrices and vectors that form
+    # a Matrix-Product State.
+    #
+    def __init__(self, data, center=0):
+        super(MPS, self).__init__(data)
+        _canonicalize(self, center)
+        self.center = center
+
+    def norm2(self):
+        """Return the square of the norm-2 of this state, ‖ψ‖**2 = <ψ|ψ>."""
+        A = self._data[self.center]
+        return np.vdot(A, A)
+
+    def expectationAtCenter(self, operator):
+        """Return the expectation value of 'operator' acting on the central
+        site of the MPS."""
+        A = self._data[self.center]
+        return np.vdot(A, np.einsum('ij,ajb->aib', operator, A))/np.vdot(A,A)
+
+    def update_canonical(self, A, direction):
+        self.center = _update_in_canonical_form(self, A, self.center,
+                                                direction)
