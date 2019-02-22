@@ -72,7 +72,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="2459" y="1959" width="2083" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 3500,3500 L 2500,3500 2500,2000 4500,2000 4500,3500 3500,3500 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 3500,3500 L 2500,3500 2500,2000 4500,2000 4500,3500 3500,3500 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="3289" y="2971"><tspan fill="rgb(0,0,0)" stroke="none">B</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="3289" y="2971"><tspan fill="rgb(0,0,0)" stroke="none">B</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.LineShape">
@@ -104,7 +104,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="6759" y="1959" width="2083" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 7800,3500 L 6800,3500 6800,2000 8800,2000 8800,3500 7800,3500 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 7800,3500 L 6800,3500 6800,2000 8800,2000 8800,3500 7800,3500 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="7572" y="2971"><tspan fill="rgb(0,0,0)" stroke="none">D</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="7572" y="2971"><tspan fill="rgb(0,0,0)" stroke="none">D</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.CustomShape">
@@ -112,7 +112,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="11059" y="1959" width="2083" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 12100,3500 L 11100,3500 11100,2000 13100,2000 13100,3500 12100,3500 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 12100,3500 L 11100,3500 11100,2000 13100,2000 13100,3500 12100,3500 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="11906" y="2971"><tspan fill="rgb(0,0,0)" stroke="none">F</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="11906" y="2971"><tspan fill="rgb(0,0,0)" stroke="none">F</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.CustomShape">
@@ -120,7 +120,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="15459" y="1959" width="2083" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 16500,3500 L 15500,3500 15500,2000 17500,2000 17500,3500 16500,3500 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 16500,3500 L 15500,3500 15500,2000 17500,2000 17500,3500 16500,3500 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="16272" y="2971"><tspan fill="rgb(0,0,0)" stroke="none">H</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="16272" y="2971"><tspan fill="rgb(0,0,0)" stroke="none">H</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.LineShape">
@@ -134,7 +134,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="2459" y="5459" width="2083" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 3500,7000 L 2500,7000 2500,5500 4500,5500 4500,7000 3500,7000 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 3500,7000 L 2500,7000 2500,5500 4500,5500 4500,7000 3500,7000 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="3289" y="6471"><tspan fill="rgb(0,0,0)" stroke="none">B</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="3289" y="6471"><tspan fill="rgb(0,0,0)" stroke="none">B</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.LineShape">
@@ -166,7 +166,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="6759" y="5459" width="6283" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 9900,7000 L 6800,7000 6800,5500 13000,5500 13000,7000 9900,7000 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 9900,7000 L 6800,7000 6800,5500 13000,5500 13000,7000 9900,7000 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="9477" y="6471"><tspan fill="rgb(0,0,0)" stroke="none">DF</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="9477" y="6471"><tspan fill="rgb(0,0,0)" stroke="none">DF</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.CustomShape">
@@ -174,7 +174,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="15459" y="5459" width="2083" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 16500,7000 L 15500,7000 15500,5500 17500,5500 17500,7000 16500,7000 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 16500,7000 L 15500,7000 15500,5500 17500,5500 17500,7000 16500,7000 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="16272" y="6471"><tspan fill="rgb(0,0,0)" stroke="none">H</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="16272" y="6471"><tspan fill="rgb(0,0,0)" stroke="none">H</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.LineShape">
@@ -188,7 +188,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="2459" y="8959" width="2083" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 3500,10500 L 2500,10500 2500,9000 4500,9000 4500,10500 3500,10500 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 3500,10500 L 2500,10500 2500,9000 4500,9000 4500,10500 3500,10500 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="3289" y="9971"><tspan fill="rgb(0,0,0)" stroke="none">B</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="3289" y="9971"><tspan fill="rgb(0,0,0)" stroke="none">B</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.LineShape">
@@ -220,7 +220,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="6759" y="8959" width="2083" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 7800,10500 L 6800,10500 6800,9000 8800,9000 8800,10500 7800,10500 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 7800,10500 L 6800,10500 6800,9000 8800,9000 8800,10500 7800,10500 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="7510" y="9971"><tspan fill="rgb(0,0,0)" stroke="none">D&apos;</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="7510" y="9971"><tspan fill="rgb(0,0,0)" stroke="none">D&apos;</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.CustomShape">
@@ -228,7 +228,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="11059" y="8959" width="2083" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 12100,10500 L 11100,10500 11100,9000 13100,9000 13100,10500 12100,10500 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 12100,10500 L 11100,10500 11100,9000 13100,9000 13100,10500 12100,10500 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="11844" y="9971"><tspan fill="rgb(0,0,0)" stroke="none">F&apos;</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="11844" y="9971"><tspan fill="rgb(0,0,0)" stroke="none">F&apos;</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.CustomShape">
@@ -236,7 +236,7 @@
         <rect class="BoundingBox" stroke="none" fill="none" x="15459" y="8959" width="2083" height="1583"/>
         <path fill="rgb(255,251,204)" stroke="none" d="M 16500,10500 L 15500,10500 15500,9000 17500,9000 17500,10500 16500,10500 Z"/>
         <path fill="none" stroke="rgb(0,0,0)" stroke-width="81" stroke-linejoin="round" d="M 16500,10500 L 15500,10500 15500,9000 17500,9000 17500,10500 16500,10500 Z"/>
-        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400" text-decoration="underline"><tspan class="TextPosition" x="16272" y="9971"><tspan fill="rgb(0,0,0)" stroke="none">H</tspan></tspan></tspan></text>
+        <text class="TextShape"><tspan class="TextParagraph" font-family="Arial, sans-serif" font-size="635px" font-weight="400"><tspan class="TextPosition" x="16272" y="9971"><tspan fill="rgb(0,0,0)" stroke="none">H</tspan></tspan></tspan></text>
        </g>
       </g>
       <g class="com.sun.star.drawing.CustomShape">
