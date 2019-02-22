@@ -261,7 +261,7 @@ def _ortho_right(A, tol):
     U, s, V = np.linalg.svd(np.reshape(A, (α*i, β)), full_matrices=False)
     s = _truncate_vector(s, tol)
     D = s.size
-    return np.reshape(U, (α, i, D)), np.reshape(s, (D, 1)) * V[:D, :]
+    return np.reshape(U[:,:D], (α, i, D)), np.reshape(s, (D, 1)) * V[:D, :]
 
 
 def _ortho_left(A, tol):
@@ -269,10 +269,10 @@ def _ortho_left(A, tol):
     U, s, V = np.linalg.svd(np.reshape(A, (α, i*β)), full_matrices=False)
     s = _truncate_vector(s, tol)
     D = s.size
-    return np.reshape(V, (D, i, β)), U[:, :D] * np.reshape(s, (1, D))
+    return np.reshape(V[:D,:], (D, i, β)), U[:, :D] * np.reshape(s, (1, D))
 
 
-def _update_in_canonical_form(Ψ, A, site, direction, tol=0):
+def _update_in_canonical_form(Ψ, A, site, direction, tolerance):
     """Insert a tensor in canonical form into the MPS Ψ at the given site.
     Update the neighboring sites in the process."""
 
@@ -280,24 +280,26 @@ def _update_in_canonical_form(Ψ, A, site, direction, tol=0):
         if site+1 == Ψ.size:
             Ψ[site] = A
         else:
-            Ψ[site], sV = _ortho_right(A, tol)
+            Ψ[site], sV = _ortho_right(A, tolerance)
             site += 1
             Ψ[site] = np.einsum('ab,bic->aic', sV, Ψ[site])
     else:
         if site == 0:
             Ψ[site] = A
         else:
-            Ψ[site], Us = _ortho_left(A, tol)
+            Ψ[site], Us = _ortho_left(A, tolerance)
             site -= 1
             Ψ[site] = np.einsum('aib,bc->aic', Ψ[site], Us)
     return site
 
-def _canonicalize(Ψ, center):
+def _canonicalize(Ψ, center, tolerance):
     for i in range(0, center):
-        _update_in_canonical_form(Ψ, Ψ[i], i, +1)
+        _update_in_canonical_form(Ψ, Ψ[i], i, +1, tolerance)
     for i in range(Ψ.size-1, center, -1):
-        _update_in_canonical_form(Ψ, Ψ[i], i, -1)
+        _update_in_canonical_form(Ψ, Ψ[i], i, -1, tolerance)
 
+
+DEFAULT_TOLERANCE = np.finfo(np.float64).eps
 
 def _truncate_vector(S, tolerance):
     #
@@ -346,9 +348,9 @@ class CanonicalMPS(MPS):
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
     #
-    def __init__(self, data, center=0):
+    def __init__(self, data, center=0, tolerance=DEFAULT_TOLERANCE):
         super(MPS, self).__init__(data)
-        _canonicalize(self, center)
+        _canonicalize(self, center, tolerance)
         self.center = center
 
     def norm2(self):

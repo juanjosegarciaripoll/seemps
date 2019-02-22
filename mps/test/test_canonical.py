@@ -1,18 +1,6 @@
 import unittest
 import mps.state
-from mps.tools import similar
-
-
-def approximateIsometry(A, direction, places=7):
-    if direction > 0:
-        a, i, b = A.shape
-        A = np.reshape(A, (a*i, b))
-        C = A.T.conj() @ A
-    else:
-        b, i, a = A.shape
-        A = np.reshape(A, (b, i*a))
-        C = A @ A.T.conj()
-    return np.all(np.isclose(C, np.eye(b), atol=10**(-places)))
+from mps.test.tools import approximateIsometry, similar
 
 
 class TestCanonicalForm(unittest.TestCase):
@@ -28,12 +16,14 @@ class TestCanonicalForm(unittest.TestCase):
 
                 for i in range(Ψ.size-1):
                     ξ = Ψ.copy()
-                    _update_in_canonical_form(ξ, ξ[i], i, +1)
+                    _update_in_canonical_form(ξ, ξ[i], i, +1,
+                                              DEFAULT_TOLERANCE)
                     self.assertTrue(approximateIsometry(ξ[i], +1))
 
                 for i in range(1, Ψ.size):
                     ξ = Ψ.copy()
-                    _update_in_canonical_form(ξ, ξ[i], i, -1)
+                    _update_in_canonical_form(ξ, ξ[i], i, -1,
+                                              DEFAULT_TOLERANCE)
                     self.assertTrue(approximateIsometry(ξ[i], -1))
 
     def test_canonicalize(self):
@@ -48,7 +38,7 @@ class TestCanonicalForm(unittest.TestCase):
 
                 for center in range(Ψ.size):
                     ξ = Ψ.copy()
-                    _canonicalize(ξ, center)
+                    _canonicalize(ξ, center, DEFAULT_TOLERANCE)
                     #
                     # All sites to the left and to the right are isometries
                     #
