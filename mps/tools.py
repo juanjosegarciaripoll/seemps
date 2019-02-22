@@ -13,7 +13,3 @@ DEBUG = True
 def log(*args):
     if DEBUG:
         print(*args)
-
-
-def similar(A, B, **kwdargs):
-    return (A.shape == B.shape) & np.all(np.isclose(A, B, **kwdargs))
