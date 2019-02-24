@@ -352,8 +352,9 @@ class CanonicalMPS(MPS):
     def __init__(self, data, center=0, normalize=False,
                  tolerance=DEFAULT_TOLERANCE):
         super(MPS, self).__init__(data)
-        self.center = center = self._recenter(center)
-        _canonicalize(self, center, tolerance)
+        self.center = center = self._interpret_center(center)
+        if not isinstance(data, CanonicalMPS) or (center != data.center):
+            _canonicalize(self, center, tolerance)
         if normalize:
             A = self[center]
             self[center] = A / np.linalg.norm(A)
@@ -373,7 +374,7 @@ class CanonicalMPS(MPS):
         self.center = _update_in_canonical_form(self, A, self.center,
                                                 direction)
     
-    def _recenter(self, center):
+    def _interpret_center(self, center):
         """Converts `center` into an integer between [0,size-1], with the
         convention that -1 = size-1, -2 = size-2, etc. Trows an exception of
         `center` if out of bounds."""
@@ -384,3 +385,16 @@ class CanonicalMPS(MPS):
         if 0 <= center < size:
             return center
         raise IndexError()
+
+    def __copy__(self):
+        #
+        # Return a copy of the MPS with a fresh new array.
+        #
+        return type(self)(self, self.center)
+
+    def copy(self):
+        """Return a fresh new TensorArray that shares the same tensor as its
+        sibling, but which can be destructively modified without affecting it.
+        """
+        return self.__copy__()
+

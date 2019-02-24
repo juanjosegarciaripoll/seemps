@@ -101,3 +101,17 @@ class TestCanonicalForm(unittest.TestCase):
                                         ξ2.tovector()))
         test_over_random_mps(ok)
 
+    def test_canonical_mps_copy(self):
+        #
+        # Copying a class does not invoke _canonicalize and does not
+        # change the tensors in any way
+        #
+        def ok(Ψ):
+            for center in range(Ψ.size):
+                ψ = CanonicalMPS(Ψ, center=center, normalize=True)
+                ξ = ψ.copy()
+                self.assertEqual(ξ.size, ψ.size)
+                self.assertEqual(ξ.center, ψ.center)
+                for i in range(ξ.size):
+                    self.assertTrue(np.all(np.equal(ξ[i], ψ[i])))
+        test_over_random_mps(ok)
