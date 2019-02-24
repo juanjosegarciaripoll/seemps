@@ -292,6 +292,7 @@ def _update_in_canonical_form(Ψ, A, site, direction, tolerance):
             Ψ[site] = np.einsum('aib,bc->aic', Ψ[site], Us)
     return site
 
+
 def _canonicalize(Ψ, center, tolerance):
     for i in range(0, center):
         _update_in_canonical_form(Ψ, Ψ[i], i, +1, tolerance)
@@ -348,10 +349,14 @@ class CanonicalMPS(MPS):
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
     #
-    def __init__(self, data, center=0, tolerance=DEFAULT_TOLERANCE):
+    def __init__(self, data, center=0, normalize=False,
+                 tolerance=DEFAULT_TOLERANCE):
         super(MPS, self).__init__(data)
+        self.center = center = self._recenter(center)
         _canonicalize(self, center, tolerance)
-        self.center = center
+        if normalize:
+            A = self[center]
+            self[center] = A / np.linalg.norm(A)
 
     def norm2(self):
         """Return the square of the norm-2 of this state, ‖ψ‖**2 = <ψ|ψ>."""
@@ -367,3 +372,15 @@ class CanonicalMPS(MPS):
     def update_canonical(self, A, direction):
         self.center = _update_in_canonical_form(self, A, self.center,
                                                 direction)
+    
+    def _recenter(self, center):
+        """Converts `center` into an integer between [0,size-1], with the
+        convention that -1 = size-1, -2 = size-2, etc. Trows an exception of
+        `center` if out of bounds."""
+        size = self.size
+        if 0 <= center < size:
+            return center
+        center += size
+        if 0 <= center < size:
+            return center
+        raise IndexError()
