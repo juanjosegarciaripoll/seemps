@@ -22,7 +22,7 @@ def update_right_environment(B, A, rho, operator=None):
     if operator is not None:
         A = np.einsum("ji,aib->ajb", operator, A)
     rho = np.einsum("ijk,kn->ijn", A, rho)
-    return np.einsum("imn,lmn->il", rho, B)
+    return np.einsum("ijn,ljn->il", rho, B.conj())
 
 def end_environment(ρ):
     """Extract the scalar product from the last environment."""
