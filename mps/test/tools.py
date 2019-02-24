@@ -9,6 +9,15 @@ def almostIdentity(L, places=7):
     return np.all(np.isclose(L, np.eye(L.shape[0]), atol=10**(-places)))
 
 
+def almostIsometry(A, places=7):
+    N, M = A.shape
+    if M < N:
+        A = A.T.conj() @ A
+    else:
+        A = A @ A.T.conj()
+    return almostIdentity(A, places=places)
+
+
 def approximateIsometry(A, direction, places=7):
     if direction > 0:
         a, i, b = A.shape
