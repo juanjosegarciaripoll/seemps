@@ -1,6 +1,74 @@
 import numpy as np
 from mps import expectation
 
+DEFAULT_TOLERANCE = np.finfo(np.float64).eps
+
+
+def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE):
+    """Construct a list of tensors for an MPS that approximates the state ψ
+    represented as a complex vector in a Hilbert space.
+
+    Arguments:
+    ----------
+    ψ = wavefunction with \prod_i dimensions[i] elements
+    dimension = list of dimensions of the Hilbert spaces that build ψ
+    tolerance = truncation criterion for dropping Schmidt numbers"""
+
+    def SchmidtSplit(ψ, tolerance):
+        a, b = ψ.shape
+        U, s, V = np.linalg.svd(ψ, full_matrices=False)
+        s = _truncate_vector(s, tolerance)
+        D = s.size
+        return np.reshape(U[:, :D], (a, D)), np.reshape(s, (D, 1)) * V[:D, :]
+
+    Da = 1
+    dimensions = np.array(dimensions, dtype=np.int)
+    Db = np.prod(dimensions)
+    output = [0] * len(dimensions)
+    for (i, d) in enumerate(dimensions):
+        # We split a new subsystem and group the left bond dimension
+        # and the physical index into a large index
+        ψ = np.reshape(ψ, (Da * d, int(Db / d)))
+        #
+        # We then split the state using the Schmidt decomposition. This
+        # produces a tensor for the site we are looking at and leaves
+        # us with a (hopefully) smaller state for the rest
+        A, ψ = SchmidtSplit(ψ, tolerance)
+        output[i] = np.reshape(A, (Da, d, A.shape[1]))
+        Da, Db = ψ.shape
+
+    return output
+
+
+def _truncate_vector(S, tolerance):
+    #
+    # Input:
+    # - S: a vector containing singular values in descending order
+    # - tolerance: truncation relative tolerance, which specifies an
+    #   upper bound for the sum of the squares of the singular values
+    #   eliminated. 0 <= tolerance <= 1
+    #
+    # Output:
+    # - truncS: truncated version of S
+    #
+    if tolerance == 0:
+        #log('--no truncation')
+        return S
+    # We sum all reduced density matrix eigenvalues, starting from
+    # the smallest ones, to avoid rounding errors
+    err = np.cumsum(np.flip(S, axis=0)**2)
+    #
+    # This is the sum of all values
+    total = err[-1]
+    #
+    # we find the number of values we can drop within the relative
+    # tolerance
+    ndx = np.argmax(err >= tolerance*total)
+    # and use that to estimate the size of the array
+    # log('--S='+str(S))
+    #log('--truncated to '+str(ndx))
+    return S[0:(S.size - ndx)]
+
 
 class TensorArray(object):
     """TensorArray class.
@@ -77,6 +145,10 @@ class MPS(TensorArray):
         """Return one-dimensional complex vector of dimension() elements, with
         the complete wavefunction that is encoded in the MPS."""
         return _mps2vector(self)
+
+    @classmethod
+    def fromvector(ψ, dimensions, **kwdargs):
+        return MPS(vector2mps(ψ, dimensions, **kwdargs))
 
     def norm2(self):
         """Return the square of the norm-2 of this state, ‖ψ‖**2 = <ψ|ψ>."""
@@ -300,38 +372,6 @@ def _canonicalize(Ψ, center, tolerance):
         _update_in_canonical_form(Ψ, Ψ[i], i, -1, tolerance)
 
 
-DEFAULT_TOLERANCE = np.finfo(np.float64).eps
-
-def _truncate_vector(S, tolerance):
-    #
-    # Input:
-    # - S: a vector containing singular values in descending order
-    # - tolerance: truncation relative tolerance, which specifies an
-    #   upper bound for the sum of the squares of the singular values
-    #   eliminated. 0 <= tolerance <= 1
-    #
-    # Output:
-    # - truncS: truncated version of S
-    #
-    if tolerance == 0:
-        #log('--no truncation')
-        return S
-    # We sum all reduced density matrix eigenvalues, starting from
-    # the smallest ones, to avoid rounding errors
-    err = np.cumsum(np.flip(S, axis=0)**2)
-    #
-    # This is the sum of all values
-    total = err[-1]
-    #
-    # we find the number of values we can drop within the relative
-    # tolerance
-    ndx = np.argmax(err >= tolerance*total)
-    # and use that to estimate the size of the array
-    # log('--S='+str(S))
-    #log('--truncated to '+str(ndx))
-    return S[0:(S.size - ndx)]
-
-
 class CanonicalMPS(MPS):
     """Canonical MPS class.
 
@@ -358,6 +398,13 @@ class CanonicalMPS(MPS):
         if normalize:
             A = self[center]
             self[center] = A / np.linalg.norm(A)
+
+    @classmethod
+    def fromvector(ψ, dimensions, center=0, normalize=False,
+                   tolerance=DEFAULT_TOLERANCE):
+        return CanonicalMPS(mps.state.vector2mps(ψ, dimensions, tolerance),
+                            center=center, normalize=normalize,
+                            tolerance=tolerance)
 
     def norm2(self):
         """Return the square of the norm-2 of this state, ‖ψ‖**2 = <ψ|ψ>."""
