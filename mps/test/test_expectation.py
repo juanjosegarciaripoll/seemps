@@ -95,8 +95,6 @@ class TestExpectation(unittest.TestCase):
     def test_expected2(self):
         O1 = np.array([[0.3,1.0+0.2j],[1.0-0.2j,0.5]])
         O2 = np.array([[0.34,0.4-0.7j],[0.4+0.7j,-0.6]])
-        O1 = np.array([[0,1],[1,0]])
-        O2 = np.eye(2)
         def expected2_ok(ϕ):
             for n in range(1, ϕ.size):
                 ψ = ϕ.copy()

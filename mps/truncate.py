@@ -67,8 +67,8 @@ class AntilinearForm:
         B = self.ψ[j]
         R = self.R[j]
         LA = np.einsum('li,ijk->ljk', L, A)
-        BR = np.einsum('klm,mn->kln', B, C)
-        return np.einsum('ljk,kln->ljln', LA, BR)
+        BR = np.einsum('kmn,no->kmo', B, R)
+        return np.einsum('ljk,kmo->ljmo', LA, BR)
 
     def update(self, direction):
         #
