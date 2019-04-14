@@ -51,6 +51,22 @@ def expectation1_non_canonical(ψ, O, site):
         ρL = update_left_environment(A, A, ρL)
     return end_environment(OL)/end_environment(ρL)
 
+def expectation2_non_canonical(ψ, O, Q, site):
+    """Compute the expectation value <ψ|O Q|ψ> of an operator O acting on 
+    sites 'site' and 'site+1'"""
+    ρL = begin_environment()
+    for i in range(0, ψ.size):
+        A = ψ[i]
+        ndx = i - site
+        if ndx == 0:
+            OQL = update_left_environment(A, A, ρL, operator=O)
+        elif ndx == 1:
+            OQL = update_left_environment(A, A, OQL, operator=Q)
+        elif ndx > 1:
+            OQL = update_left_environment(A, A, OQL)
+        ρL = update_left_environment(A, A, ρL)
+    return end_environment(OQL)/end_environment(ρL)
+
 def get_operator(O, i):
     #
     # This utility function is used to guess the operator acting on site 'i'

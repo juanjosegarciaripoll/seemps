@@ -159,6 +159,12 @@ class MPS(TensorArray):
         site of the MPS."""
         return expectation.expectation1_non_canonical(self, operator, n)
 
+    def expectation2(self, operator1, operator2, n):
+        """Return the expectation value of 'operator1' and 'operator2' acting
+        on the 'n'-th and 'n+1'-th sites of the MPS."""
+        return expectation.expectation2_non_canonical(self, operator1,
+                                                      operator2, n)
+
     def all_expectation1(self, operator):
         """Return all expectation values of 'operator' acting on all possible
         sites of the MPS."""

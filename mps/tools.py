@@ -1,5 +1,5 @@
 import numpy as np
-
+from math import cos, sin, pi
 
 def take_from_list(O, i):
     if type(O) == list:
@@ -24,3 +24,15 @@ def random_isometry(N, M=None):
     else:
         return V       
     
+
+
+σx = np.array([[0.0, 1.0], [1.0, 0.0]])
+σz = np.array([[1.0, 0.0], [0.0, -1.0]])
+σy = -1j * σz @ σx
+
+
+def random_Pauli():
+    r = np.random.rand(2)
+    θ = (2*r[0]-1) * np.pi
+    ϕ = r[1] * np.pi
+    return cos(ϕ) * (cos(θ) * σx + sin(θ) * σy) + sin(ϕ) * σz

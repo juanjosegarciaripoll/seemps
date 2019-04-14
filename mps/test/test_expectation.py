@@ -2,6 +2,7 @@
 import unittest
 import mps.state
 from mps.expectation import *
+from mps.test.tools import *
 
 def bit2state(b):
     if b:
@@ -32,7 +33,7 @@ class TestExpectation(unittest.TestCase):
                 ϕmps = mps.state.product(map(bit2state, bits[-nbits:]))
                 self.assertEqual(proj, scprod(ϕmps, ψmps))
 
-    def test_norm_random(self):
+    def test_norm_standard(self):
         #
         # Test the norm on our sample states
         for nbits in range(1, 8):
@@ -45,6 +46,7 @@ class TestExpectation(unittest.TestCase):
             self.assertAlmostEqual(mps.state.AKLT(nbits).norm2(),
                                    1.0, places=10)
         
+    def test_norm_random(self):
         # Test that the norm works on random states
         for nbits in range(1,8):
             for _ in range(10):
@@ -52,24 +54,24 @@ class TestExpectation(unittest.TestCase):
                 ψmps = mps.state.random(2, nbits, 2)
                 ψwave = ψmps.tovector()
                 self.assertAlmostEqual(ψmps.norm2(), np.vdot(ψwave,ψwave))
-    
-    def test_expected1_density(self):
-        def random_wavefunction(n):
-            ψ = np.random.rand(n) - 0.5
-            return ψ / np.linalg.norm(ψ)
-        
-        O = np.array([[0,0],[0,1]])
-        
+
+    def test_expected1_standard(self):
+        O = np.array([[0,0],[0,1]])      
         for nbits in range(1,8):
             ψGHZ = mps.state.GHZ(nbits)
             ψW = mps.state.W(nbits)
             for i in range(nbits):
                 self.assertAlmostEqual(ψGHZ.expectation1(O,i), 0.5)
                 self.assertAlmostEqual(ψW.expectation1(O,i), 1/nbits)
-
+    
+    def test_expected1_density(self):
+        def random_wavefunction(n):
+            ψ = np.random.rand(n) - 0.5
+            return ψ / np.linalg.norm(ψ)
         #
         # When we create a spin wave, 'O' detects the density of the
         # wave with the right magnitude
+        O = np.array([[0,0],[0,1]])
         for nbits in range(2,14):
             for _ in range(10):
                 # We create a random MPS
@@ -82,3 +84,24 @@ class TestExpectation(unittest.TestCase):
                     xi = ψmps.expectation1(O, i)
                     self.assertEqual(si, xi)
                     self.assertAlmostEqual(ni[i], si)
+
+    def test_expected2_GHZ(self):
+        σz = np.array([[1,0],[0,-1]])      
+        for nbits in range(2,8):
+            ψGHZ = mps.state.GHZ(nbits)
+            for i in range(nbits-1):
+                self.assertAlmostEqual(ψGHZ.expectation2(σz,σz,i), 1)
+    
+    def test_expected2(self):
+        O1 = np.array([[0.3,1.0+0.2j],[1.0-0.2j,0.5]])
+        O2 = np.array([[0.34,0.4-0.7j],[0.4+0.7j,-0.6]])
+        O1 = np.array([[0,1],[1,0]])
+        O2 = np.eye(2)
+        def expected2_ok(ϕ):
+            for n in range(1, ϕ.size):
+                ψ = ϕ.copy()
+                ψ[n-1] = np.einsum('ij,kjl->kil', O1, ψ[n-1])
+                ψ[n]   = np.einsum('ij,kjl->kil', O2, ψ[n])
+                desired= mps.expectation.scprod(ϕ, ψ)/mps.expectation.scprod(ϕ,ϕ)
+                self.assertAlmostEqual(desired, expectation2_non_canonical(ϕ, O1, O2, n-1))
+        test_over_random_mps(expected2_ok)
