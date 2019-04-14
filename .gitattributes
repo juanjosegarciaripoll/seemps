@@ -1,2 +1,4 @@
 * -text
+*.ipynb filter="dropoutput_ipynb"
+
 
