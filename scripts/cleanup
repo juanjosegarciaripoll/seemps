@@ -1,0 +1,5 @@
+#!/bin/sh
+for i in *.ipynb; do
+  python ./scripts/ipynb_output_filter.py < "%%i" > foo.txt && mv foo.txt "%%i"
+done
+
