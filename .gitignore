@@ -105,3 +105,4 @@ venv.bak/
 
 # our own generated files
 exportnb.py
+ipynb_output_filter
