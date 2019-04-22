@@ -334,6 +334,16 @@ def random(d, N, D=1):
     return MPS(mps)
 
 
+def gaussian(n, x0, w0, k0, mps=True):
+    #
+    # Return a W state with `n` components in MPS form or
+    # in vector form
+    #
+    xx = np.arange(n, dtype=complex)
+    coefs = np.exp(-(xx-x0)**2 / w0**2 + 1j * k0*xx, dtype=complex)
+    return wavepacket(coefs / np.linalg.norm(coefs))
+
+
 def _ortho_right(A, tol):
     α, i, β = A.shape
     U, s, V = np.linalg.svd(np.reshape(A, (α*i, β)), full_matrices=False)
