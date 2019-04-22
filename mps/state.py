@@ -424,17 +424,17 @@ def _update_in_canonical_form_2site(Ψ, AA, site, direction, tolerance):
     tolerance = truncation tolerance for the singular values 
     (see _truncate_vector in File 1a - MPS class)           
     """
+
     if direction<0:
         AC, A = right_orth_2site(AA,tolerance)
-        Ψ.center -= 1 
+        Ψ.center = site - 1 
     else:
         A, AC = left_orth_2site(AA,tolerance)
-        Ψ.center += 1
+        Ψ.center = site + 1
         
     Ψ[site] = A
                 
-    Ψ.update_canonical(AC, direction, tolerance=tolerance)
-        
+    return _update_in_canonical_form(Ψ, AC, Ψ.center, direction, tolerance)
     
 
 
