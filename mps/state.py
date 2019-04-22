@@ -362,8 +362,19 @@ def _ortho_left(A, tol):
 
 def _update_in_canonical_form(Ψ, A, site, direction, tolerance):
     """Insert a tensor in canonical form into the MPS Ψ at the given site.
-    Update the neighboring sites in the process."""
-
+    Update the neighboring sites in the process.
+    
+    Arguments:
+    ----------
+    Ψ = MPS in CanonicalMPS form
+    A = tensor to be orthonormalized and inserted at "site" of MPS 
+    site = the index of the site with respect to which 
+    orthonormalization is carried out
+    direction = if greater (less) than zero right (left) orthonormalization
+    is carried out
+    tolerance = truncation tolerance for the singular values 
+    (see _truncate_vector in File 1a - MPS class)           
+    """
     if direction > 0:
         if site+1 == Ψ.size:
             Ψ[site] = A
@@ -491,6 +502,16 @@ class CanonicalMPS(MPS):
         self.center = _update_in_canonical_form_2site(self, AA, self.center,
                                                 direction, tolerance)
     
+    def update_tensor(self, A, direction):
+        """Insert a tensor, A, which is already in canonical form, 
+        at site `center`. Move `center` to the next site on the left 
+        or right, depending on the direction."""
+        self[self.center] = A
+        if direction > 0 and self.center+1 != self.size:
+            self.center += 1
+        if direction < 0 and self.center != 0:
+            self.center -= 1  
+            
     def _interpret_center(self, center):
         """Converts `center` into an integer between [0,size-1], with the
         convention that -1 = size-1, -2 = size-2, etc. Trows an exception of
