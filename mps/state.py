@@ -483,9 +483,9 @@ class CanonicalMPS(MPS):
         A = self._data[self.center]
         return np.vdot(A, np.einsum('ij,ajb->aib', operator, A))/np.vdot(A,A)
 
-    def update_canonical(self, A, direction):
+    def update_canonical(self, A, direction, tolerance=DEFAULT_TOLERANCE):
         self.center = _update_in_canonical_form(self, A, self.center,
-                                                direction)
+                                                direction, tolerance)
         
     def update_canonical_2site(self, AA, direction, tolerance=DEFAULT_TOLERANCE):
         self.center = _update_in_canonical_form_2site(self, AA, self.center,
