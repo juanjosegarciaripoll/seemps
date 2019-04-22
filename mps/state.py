@@ -387,6 +387,56 @@ def _canonicalize(Ψ, center, tolerance):
     for i in range(Ψ.size-1, center, -1):
         _update_in_canonical_form(Ψ, Ψ[i], i, -1, tolerance)
 
+def left_orth_2site(AA,tol):
+    α, d1, d2, β = AA.shape
+    Ψ = np.reshape(AA, (α*d1, β*d2))
+    U, S, V = np.linalg.svd(Ψ, full_matrices=False)
+    S = _truncate_vector(S, tolerance=tol)
+    D = S.size
+    A = np.reshape(U[:,:D], (α, d1, D))
+    AC = np.reshape( np.reshape(S, (D,1)) * V[:D,:], (D,d2,β) )
+    return A,AC
+    
+def right_orth_2site(AA,tol):
+    α, d1, d2, β = AA.shape
+    Ψ = np.reshape(AA, (α*d1, β*d2))
+    U, S, V = np.linalg.svd(Ψ, full_matrices=False)
+    S = _truncate_vector(S, tolerance=tol)
+    D = S.size    
+    AC = np.reshape(U[:,:D] * np.reshape(S, (1, D)), (α, d1, D))
+    A = np.reshape(V[:D,:], (D,d2,β))
+    return A, AC
+
+def _update_in_canonical_form_2site(Ψ, AA, site, direction, tolerance):
+    """Split a two-site tensor into two one-site tensors by 
+    left/right orthonormalization and insert the tensor in 
+    canonical form into the MPS Ψ at the given site and the site
+    on its left/right. Update the neighboring sites in the process.
+    
+    Arguments:
+    ----------
+    Ψ = MPS in CanonicalMPS form
+    AA = two-site tensor to be split by orthonormalization
+    site = the index of the site with respect to which 
+    orthonormalization is carried out
+    direction = if greater (less) than zero right (left) orthonormalization
+    is carried out
+    tolerance = truncation tolerance for the singular values 
+    (see _truncate_vector in File 1a - MPS class)           
+    """
+    if direction<0:
+        AC, A = right_orth_2site(AA,tolerance)
+        Ψ.center -= 1 
+    else:
+        A, AC = left_orth_2site(AA,tolerance)
+        Ψ.center += 1
+        
+    Ψ[site] = A
+                
+    Ψ.update_canonical(AC, direction, tolerance=tolerance)
+        
+    
+
 
 class CanonicalMPS(MPS):
     """Canonical MPS class.
@@ -436,6 +486,10 @@ class CanonicalMPS(MPS):
     def update_canonical(self, A, direction):
         self.center = _update_in_canonical_form(self, A, self.center,
                                                 direction)
+        
+    def update_canonical_2site(self, AA, direction, tolerance=DEFAULT_TOLERANCE):
+        self.center = _update_in_canonical_form_2site(self, AA, self.center,
+                                                direction, tolerance)
     
     def _interpret_center(self, center):
         """Converts `center` into an integer between [0,size-1], with the
