@@ -437,7 +437,7 @@ def _update_in_canonical_form_2site(Ψ, AA, site, direction, tolerance):
     """
 
     if direction<0:
-        AC, A = right_orth_2site(AA,tolerance)
+        A, AC = right_orth_2site(AA,tolerance)
         Ψ.center = site - 1 
     else:
         A, AC = left_orth_2site(AA,tolerance)
@@ -501,17 +501,7 @@ class CanonicalMPS(MPS):
     def update_canonical_2site(self, AA, direction, tolerance=DEFAULT_TOLERANCE):
         self.center = _update_in_canonical_form_2site(self, AA, self.center,
                                                 direction, tolerance)
-    
-    def update_tensor(self, A, direction):
-        """Insert a tensor, A, which is already in canonical form, 
-        at site `center`. Move `center` to the next site on the left 
-        or right, depending on the direction."""
-        self[self.center] = A
-        if direction > 0 and self.center+1 != self.size:
-            self.center += 1
-        if direction < 0 and self.center != 0:
-            self.center -= 1  
-            
+               
     def _interpret_center(self, center):
         """Converts `center` into an integer between [0,size-1], with the
         convention that -1 = size-1, -2 = size-2, etc. Trows an exception of
