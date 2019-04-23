@@ -28,6 +28,7 @@ def approximateIsometry(A, direction, places=7):
         A = np.reshape(A, (b, i*a))
         C = A @ A.T.conj()
     return almostIdentity(C)
+
 import mps.state
 
 
