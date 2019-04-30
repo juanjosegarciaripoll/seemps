@@ -101,7 +101,10 @@ class ConstantNNHamiltonian(NNHamiltonian):
         #
         # Return the dimension of the local Hilbert space
         #
-        return self.int_left[ndx][0].shape[0]
+        if ndx == self.size -1:
+            return self.int_right[ndx-1][0].shape[0]
+        else:
+            return self.int_left[ndx][0].shape[0]
     
     def interaction_term(self, ndx, t=0.0):
         #
@@ -193,7 +196,7 @@ def TEBD_sweep(H, ψ, δt, dr, evenodd, tol=0):
     if dr < 0:
         for j in range(ψ.size-2, -1, -2):
             print(ψ.center)
-            update_two_site(j - 1, dr)
+            update_two_site(j, dr)
     else:
         for j in range(0, ψ.size-1, +2):
             print(ψ.center)

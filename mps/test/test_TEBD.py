@@ -72,5 +72,40 @@ class TestTEBD_sweep(unittest.TestCase):
         self.assertTrue(similar(abs(mps.state.wavepacket(ψwave_final).tovector()), 
                                 abs(ψmps_final.tovector())))
      
+    
+    def test_left_sweep(self):
+        #
+        # We verify the truncation procedure does not change the resulting state. 
+        # We evolve the mps only through one sweep to eliminate the error due to 
+        # non-commuting terms in the Hamiltonian. We compare the TEBD results with 
+        # exact diagonalization results.
+        #
+        # Note that there is a phase difference between the two wavefunctions.
+        # However absolute values of the corresponding coefficients are equal 
+        # as the test verifies.
+        #                
+        dt = 1
+        ψwave = random_wavefunction(N)
+        ψmps = CanonicalMPS(mps.state.wavepacket(ψwave), center=N-1)
+        # We use the tight-binding Hamiltonian
+                
+        H=TINNHamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
+                            [t * annihilation_op(2) , t * creation_op(2)], 
+                            [creation_op(2), annihilation_op(2)])
+        
+  
+        ψmps_final = TEBD_sweep(H, ψmps, dt, -1, 0, tol=DEFAULT_TOLERANCE)
+        Hmat = sp.diags([[0,t]*(N//2), ω, [0,t]*(N//2)],
+                  offsets=[-1,0,+1],
+                  shape=(N,N),
+                  dtype=np.complex128)
+        ψwave_final = sp.linalg.expm_multiply(-1j * dt * Hmat, ψwave)
+        print(abs(mps.state.wavepacket(ψwave_final).tovector()))
+        print(abs(ψmps_final.tovector()))
+        print(np.vdot(abs(mps.state.wavepacket(ψwave_final).tovector()), abs(ψmps_final.tovector())))
+        
+        self.assertTrue(similar(abs(mps.state.wavepacket(ψwave_final).tovector()), 
+                                abs(ψmps_final.tovector())))
+     
 
 
