@@ -26,10 +26,10 @@ class NNHamiltonian(object):
         # of a given size, initially empty.
         #
         self.size = size
-
-    def local_term(self, ndx, t=0.0):
+        
+    def dimensions(self, ndx, t=0.0):
         #
-        # Return the local term acting on the ndx site.
+        # Return the dimension of the local Hilbert space
         #
         return 0
     
@@ -39,34 +39,30 @@ class NNHamiltonian(object):
         #
         return 0
 
-class TINNHamiltonian(NNHamiltonian):
+def _compute_interaction_term(H, ndx, t=0.0):
+    """Computes the interaction term between site ndx and ndx+1, including the local terms 
+    for the two sites
     
-    def __init__(self, local_term, intL, intR):
-        #
-        # Create a nearest-neighbor interaction Hamiltonian with fixed
-        # local terms and interactions.
-        #
-        #  - local_term: operator acting on every site
-        #  - int_left: list of L (applied to site ndx) operators
-        #  - int_right: list of R (applied to site ndx + 1) operators
-        #  - interaction: kronecker product of corresponding L and R pairs
-        #
-        self.local = local_term
-        self.int_left = intL
-        self.int_right = intR
-        self.interaction = np.array([np.kron(L,R) for L,R in zip(intL, intR)]).sum(axis = 0)
+    Arguments:
+    H = NNHamiltonian
+    ndx = site index
+    """
+    if isinstance(H.local_terms[ndx], np.ndarray ):            
+        if ndx == 0:
+            H.interactions[ndx] +=  np.kron(H.local_terms[ndx],
+                                               np.eye(H.int_right[ndx][0].shape[0]))
+        else:
+            H.interactions[ndx] +=  0.5 * np.kron(H.local_terms[ndx],
+                                                     np.eye(H.int_right[ndx][0].shape[0]))
+    if isinstance(H.local_terms[ndx+1], np.ndarray ):            
+        if ndx == H.size-2:
+            H.interactions[ndx] +=  np.kron(np.eye(H.int_left[ndx][0].shape[0]),
+                                               H.local_terms[ndx+1])
+        else:
+            H.interactions[ndx] +=  0.5 * np.kron(np.eye(H.int_left[ndx][0].shape[0]),
+                                                     H.local_terms[ndx+1])
 
-    def local_term(self, ndx, t=0.0):
-        #
-        # Return the local term acting on the ndx site.
-        #
-        return self.local
-    
-    def interaction_term(self, ndx, t=0.0):
-        #
-        # Return the interaction between sites (ndx,ndx+1)
-        #
-        return self.interaction
+    return H.interactions[ndx]
 
 class ConstantNNHamiltonian(NNHamiltonian):
     
@@ -78,6 +74,7 @@ class ConstantNNHamiltonian(NNHamiltonian):
         #  - local_term: operators acting on each site (can be different for each site)
         #  - int_left, int_right: list of L and R operators (can be different for each site)
         #
+        self.size = size
         self.local_terms = [0] * size
         self.int_left = [[]] * (size-1)
         self.int_right = [[]] * (size-1)
@@ -91,7 +88,7 @@ class ConstantNNHamiltonian(NNHamiltonian):
 
     def add_interaction_term(self, ndx, L, R):
         #
-        # Add an interaction term $L \otimes R$ acting on site 'ndx'
+        # Add an interaction term $L \otimes R$ acting on sites 'ndx' and 'ndx+1'
         #
         # Add to int_left, int_right
         #
@@ -99,18 +96,47 @@ class ConstantNNHamiltonian(NNHamiltonian):
         self.int_left[ndx].append(L)
         self.int_right[ndx].append(R)
         self.interactions[ndx] += np.kron(L,R)
+        
+    def dimensions(self, ndx, t=0.0):
+        #
+        # Return the dimension of the local Hilbert space
+        #
+        return self.int_left[ndx][0].shape[0]
+    
+    def interaction_term(self, ndx, t=0.0):
+        #
+        # Return the interaction between sites (ndx,ndx+1) including the corresponding local terms.
+        #
+        return _compute_interaction_term(self, ndx, t=0.0)
 
-    def local_term(self, ndx, t=0.0):
+class TINNHamiltonian(ConstantNNHamiltonian):
+    
+    def __init__(self, size, local_term, intL, intR):
         #
-        # Return the local term acting on the ndx site.
+        # Create a constant nearest-neighbor interaction Hamiltonian with fixed
+        # local terms and interactions.
         #
-        return self.local_terms[ndx]
+        #  - local_term: operator acting on every site
+        #  - int_left: list of L (applied to site ndx) operators
+        #  - int_right: list of R (applied to site ndx + 1) operators
+        #  - interaction: kronecker product of corresponding L and R pairs
+        #
+        self.size = size
+        self.local_terms = [local_term] * size
+        self.int_left = [[]] * (size-1)
+        self.int_right = [[]] * (size-1)
+        self.intL = intL
+        self.intR = intR
+        self.interactions = [0] * (size-1)
     
     def interaction_term(self, ndx, t=0.0):
         #
         # Return the interaction between sites (ndx,ndx+1)
         #
-        return self.interactions[ndx]
+        for L,R in zip(self.intL, self.intR):
+            self.add_interaction_term(ndx, L, R)
+               
+        return _compute_interaction_term(self, ndx, t=0.0)
 
 class Trotter_unitaries(object):
     """"Create Trotter unitarities from a nearest-neighbor interaction Hamiltonian.
@@ -118,45 +144,27 @@ class Trotter_unitaries(object):
     Attributes:
     H = NNHamiltonian
     δt = Time step
-    evenodd = 0, 1 depending on Trotter step
     """
 
     def __init__(self, H, δt):
         self.H = H
         self.δt = δt
-        self.tensors = []
-        
-    def local_unitary(self, start):
-        """Creates one-site exponentials from local H terms,
-        they are applied to first and last sites depending on evenodd value"""
-        Hloc = self.H.local_term(start)
-        U = scipy.linalg.expm(-1j * self.δt * 0.5 * Hloc)
-        return U
-        
+                
     def twosite_unitary(self, start):
         """Creates twp-site exponentials from interaction H terms"""
-        Hloc1 = self.H.local_term(start)
-        Hloc2 = self.H.local_term(start+1)
-        H12 = self.H.interaction_term(start) + \
-              0.5 * (np.kron(Hloc1, np.eye(Hloc2.shape[0])) + \
-                     np.kron(np.eye(Hloc1.shape[0]), Hloc2))
-        U = scipy.linalg.expm(-1j * self.δt * H12)
-        U = U.reshape(Hloc1.shape[0],Hloc2.shape[0],Hloc1.shape[0],Hloc2.shape[0])
+        U = scipy.linalg.expm(-1j * self.δt * self.H.interaction_term(start))
+        U = U.reshape(self.H.dimensions(start),self.H.dimensions(start+1),
+                      self.H.dimensions(start),self.H.dimensions(start+1))
         return U
     
     
-
-    
-
-def apply_1siteTrotter(U, ψ, start):
-    return np.einsum("ijk,mj -> imk ", ψ[start], U)
 
 def apply_2siteTrotter(U, ψ, start):
     return np.einsum('ijk,klm,prjl -> iprm', ψ[start],
                      ψ[start+1], U)
 
 
-def TEBD_sweep(H, ψ, δt, evenodd, tol=0):
+def TEBD_sweep(H, ψ, δt, dr, evenodd, tol=0):
     #
     # Apply a TEBD sweep by evolving with the pairwise Trotter Hamiltonian
     # starting from left/rightmost site and moving on the 'direction' (>0 right,
@@ -168,49 +176,28 @@ def TEBD_sweep(H, ψ, δt, evenodd, tol=0):
     # - evenodd: 0, 1 depending on Trotter step
     # - direction: where to move
     #
-    Trotter = Trotter_unitaries(H, δt)
-    def update_local_site(start, dr):
-        # Apply local exponential and move
-        A = apply_1siteTrotter(Trotter.local_unitary(start) , ψ, start)
-        ψ.update_canonical(A, dr, tolerance=tol)
-        
+    Trotter = Trotter_unitaries(H, δt)        
     def update_two_site(start, dr):
         # Apply combined local and interaction exponential and move
+        if start == 0:
+            dr = +1
+        elif start == (ψ.size-2):
+            dr = -1
         AA = apply_2siteTrotter(Trotter.twosite_unitary(start) , ψ, start)
         ψ.update_canonical_2site(AA, dr, tolerance=tol)
 
-
-    if ψ.center == 0:
-        # Move rightwards
-        dr = +1
-    else:
-        # Move leftwards
-        dr = -1
-    
     #
     # Loop over ψ, updating pairs of sites acting with the unitary operator
     # made of the interaction and 0.5 times the local terms
     #
     if dr < 0:
-        j = ψ.size - 1
-        if j%2 == evenodd:
-            update_local_site(j, dr)
-            j -= 1
-        while j > 0:
+        for j in range(ψ.size-2, -1, -2):
+            print(ψ.center)
             update_two_site(j - 1, dr)
-            j -= 2
-        if j == 0:
-            update_local_site(j, dr)
     else:
-        j = 0
-        if j != evenodd:
-            update_local_site(j, dr)
-            j += 1
-        while j < ψ.size - 1:
-            update_two_site(j, dr)
-            j += 2
-        if j == ψ.size - 1:
-            update_local_site(j, dr)            
+        for j in range(0, ψ.size-1, +2):
+            print(ψ.center)
+            update_two_site(j, dr)        
             
     return ψ
 
