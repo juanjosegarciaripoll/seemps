@@ -7,7 +7,7 @@ import scipy.sparse as sp
 
 N = 5
 t = np.pi/5
-ω = 0
+ω = np.pi
         
 def random_wavefunction(n):
     ψ = np.random.rand(n) - 0.5

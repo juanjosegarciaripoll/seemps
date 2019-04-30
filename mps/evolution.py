@@ -27,7 +27,7 @@ class NNHamiltonian(object):
         #
         self.size = size
         
-    def dimensions(self, ndx, t=0.0):
+    def dimension(self, ndx, t=0.0):
         #
         # Return the dimension of the local Hilbert space
         #
@@ -50,16 +50,16 @@ def _compute_interaction_term(H, ndx, t=0.0):
     if isinstance(H.local_terms[ndx], np.ndarray ):            
         if ndx == 0:
             H.interactions[ndx] +=  np.kron(H.local_terms[ndx],
-                                               np.eye(H.int_right[ndx][0].shape[0]))
+                                               np.eye(H.dimension(ndx+1)))
         else:
             H.interactions[ndx] +=  0.5 * np.kron(H.local_terms[ndx],
-                                                     np.eye(H.int_right[ndx][0].shape[0]))
+                                                     np.eye(H.dimension(ndx+1)))
     if isinstance(H.local_terms[ndx+1], np.ndarray ):            
         if ndx == H.size-2:
-            H.interactions[ndx] +=  np.kron(np.eye(H.int_left[ndx][0].shape[0]),
+            H.interactions[ndx] +=  np.kron(np.eye(H.dimension(ndx)),
                                                H.local_terms[ndx+1])
         else:
-            H.interactions[ndx] +=  0.5 * np.kron(np.eye(H.int_left[ndx][0].shape[0]),
+            H.interactions[ndx] +=  0.5 * np.kron(np.eye(H.dimension(ndx)),
                                                      H.local_terms[ndx+1])
 
     return H.interactions[ndx]
@@ -97,7 +97,7 @@ class ConstantNNHamiltonian(NNHamiltonian):
         self.int_right[ndx].append(R)
         self.interactions[ndx] += np.kron(L,R)
         
-    def dimensions(self, ndx, t=0.0):
+    def dimension(self, ndx, t=0.0):
         #
         # Return the dimension of the local Hilbert space
         #
@@ -156,8 +156,8 @@ class Trotter_unitaries(object):
     def twosite_unitary(self, start):
         """Creates twp-site exponentials from interaction H terms"""
         U = scipy.linalg.expm(-1j * self.δt * self.H.interaction_term(start))
-        U = U.reshape(self.H.dimensions(start),self.H.dimensions(start+1),
-                      self.H.dimensions(start),self.H.dimensions(start+1))
+        U = U.reshape(self.H.dimension(start),self.H.dimension(start+1),
+                      self.H.dimension(start),self.H.dimension(start+1))
         return U
     
     
