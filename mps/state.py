@@ -444,7 +444,7 @@ def _update_in_canonical_form_2site(Ψ, AA, site, direction, tolerance):
         Ψ.center = site + 1
         
     Ψ[site] = A
-                
+    
     return _update_in_canonical_form(Ψ, AC, Ψ.center, direction, tolerance)
     
 

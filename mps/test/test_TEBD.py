@@ -5,9 +5,9 @@ from mps.evolution import *
 from mps.test.tools import *
 import scipy.sparse as sp
 
-N = 5
-t = np.pi/5
-ω = np.pi
+N = 4
+t = 1
+ω = 0
         
 def random_wavefunction(n):
     ψ = np.random.rand(n) - 0.5

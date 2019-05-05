@@ -106,11 +106,11 @@ class ConstantNNHamiltonian(NNHamiltonian):
         else:
             return self.int_left[ndx][0].shape[0]
     
-    def interaction_term(self, ndx, t=0.0):
+    #def interaction_term(self, ndx, t=0.0):
         #
         # Return the interaction between sites (ndx,ndx+1) including the corresponding local terms.
         #
-        return _compute_interaction_term(self, ndx, t=0.0)
+        #return _compute_interaction_term(self, ndx, t=0.0)
 
 class TINNHamiltonian(ConstantNNHamiltonian):
     
@@ -136,10 +136,15 @@ class TINNHamiltonian(ConstantNNHamiltonian):
         #
         # Return the interaction between sites (ndx,ndx+1)
         #
-        for L,R in zip(self.intL, self.intR):
-            self.add_interaction_term(ndx, L, R)
+        if isinstance(self.interactions[ndx], np.ndarray):
+            return self.interactions[ndx]
+        
+        else:
+            for L,R in zip(self.intL, self.intR):
+                self.add_interaction_term(ndx, L, R)
                
-        return _compute_interaction_term(self, ndx, t=0.0)
+            return _compute_interaction_term(self, ndx, t=0.0)
+        
 
 class Trotter_unitaries(object):
     """"Create Trotter unitarities from a nearest-neighbor interaction Hamiltonian.
@@ -182,10 +187,6 @@ def TEBD_sweep(H, ψ, δt, dr, evenodd, tol=0):
     Trotter = Trotter_unitaries(H, δt)        
     def update_two_site(start, dr):
         # Apply combined local and interaction exponential and move
-        if start == 0:
-            dr = +1
-        elif start == (ψ.size-2):
-            dr = -1
         AA = apply_2siteTrotter(Trotter.twosite_unitary(start) , ψ, start)
         ψ.update_canonical_2site(AA, dr, tolerance=tol)
 
