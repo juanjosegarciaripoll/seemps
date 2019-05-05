@@ -5,7 +5,7 @@ from mps.evolution import *
 from mps.test.tools import *
 import scipy.sparse as sp
 
-N = 4
+N = 5
 t = 1
 ω = 0
         

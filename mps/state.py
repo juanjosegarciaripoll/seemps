@@ -418,7 +418,7 @@ def right_orth_2site(AA,tol):
     A = np.reshape(V[:D,:], (D,d2,β))
     return A, AC
 
-def _update_in_canonical_form_2site(Ψ, AA, site, direction, tolerance):
+def _update_in_canonical_form_2site(Ψ, AA, leftsite, rightsite, direction, tolerance):
     """Split a two-site tensor into two one-site tensors by 
     left/right orthonormalization and insert the tensor in 
     canonical form into the MPS Ψ at the given site and the site
@@ -437,15 +437,11 @@ def _update_in_canonical_form_2site(Ψ, AA, site, direction, tolerance):
     """
 
     if direction<0:
-        A, AC = right_orth_2site(AA,tolerance)
-        Ψ.center = site - 1 
+        Ψ[rightsite], Ψ[leftsite] = right_orth_2site(AA,tolerance)
     else:
-        A, AC = left_orth_2site(AA,tolerance)
-        Ψ.center = site + 1
-        
-    Ψ[site] = A
-    
-    return _update_in_canonical_form(Ψ, AC, Ψ.center, direction, tolerance)
+        Ψ[leftsite], Ψ[rightsite] = left_orth_2site(AA,tolerance)
+            
+    return _update_in_canonical_form(Ψ, Ψ[Ψ.center], Ψ.center, direction, tolerance)
     
 
 
@@ -498,8 +494,8 @@ class CanonicalMPS(MPS):
         self.center = _update_in_canonical_form(self, A, self.center,
                                                 direction, tolerance)
         
-    def update_canonical_2site(self, AA, direction, tolerance=DEFAULT_TOLERANCE):
-        self.center = _update_in_canonical_form_2site(self, AA, self.center,
+    def update_canonical_2site(self, AA, start, nextsite, direction, tolerance=DEFAULT_TOLERANCE):
+        self.center = _update_in_canonical_form_2site(self, AA, start, nextsite,
                                                 direction, tolerance)
                
     def _interpret_center(self, center):

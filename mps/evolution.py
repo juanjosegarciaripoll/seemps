@@ -185,10 +185,15 @@ def TEBD_sweep(H, ψ, δt, dr, evenodd, tol=0):
     # - direction: where to move
     #
     Trotter = Trotter_unitaries(H, δt)        
-    def update_two_site(start, dr):
+    def update_two_site(start, nextsite, dr):
         # Apply combined local and interaction exponential and move
+        ψ.center = ψ.center + dr
+        if start == 0:
+            dr = +1
+        elif start == (ψ.size-2):
+            dr = -1
         AA = apply_2siteTrotter(Trotter.twosite_unitary(start) , ψ, start)
-        ψ.update_canonical_2site(AA, dr, tolerance=tol)
+        ψ.update_canonical_2site(AA, start, nextsite, dr, tolerance=tol)
 
     #
     # Loop over ψ, updating pairs of sites acting with the unitary operator
@@ -197,11 +202,11 @@ def TEBD_sweep(H, ψ, δt, dr, evenodd, tol=0):
     if dr < 0:
         for j in range(ψ.size-2, -1, -2):
             print(ψ.center)
-            update_two_site(j, dr)
+            update_two_site(j, j+1, dr)
     else:
         for j in range(0, ψ.size-1, +2):
             print(ψ.center)
-            update_two_site(j, dr)        
+            update_two_site(j, j+1, dr)        
             
     return ψ
 
