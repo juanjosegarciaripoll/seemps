@@ -200,17 +200,11 @@ def TEBD_sweep(H, ψ, δt, dr, evenodd, tol=0):
     # made of the interaction and 0.5 times the local terms
     #
     if dr < 0:
-        print("evenodd:")
-        print(evenodd)
         if ψ.size%2 == evenodd:
             start = ψ.size -1
         else:
             start = ψ.size -2
         for j in range(start, 0, -2):
-            print("leftsite:")
-            print(j-1)
-            print("rightsite:")
-            print(j)
             update_two_site(j-1, j, dr)
     else:
         start = 0 + evenodd

@@ -93,8 +93,8 @@ class TestTEBD_sweep(unittest.TestCase):
         # However absolute values of the corresponding coefficients are equal 
         # as the test verifies.
         #       
-        N = 4
-        t = 1
+        N = 5
+        t = 0.1
         ω = 0.5
         dt = 1
         ψwave = random_wavefunction(N)
@@ -115,25 +115,37 @@ class TestTEBD_sweep(unittest.TestCase):
         self.assertTrue(similar(abs(mps.state.wavepacket(ψwave_final).tovector()), 
                                 abs(ψmps_final.tovector())))
      
-        # Test for evenodd = 1        
-        H=TINNHamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
+        
+        
+    def test_TEBD_evolution(self):
+        #
+        #
+        #
+        N = 20
+        t = 0.1
+        ω = 0.5
+        dt = 1e-5
+        Nt = int(10)
+        ψwave = random_wavefunction(N)
+        ψmps = CanonicalMPS(mps.state.wavepacket(ψwave))
+        # We use the tight-binding Hamiltonian
+        H = TINNHamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
                             [t * annihilation_op(2) , t * creation_op(2)], 
                             [creation_op(2), annihilation_op(2)])
+        for i in range(Nt):
+            
+            ψmps = TEBD_sweep(H, ψmps, dt, 1, 0, tol=DEFAULT_TOLERANCE)
+            ψmps = TEBD_sweep(H, ψmps, dt, -1, 1, tol=DEFAULT_TOLERANCE)
         
-  
-        ψmps_final = TEBD_sweep(H, ψmps, dt, -1, 1, tol=DEFAULT_TOLERANCE)
-        Hmat = sp.diags([[t,0]*(N//2), [ω]+[ω/2]*(N-2)+[ω], [t,0]*(N//2)],
+        Hmat = sp.diags([[t,0]*(N//2), ω, [t,0]*(N//2)],
                   offsets=[-1,0,+1],
                   shape=(N,N),
                   dtype=np.complex128)
-        ψwave_final = sp.linalg.expm_multiply(-1j * dt * Hmat, ψwave)
-        print(abs(mps.state.wavepacket(ψwave_final).tovector()))
-        print(abs(ψmps_final.tovector()))
-        print(np.vdot(abs(mps.state.wavepacket(ψwave_final).tovector()), abs(ψmps_final.tovector())))
+        ψwave_final = sp.linalg.expm_multiply(-1j * dt*Nt * Hmat, ψwave)
         
         self.assertTrue(similar(abs(mps.state.wavepacket(ψwave_final).tovector()), 
-                                abs(ψmps_final.tovector())))
-     
+                                abs(ψmps.tovector())))
+                
 
 
-
+    
