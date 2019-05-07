@@ -1,6 +1,7 @@
 
 import numpy as np
 import scipy.linalg
+from numbers import Number
 from mps.state import _truncate_vector
 
 σz = np.diag([1.0,-1.0])
@@ -27,7 +28,7 @@ class NNHamiltonian(object):
         #
         self.size = size
         
-    def dimension(self, ndx, t=0.0):
+    def dimension(self, ndx):
         #
         # Return the dimension of the local Hilbert space
         #
@@ -64,9 +65,10 @@ def _compute_interaction_term(H, ndx, t=0.0):
 
     return H.interactions[ndx]
 
+
 class ConstantNNHamiltonian(NNHamiltonian):
-    
-    def __init__(self, size):
+
+    def __init__(self, size, dimension):
         #
         # Create a nearest-neighbor interaction Hamiltonian with fixed
         # local terms and interactions.
@@ -75,16 +77,23 @@ class ConstantNNHamiltonian(NNHamiltonian):
         #  - int_left, int_right: list of L and R operators (can be different for each site)
         #
         self.size = size
-        self.local_terms = [0] * size
         self.int_left = [[]] * (size-1)
         self.int_right = [[]] * (size-1)
-        self.interactions = [0] * (size-1)
+        if isinstance(dimension, Number):
+            dimension = [dimension] * size
+        self.dimension_ = dimension
 
     def set_local_term(self, ndx, operator):
         #
         # Set the local term acting on the given site
         #
-        self.local_terms[ndx] = operator
+        if ndx == 0:
+            self.add_interaction_term(ndx, operator, np.eye(self.dimension(1)))
+        elif ndx == self.size-2:
+            self.add_interaction_term(ndx, np.eye(self.dimension(ndx)), operator)
+        else:
+            self.add_interaction_term(ndx, np.eye(self.dimension(ndx)), 0.5*operator)
+            self.add_interaction_term(ndx, 0.5*operator, np.eye(self.dimension(ndx+1)))
 
     def add_interaction_term(self, ndx, L, R):
         #
@@ -95,60 +104,49 @@ class ConstantNNHamiltonian(NNHamiltonian):
         # Update the self.interactions[ndx] term
         self.int_left[ndx].append(L)
         self.int_right[ndx].append(R)
-        self.interactions[ndx] += np.kron(L,R)
-        
-    def dimension(self, ndx, t=0.0):
-        #
-        # Return the dimension of the local Hilbert space
-        #
-        if ndx == self.size -1:
-            return self.int_right[ndx-1][0].shape[0]
-        else:
-            return self.int_left[ndx][0].shape[0]
-    
-    #def interaction_term(self, ndx, t=0.0):
-        #
-        # Return the interaction between sites (ndx,ndx+1) including the corresponding local terms.
-        #
-        #return _compute_interaction_term(self, ndx, t=0.0)
 
-class TINNHamiltonian(ConstantNNHamiltonian):
-    
-    def __init__(self, size, local_term, intL, intR):
-        #
-        # Create a constant nearest-neighbor interaction Hamiltonian with fixed
-        # local terms and interactions.
-        #
-        #  - local_term: operator acting on every site
-        #  - int_left: list of L (applied to site ndx) operators
-        #  - int_right: list of R (applied to site ndx + 1) operators
-        #  - interaction: kronecker product of corresponding L and R pairs
-        #
-        self.size = size
-        self.local_terms = [local_term] * size
-        self.int_left = [[]] * (size-1)
-        self.int_right = [[]] * (size-1)
-        self.intL = intL
-        self.intR = intR
-        self.interactions = [0] * (size-1)
-    
+    def dimension(self, ndx):
+        return self.dimension_[ndx]
+
     def interaction_term(self, ndx, t=0.0):
-        #
-        # Return the interaction between sites (ndx,ndx+1)
-        #
-        if isinstance(self.interactions[ndx], np.ndarray):
-            return self.interactions[ndx]
-        
-        else:
-            for L,R in zip(self.intL, self.intR):
-                self.add_interaction_term(ndx, L, R)
-               
-            return _compute_interaction_term(self, ndx, t=0.0)
-        
+        #for (L, R) in zip(self.int_left[ndx], self.int_right[ndx]):
+            
+        return sum([np.kron(L, R) for (L, R) in zip(self.int_left[ndx], self.int_right[ndx])])
+            
+
+def make_ti_Hamiltonian(size, intL, intR, local_term=None):
+    """Construct a translationally invariant, constant Hamiltonian with open
+    boundaries and fixed interactions.
+    
+    Arguments:
+    size        -- Number of sites in the model
+    int_left    -- list of L (applied to site ndx) operators
+    int_right   -- list of R (applied to site ndx + 1) operators
+    local_term  -- operator acting on every site (optional)
+    
+    Returns:
+    H           -- ConstantNNHamiltonian
+    """
+    if local_term is not None:
+        dimension = len(local_term)
+    else:
+        dimension = len(intL[0])
+    
+    H = ConstantNNHamiltonian(size, dimension)
+    H.local_term = local_term
+    H.intL = intL
+    H.intR = intR
+    for ndx in range(size-1):
+        for L,R in zip(H.intL, H.intR):
+            H.add_interaction_term(ndx, L, R)
+        if local_term is not None:
+            H.set_local_term(ndx, local_term)
+    return H
+
 
 class Trotter_unitaries(object):
     """"Create Trotter unitarities from a nearest-neighbor interaction Hamiltonian.
-        
+
     Attributes:
     H = NNHamiltonian
     δt = Time step
@@ -157,19 +155,16 @@ class Trotter_unitaries(object):
     def __init__(self, H, δt):
         self.H = H
         self.δt = δt
-                
+
     def twosite_unitary(self, start):
         """Creates twp-site exponentials from interaction H terms"""
         U = scipy.linalg.expm(-1j * self.δt * self.H.interaction_term(start))
-        U = U.reshape(self.H.dimension(start),self.H.dimension(start+1),
-                      self.H.dimension(start),self.H.dimension(start+1))
+        U = U.reshape(self.H.dimension(start), self.H.dimension(start+1),
+                      self.H.dimension(start), self.H.dimension(start+1))
         return U
-    
-    
 
 def apply_2siteTrotter(U, ψ, start):
-    return np.einsum('ijk,klm,prjl -> iprm', ψ[start],
-                     ψ[start+1], U)
+    return np.einsum('ijk,klm,prjl -> iprm', ψ[start], ψ[start+1], U)
 
 
 def TEBD_sweep(H, ψ, δt, dr, evenodd, tol=0):

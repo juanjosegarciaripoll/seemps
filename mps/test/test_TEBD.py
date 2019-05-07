@@ -21,7 +21,7 @@ class TestTEBD_sweep(unittest.TestCase):
         δt = 0.1
 
         def ok(Ψ):
-            H = TINNHamiltonian(Ψ.size, 0*σx, [mps.tools.random_Pauli()], [mps.tools.random_Pauli()])
+            H = make_ti_Hamiltonian(Ψ.size, [mps.tools.random_Pauli()], [mps.tools.random_Pauli()])
             Trotter = Trotter_unitaries(H, δt)
             for start in range(Ψ.size-2):
                 AA = apply_2siteTrotter(Trotter.twosite_unitary(start) , 
@@ -58,7 +58,7 @@ class TestTEBD_sweep(unittest.TestCase):
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave), center=0)
         # We use the tight-binding Hamiltonian
         # Test for evenodd = 0      
-        H=TINNHamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
+        H=make_ti_Hamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
                             [t * annihilation_op(2) , t * creation_op(2)], 
                             [creation_op(2), annihilation_op(2)])
         ψmps_final = TEBD_sweep(H, ψmps, dt, 1, 0, tol=DEFAULT_TOLERANCE)
@@ -101,7 +101,7 @@ class TestTEBD_sweep(unittest.TestCase):
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave), center=N-2)
         # We use the tight-binding Hamiltonian
         # Test for evenodd = 0        
-        H=TINNHamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
+        H=make_ti_Hamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
                             [t * annihilation_op(2) , t * creation_op(2)], 
                             [creation_op(2), annihilation_op(2)])
         
@@ -129,7 +129,7 @@ class TestTEBD_sweep(unittest.TestCase):
         ψwave = random_wavefunction(N)
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave))
         # We use the tight-binding Hamiltonian
-        H = TINNHamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
+        H = make_ti_Hamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
                             [t * annihilation_op(2) , t * creation_op(2)], 
                             [creation_op(2), annihilation_op(2)])
         for i in range(Nt):
