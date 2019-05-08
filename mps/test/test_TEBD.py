@@ -58,9 +58,9 @@ class TestTEBD_sweep(unittest.TestCase):
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave), center=0)
         # We use the tight-binding Hamiltonian
         # Test for evenodd = 0      
-        H=make_ti_Hamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
-                            [t * annihilation_op(2) , t * creation_op(2)], 
-                            [creation_op(2), annihilation_op(2)])
+        H=make_ti_Hamiltonian(N, [t * annihilation_op(2) , t * creation_op(2)], 
+                            [creation_op(2), annihilation_op(2)], 
+                              local_term=ω*creation_op(2)@ annihilation_op(2))
         ψmps_final = TEBD_sweep(H, ψmps, dt, 1, 0, tol=DEFAULT_TOLERANCE)
         Hmat = sp.diags([[t,0]*(N//2), [ω]+[ω/2]*(N-2)+[ω], [t,0]*(N//2)],
                   offsets=[-1,0,+1],
@@ -101,9 +101,9 @@ class TestTEBD_sweep(unittest.TestCase):
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave), center=N-2)
         # We use the tight-binding Hamiltonian
         # Test for evenodd = 0        
-        H=make_ti_Hamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
-                            [t * annihilation_op(2) , t * creation_op(2)], 
-                            [creation_op(2), annihilation_op(2)])
+        H=make_ti_Hamiltonian(N, [t * annihilation_op(2) , t * creation_op(2)], 
+                            [creation_op(2), annihilation_op(2)], 
+                              local_term=ω*creation_op(2)@ annihilation_op(2))
         
   
         ψmps_final = TEBD_sweep(H, ψmps, dt, -1, 0, tol=DEFAULT_TOLERANCE)
@@ -121,17 +121,17 @@ class TestTEBD_sweep(unittest.TestCase):
         #
         #
         #
-        N = 20
+        N = 19
         t = 0.1
         ω = 0.5
-        dt = 1e-5
-        Nt = int(10)
+        dt = 1e-7
+        Nt = int(100)
         ψwave = random_wavefunction(N)
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave))
         # We use the tight-binding Hamiltonian
-        H = make_ti_Hamiltonian(N, ω*creation_op(2)@ annihilation_op(2), 
-                            [t * annihilation_op(2) , t * creation_op(2)], 
-                            [creation_op(2), annihilation_op(2)])
+        H=make_ti_Hamiltonian(N, [t * annihilation_op(2) , t * creation_op(2)], 
+                            [creation_op(2), annihilation_op(2)], 
+                              local_term=ω*creation_op(2)@ annihilation_op(2))
         for i in range(Nt):
             
             ψmps = TEBD_sweep(H, ψmps, dt, 1, 0, tol=DEFAULT_TOLERANCE)

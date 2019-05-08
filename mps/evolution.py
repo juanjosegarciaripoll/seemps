@@ -40,31 +40,6 @@ class NNHamiltonian(object):
         #
         return 0
 
-def _compute_interaction_term(H, ndx, t=0.0):
-    """Computes the interaction term between site ndx and ndx+1, including the local terms 
-    for the two sites
-    
-    Arguments:
-    H = NNHamiltonian
-    ndx = site index
-    """
-    if isinstance(H.local_terms[ndx], np.ndarray ):            
-        if ndx == 0:
-            H.interactions[ndx] +=  np.kron(H.local_terms[ndx],
-                                               np.eye(H.dimension(ndx+1)))
-        else:
-            H.interactions[ndx] +=  0.5 * np.kron(H.local_terms[ndx],
-                                                     np.eye(H.dimension(ndx+1)))
-    if isinstance(H.local_terms[ndx+1], np.ndarray ):            
-        if ndx == H.size-2:
-            H.interactions[ndx] +=  np.kron(np.eye(H.dimension(ndx)),
-                                               H.local_terms[ndx+1])
-        else:
-            H.interactions[ndx] +=  0.5 * np.kron(np.eye(H.dimension(ndx)),
-                                                     H.local_terms[ndx+1])
-
-    return H.interactions[ndx]
-
 
 class ConstantNNHamiltonian(NNHamiltonian):
 
