@@ -117,7 +117,7 @@ class TestTEBD_sweep(unittest.TestCase):
      
         
         
-    def test_TEBD_evolution(self):
+    def test_TEBD_evolution_first_order(self):
         #
         #
         #
@@ -132,15 +132,16 @@ class TestTEBD_sweep(unittest.TestCase):
         H=make_ti_Hamiltonian(N, [t * annihilation_op(2) , t * creation_op(2)], 
                             [creation_op(2), annihilation_op(2)], 
                               local_term=ω*creation_op(2)@ annihilation_op(2))
-        for i in range(Nt):
-            
-            ψmps = TEBD_sweep(H, ψmps, dt, 1, 0, tol=DEFAULT_TOLERANCE)
-            ψmps = TEBD_sweep(H, ψmps, dt, -1, 1, tol=DEFAULT_TOLERANCE)
-        
+        #for i in range(Nt):
+        #    
+        #    ψmps = TEBD_sweep(H, ψmps, dt, 1, 0, tol=DEFAULT_TOLERANCE)
+        #    ψmps = TEBD_sweep(H, ψmps, dt, -1, 1, tol=DEFAULT_TOLERANCE)
+        ψmps = TEBD_evolution(H, ψmps, dt, Nt, order=1, tol=0, center=0).evolve()
         Hmat = sp.diags([[t,0]*(N//2), ω, [t,0]*(N//2)],
                   offsets=[-1,0,+1],
                   shape=(N,N),
                   dtype=np.complex128)
+        
         ψwave_final = sp.linalg.expm_multiply(-1j * dt*Nt * Hmat, ψwave)
         
         self.assertTrue(similar(abs(mps.state.wavepacket(ψwave_final).tovector()), 

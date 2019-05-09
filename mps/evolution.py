@@ -2,6 +2,8 @@
 import numpy as np
 import scipy.linalg
 from numbers import Number
+import mps.state
+import scipy.sparse as sp
 from mps.state import _truncate_vector
 
 σz = np.diag([1.0,-1.0])
@@ -188,7 +190,7 @@ def TEBD_sweep(H, ψ, δt, dr, evenodd, tol=0):
 class TEBD_evolution(object):
     def __init__(self, H, ψ, dt, timesteps, order=1, tol=0, center=0):
         self.H = H
-        self.ψ = CanonicalMPS(ψ, center=center)
+        self.ψ = mps.state.CanonicalMPS(ψ, center=center)
         self.dt = dt
         self.timesteps = timesteps
         self.order = order
@@ -211,13 +213,13 @@ class TEBD_evolution(object):
         return newψ
             
     def evolve(self):
-        newψ = ψ
+        newψ = self.ψ
         dr = 1
         for i in range(self.timesteps):
             if self.order == 1:
-                newψ = first_order(newψ, dr)
+                newψ = self.first_order(newψ, dr)
             if self.order == 2:
-                newψ = second_order(newψ, dr)
+                newψ = self.second_order(newψ, dr)
                 dr = -dr
         return newψ
                 
