@@ -197,19 +197,14 @@ class TEBD_evolution(object):
         self.tolerance = tol
         
     def first_order(self, newψ, dr):
-        newψ = TEBD_sweep(self.H, newψ, self.dt, dr, 0, 
-                            tol=self.tolerance)
-        newψ = TEBD_sweep(self.H, newψ, self.dt, -dr, 1, 
-                            tol=self.tolerance)
+        newψ = TEBD_sweep(self.H, newψ, self.dt, dr, 1, tol=self.tolerance)
+        newψ = TEBD_sweep(self.H, newψ, self.dt, -dr, 0, tol=self.tolerance)
         return newψ
         
     def second_order(self, newψ, dr):
-        newψ = TEBD_sweep(self.H, newψ, self.dt/2., dr, 0, 
-                            tol=self.tolerance)
-        newψ = TEBD_sweep(self.H, newψ, self.dt, -dr, 1, 
-                            tol=self.tolerance)
-        newψ = TEBD_sweep(self.H, newψ, self.dt/2., dr, 0, 
-                            tol=self.tolerance)
+        newψ = TEBD_sweep(self.H, newψ, self.dt/2., dr, 0, tol=self.tolerance)
+        newψ = TEBD_sweep(self.H, newψ, self.dt, -dr, 1, tol=self.tolerance)
+        newψ = TEBD_sweep(self.H, newψ, self.dt/2., dr, 0, tol=self.tolerance)
         return newψ
             
     def evolve(self):
