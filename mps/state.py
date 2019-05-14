@@ -436,10 +436,12 @@ def _update_in_canonical_form_2site(Ψ, AA, leftsite, rightsite, direction, tole
     (see _truncate_vector in File 1a - MPS class)           
     """
 
-    if direction<0:
+    if direction < 0:
         Ψ[rightsite], Ψ[leftsite] = right_orth_2site(AA,tolerance)
+        Ψ.center -= 1
     else:
         Ψ[leftsite], Ψ[rightsite] = left_orth_2site(AA,tolerance)
+        Ψ.center += 1
             
     return _update_in_canonical_form(Ψ, Ψ[Ψ.center], Ψ.center, direction, tolerance)
     

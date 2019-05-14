@@ -1,12 +1,11 @@
+from mps.evolution import *
+
 import unittest
 import mps.state
 import mps.tools
-from mps.evolution import *
 from mps.test.tools import *
 import scipy.sparse as sp
 
-
-        
 def random_wavefunction(n):
     ψ = np.random.rand(n) - 0.5
     return ψ / np.linalg.norm(ψ)
@@ -43,11 +42,11 @@ class TestTEBD_sweep(unittest.TestCase):
         #
         #
         #
-        N = 20
+        N = 19
         t = 0.1
         ω = 0.5
         dt = 1e-7
-        Nt = int(50)
+        Nt = int(100)
         ψwave = random_wavefunction(N)
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave))
         # We use the tight-binding Hamiltonian
@@ -58,7 +57,7 @@ class TestTEBD_sweep(unittest.TestCase):
         #    
         #    ψmps = TEBD_sweep(H, ψmps, dt, 1, 0, tol=DEFAULT_TOLERANCE)
         #    ψmps = TEBD_sweep(H, ψmps, dt, -1, 1, tol=DEFAULT_TOLERANCE)
-        ψmps = TEBD_evolution(H, ψmps, dt, Nt, order=1, tol=DEFAULT_TOLERANCE, center=0).evolve()
+        ψmps = TEBD_evolution(H, dt, timesteps=Nt, order=1, tol=DEFAULT_TOLERANCE).evolve(ψmps)
         Hmat = sp.diags([[t]*(N), ω, [t]*(N)],
                   offsets=[-1,0,+1],
                   shape=(N,N),
@@ -74,7 +73,7 @@ class TestTEBD_sweep(unittest.TestCase):
         #
         #
         #
-        N = 20
+        N = 21
         t = 0.1
         ω = 0.5
         dt = 1e-7
@@ -89,7 +88,7 @@ class TestTEBD_sweep(unittest.TestCase):
         #    
         #    ψmps = TEBD_sweep(H, ψmps, dt, 1, 0, tol=DEFAULT_TOLERANCE)
         #    ψmps = TEBD_sweep(H, ψmps, dt, -1, 1, tol=DEFAULT_TOLERANCE)
-        ψmps = TEBD_evolution(H, ψmps, dt, Nt, order=2, tol=DEFAULT_TOLERANCE, center=0).evolve()
+        ψmps = TEBD_evolution(H, dt, timesteps=Nt, order=2, tol=DEFAULT_TOLERANCE).evolve(ψmps)
         Hmat = sp.diags([[t]*(N), ω, [t]*(N)],
                   offsets=[-1,0,+1],
                   shape=(N,N),
