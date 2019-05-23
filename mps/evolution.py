@@ -164,8 +164,8 @@ def TEBD_sweep(U, ψ, tol=DEFAULT_TOLERANCE):
             dr = -1
         AA = apply_2siteTrotter(U[start], ψ, start)
         ψ.update_canonical_2site(AA, start, nextsite, dr, tolerance=tol)
-        #print('updating sites ({}, {}), center={}'.format(
-        #    start, nextsite, ψ.center))
+        print('updating sites ({}, {}), center={}, direction={}'.format(
+            start, nextsite, ψ.center, dr))
 
     #
     # Loop over ψ, updating pairs of sites acting with the unitary operator

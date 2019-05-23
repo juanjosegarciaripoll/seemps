@@ -11,32 +11,6 @@ def random_wavefunction(n):
     return ψ / np.linalg.norm(ψ)
 
 class TestTEBD_sweep(unittest.TestCase):
-    
-    def test_orthonormalization(self):
-        #
-        # We verify that our two-site orthonormalization procedure, 
-        # does not change the state
-        #
-        δt = 0.1
-
-        def ok(Ψ):
-            H = make_ti_Hamiltonian(Ψ.size, [mps.tools.random_Pauli()], [mps.tools.random_Pauli()])
-            Trotter = Trotter_unitaries(H, δt)
-            for start in range(Ψ.size-2):
-                AA = apply_2siteTrotter(Trotter.twosite_unitary(start) , 
-                                                      Ψ, start)
-                A, AC = mps.state.left_orth_2site(AA, DEFAULT_TOLERANCE)
-                AA_orth = np.einsum("ijk,klm -> ijlm", A, AC)
-                self.assertTrue(similar(AA,AA_orth))    
-                
-                AA = apply_2siteTrotter(Trotter.twosite_unitary(start) , 
-                                                      Ψ, start)
-                A, AC = mps.state.right_orth_2site(AA, DEFAULT_TOLERANCE)
-                AA_orth = np.einsum("ijk,klm -> ijlm", AC, A)
-                self.assertTrue(similar(AA,AA_orth))
-            
-            
-        test_over_random_mps(ok)
         
     def test_TEBD_evolution_first_order(self):
         #
@@ -46,7 +20,7 @@ class TestTEBD_sweep(unittest.TestCase):
         t = 0.1
         ω = 0.5
         dt = 1e-7
-        Nt = int(100)
+        Nt = int(10000)
         ψwave = random_wavefunction(N)
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave))
         # We use the tight-binding Hamiltonian

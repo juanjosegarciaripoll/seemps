@@ -438,10 +438,12 @@ def _update_in_canonical_form_2site(Ψ, AA, leftsite, rightsite, direction, tole
 
     if direction < 0:
         Ψ[rightsite], Ψ[leftsite] = right_orth_2site(AA,tolerance)
-        Ψ.center -= 1
+        #Ψ.center -= 1
+        Ψ.center = leftsite
     else:
         Ψ[leftsite], Ψ[rightsite] = left_orth_2site(AA,tolerance)
-        Ψ.center += 1
+        #Ψ.center += 1
+        Ψ.center = rightsite
             
     return _update_in_canonical_form(Ψ, Ψ[Ψ.center], Ψ.center, direction, tolerance)
     
