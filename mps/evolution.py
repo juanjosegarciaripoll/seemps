@@ -54,8 +54,8 @@ class ConstantNNHamiltonian(NNHamiltonian):
         #  - int_left, int_right: list of L and R operators (can be different for each site)
         #
         self.size = size
-        self.int_left = [[]] * (size-1)
-        self.int_right = [[]] * (size-1)
+        self.int_left = [[] for i in range(size-1)]
+        self.int_right = [[] for i in range(size-1)]
         if isinstance(dimension, Number):
             dimension = [dimension] * size
         self.dimension_ = dimension
@@ -164,8 +164,8 @@ def TEBD_sweep(U, ψ, tol=DEFAULT_TOLERANCE):
             dr = -1
         AA = apply_2siteTrotter(U[start], ψ, start)
         ψ.update_canonical_2site(AA, start, nextsite, dr, tolerance=tol)
-        print('updating sites ({}, {}), center={}, direction={}'.format(
-            start, nextsite, ψ.center, dr))
+        #print('updating sites ({}, {}), center={}, direction={}'.format(
+        #    start, nextsite, ψ.center, dr))
 
     #
     # Loop over ψ, updating pairs of sites acting with the unitary operator
@@ -204,12 +204,14 @@ class TEBD_evolution(object):
             evenodd = 0
             dr = 1
             ψ = mps.state.CanonicalMPS(ψ, center=0)
+        newψ = ψ
         for i in range(self.timesteps):
+            #print(i)
             if self.order == 1:
-                newψ = TEBD_sweep(self.Udt, ψ, tol=self.tolerance)
+                newψ = TEBD_sweep(self.Udt, newψ, tol=self.tolerance)
                 newψ = TEBD_sweep(self.Udt, newψ, tol=self.tolerance)
             else:
-                newψ = TEBD_sweep(self.Udt2, ψ, tol=self.tolerance)
+                newψ = TEBD_sweep(self.Udt2, newψ, tol=self.tolerance)
                 newψ = TEBD_sweep(self.Udt, newψ, tol=self.tolerance)
                 newψ = TEBD_sweep(self.Udt2, newψ, tol=self.tolerance)
         return newψ

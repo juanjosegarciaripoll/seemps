@@ -19,8 +19,8 @@ class TestTEBD_sweep(unittest.TestCase):
         N = 19
         t = 0.1
         ω = 0.5
-        dt = 1e-7
-        Nt = int(10000)
+        dt = 1e-4
+        Nt = int(1000)
         ψwave = random_wavefunction(N)
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave))
         # We use the tight-binding Hamiltonian
@@ -50,8 +50,8 @@ class TestTEBD_sweep(unittest.TestCase):
         N = 21
         t = 0.1
         ω = 0.5
-        dt = 1e-7
-        Nt = int(100)
+        dt = 1e-6
+        Nt = int(1000)
         ψwave = random_wavefunction(N)
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave))
         # We use the tight-binding Hamiltonian
