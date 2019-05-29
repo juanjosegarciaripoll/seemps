@@ -404,9 +404,9 @@ def left_orth_2site(AA,tol):
     U, S, V = np.linalg.svd(Ψ, full_matrices=False)
     S = _truncate_vector(S, tolerance=tol)
     D = S.size
-    A = np.reshape(U[:,:D], (α, d1, D))
-    AC = np.reshape( np.reshape(S, (D,1)) * V[:D,:], (D,d2,β) )
-    return A,AC
+    U = np.reshape(U[:,:D], (α, d1, D))
+    SV = np.reshape( np.reshape(S, (D,1)) * V[:D,:], (D,d2,β) )
+    return U, SV
     
 def right_orth_2site(AA,tol):
     α, d1, d2, β = AA.shape
@@ -414,9 +414,9 @@ def right_orth_2site(AA,tol):
     U, S, V = np.linalg.svd(Ψ, full_matrices=False)
     S = _truncate_vector(S, tolerance=tol)
     D = S.size    
-    AC = np.reshape(U[:,:D] * np.reshape(S, (1, D)), (α, d1, D))
-    A = np.reshape(V[:D,:], (D,d2,β))
-    return A, AC
+    US = np.reshape(U[:,:D] * np.reshape(S, (1, D)), (α, d1, D))
+    V = np.reshape(V[:D,:], (D,d2,β))
+    return US, V
 
 def _update_in_canonical_form_2site(Ψ, AA, leftsite, rightsite, direction, tolerance):
     """Split a two-site tensor into two one-site tensors by 
@@ -437,8 +437,7 @@ def _update_in_canonical_form_2site(Ψ, AA, leftsite, rightsite, direction, tole
     """
 
     if direction < 0:
-        Ψ[rightsite], Ψ[leftsite] = right_orth_2site(AA,tolerance)
-        #Ψ.center -= 1
+        Ψ[leftsite], Ψ[rightsite] = right_orth_2site(AA,tolerance)
         Ψ.center = leftsite
     else:
         Ψ[leftsite], Ψ[rightsite] = left_orth_2site(AA,tolerance)
@@ -469,8 +468,11 @@ class CanonicalMPS(MPS):
     def __init__(self, data, center=0, normalize=False,
                  tolerance=DEFAULT_TOLERANCE):
         super(MPS, self).__init__(data)
-        self.center = center = self._interpret_center(center)
-        if not isinstance(data, CanonicalMPS) or (center != data.center):
+        if isinstance(data, CanonicalMPS):
+            self.center = data.center
+            self.recenter(center)
+        else:
+            self.center = center = self._interpret_center(center)
             _canonicalize(self, center, tolerance)
         if normalize:
             A = self[center]
@@ -513,6 +515,17 @@ class CanonicalMPS(MPS):
         if 0 <= center < size:
             return center
         raise IndexError()
+
+    def recenter(self, center, tolerance=DEFAULT_TOLERANCE):
+        """Update destructively the state to be in canonical form with respect
+        to a different site."""
+        center = self._interpret_center(center)
+        old = self.center
+        if center != old:
+            dr = +1 if center > old else -1
+            for i in range(old, center, dr):
+                self.update_canonical(self._data[i], +1, tolerance)
+        return self
 
     def __copy__(self):
         #

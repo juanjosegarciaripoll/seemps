@@ -29,7 +29,8 @@ class NNHamiltonian(object):
         # of a given size, initially empty.
         #
         self.size = size
-        
+        self.constant = False
+
     def dimension(self, ndx):
         #
         # Return the dimension of the local Hilbert space
@@ -53,14 +54,15 @@ class ConstantNNHamiltonian(NNHamiltonian):
         #  - local_term: operators acting on each site (can be different for each site)
         #  - int_left, int_right: list of L and R operators (can be different for each site)
         #
-        self.size = size
+        super(ConstantNNHamiltonian, self).__init__(size)
+        self.constant = True
         self.int_left = [[] for i in range(size-1)]
         self.int_right = [[] for i in range(size-1)]
         if isinstance(dimension, Number):
             dimension = [dimension] * size
         self.dimension_ = dimension
 
-    def set_local_term(self, ndx, operator):
+    def add_local_term(self, ndx, operator):
         #
         # Set the local term acting on the given site
         #
@@ -89,6 +91,9 @@ class ConstantNNHamiltonian(NNHamiltonian):
         #for (L, R) in zip(self.int_left[ndx], self.int_right[ndx]):
             
         return sum([np.kron(L, R) for (L, R) in zip(self.int_left[ndx], self.int_right[ndx])])
+    
+    def constant(self):
+        return True
             
 
 def make_ti_Hamiltonian(size, intL, intR, local_term=None):
@@ -117,7 +122,7 @@ def make_ti_Hamiltonian(size, intL, intR, local_term=None):
         for L,R in zip(H.intL, H.intR):
             H.add_interaction_term(ndx, L, R)
         if local_term is not None:
-            H.set_local_term(ndx, local_term)
+            H.add_local_term(ndx, local_term)
     return H
 
 
@@ -127,69 +132,58 @@ def pairwise_unitaries(H, δt):
                                       H.dimension(k), H.dimension(k+1))
             for k in range(H.size-1)]
 
-def apply_2siteTrotter(U, ψ, start):
-    return np.einsum('ijk,klm,prjl -> iprm', ψ[start], ψ[start+1], U)
 
+def apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE):
+    """Apply the list of pairwise unitaries U onto an MPS state ψ in
+    canonical form. Unitaries are applied onto pairs of sites (i,i+1),
+    (i+2,i+3), etc. We start at 'i=start' and move in increasing or
+    decreasing order of sites depending on 'direction'
+    
+    Arguments:
+    U         -- List of pairwise unitaries
+    ψ         -- State in canonical form
+    start     -- First site for applying pairwise unitaries
+    direction -- Direction of sweep.
+    
+    Returns:
+    ψ         -- MPS in canonical form"""
 
-
-def TEBD_sweep(U, ψ, tol=DEFAULT_TOLERANCE):
-    #
-    # Apply a TEBD sweep by evolving with the pairwise Trotter Hamiltonian
-    # starting from left/rightmost site and moving on the 'direction' (>0 right,
-    # <0 left) by pairs of sites.
-    #
-    # - H: NNHamiltonian
-    # - ψ: Initial state in CanonicalMPS form (modified destructively)
-    # - δt: Time step
-    # - evenodd: 0, 1 depending on Trotter step
-    # - direction: where to move
-    #
-    if ψ.center <= 2:
-        dr = +1
-        if ψ.center == 0:
-            evenodd = 0
-        else:
-            evenodd = 1
-    else:
-        dr = -1
-        evenodd = ψ.size % 2
-        if ψ.center < ψ.size - 1:
-            evenodd = 1-evenodd
-
-    def update_two_site(start, nextsite, dr):
-        # Apply combined local and interaction exponential and move
-        if start == 0:
-            dr = +1
-        elif start == (ψ.size-2):
-            dr = -1
-        AA = apply_2siteTrotter(U[start], ψ, start)
-        ψ.update_canonical_2site(AA, start, nextsite, dr, tolerance=tol)
-        #print('updating sites ({}, {}), center={}, direction={}'.format(
-        #    start, nextsite, ψ.center, dr))
-
-    #
-    # Loop over ψ, updating pairs of sites acting with the unitary operator
-    # made of the interaction and 0.5 times the local terms
-    #
-    if dr < 0:
-        if ψ.size % 2 == evenodd:
-            start = ψ.size - 1
-        else:
-            start = ψ.size - 2
-        #print('TEBD sweep with direction {} and start {}'.format(dr, start))
-        for j in range(start, 0, -2):
-            update_two_site(j-1, j, -1)
-    else:
-        start = 0 + evenodd
-        #print('TEBD sweep with direction {} and start {}'.format(dr, start))
+    if direction > 0:
+        ψ.recenter(start)
         for j in range(start, ψ.size-1, +2):
-            update_two_site(j, j+1, +1)
-
-    return ψ
+            AA = np.einsum('ijk,klm,prjl -> iprm', ψ[j], ψ[j+1], U[j])
+            ψ.update_canonical_2site(AA, j, j+1, +1, tolerance=tol)
+        if j == ψ.size-2:
+            return ψ.size-3, -1
+        else:
+            return ψ.size-2, -1
+    else:
+        ψ.recenter(start)
+        for j in range(start, -1, -2):
+            AA = np.einsum('ijk,klm,prjl -> iprm', ψ[j], ψ[j+1], U[j])
+            ψ.update_canonical_2site(AA, j, j+1, -1, tolerance=tol)
+        if j == 0:
+            return 1, +1
+        else:
+            return 0, +1
 
 
 class TEBD_evolution(object):
-    def __init__(self, H, dt, timesteps=1, order=1, tol=DEFAULT_TOLERANCE):
+    """TEBD_evolution is a class that continuously updates a quantum state ψ
+    evolving it with a Hamiltonian H over intervals of time dt."""
+    
+    def __init__(self, ψ, H, dt, timesteps=1, order=1, tol=DEFAULT_TOLERANCE):
+        """Create a TEBD algorithm to evolve a quantum state ψ with a fixed
+        Hamiltonian H.
+        
+        Arguments:
+        ψ         -- Quantum state to be updated. The class keeps a copy.
+        H         -- NNHamiltonian for the evolution
+        dt        -- Size of each Trotter step
+        timesteps -- How many Trotter steps in each call to evolve()
+        order     -- Order of the Trotter approximation (1 or 2)
+        tol       -- Tolerance in MPS truncation
+        """
         self.H = H
         self.dt = float(dt)
         self.timesteps = timesteps
@@ -198,20 +192,33 @@ class TEBD_evolution(object):
         self.Udt = pairwise_unitaries(H, dt)
         if order == 2:
             self.Udt2 = pairwise_unitaries(H, dt/2)
-
-    def evolve(self, ψ):
         if not isinstance(ψ, mps.state.CanonicalMPS):
-            evenodd = 0
-            dr = 1
             ψ = mps.state.CanonicalMPS(ψ, center=0)
-        newψ = ψ
+        else:
+            ψ = ψ.copy()
+        self.ψ = ψ
+        if ψ.center <= 1:
+            self.start = 0
+            self.direction = +1
+        else:
+            self.start = ψ.size-2
+            self.direction = -1
+
+    def evolve(self, timesteps=None):
+        """Update the quantum state with `timesteps` repetitions of the
+        Trotter algorithms."""
+        if timesteps is None:
+            timesteps = self.timesteps
         for i in range(self.timesteps):
             #print(i)
             if self.order == 1:
-                newψ = TEBD_sweep(self.Udt, newψ, tol=self.tolerance)
-                newψ = TEBD_sweep(self.Udt, newψ, tol=self.tolerance)
+                self.start, self.direction = apply_pairwise_unitaries(self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance)
+                self.start, self.direction = apply_pairwise_unitaries(self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance)
             else:
-                newψ = TEBD_sweep(self.Udt2, newψ, tol=self.tolerance)
-                newψ = TEBD_sweep(self.Udt, newψ, tol=self.tolerance)
-                newψ = TEBD_sweep(self.Udt2, newψ, tol=self.tolerance)
-        return newψ
+                self.start, self.direction = apply_pairwise_unitaries(self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance)
+                self.start, self.direction = apply_pairwise_unitaries(self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance)
+                self.start, self.direction = apply_pairwise_unitaries(self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance)
+        return self.ψ
+
+    def state():
+        return self.ψ
