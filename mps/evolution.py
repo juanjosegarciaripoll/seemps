@@ -42,6 +42,26 @@ class NNHamiltonian(object):
         # Return the interaction between sites (ndx,ndx+1)
         #
         return 0
+    
+    def tomatrix(self, t=0.0):
+        """Return a sparse matrix representing the NNHamiltonian on the
+        full Hilbert space."""
+        
+        # dleft is the dimension of the Hilbert space of sites 0 to (i-1)
+        # both included
+        dleft = 0
+        # H is the Hamiltonian of sites 0 to i, this site included.
+        H = 0 * sp.eye(self.dimension(0))
+        for i in range(self.size-1):
+            # We extend the existing Hamiltonian to cover site 'i+1'
+            d = self.dimension(i+1)
+            H = sp.kron(H, sp.eye(d))
+            # We add now the interaction on the sites (i,i+1)
+            H += sp.kron(sp.eye(dleft), self.interaction(i,t))
+            # We extend the dimension covered
+            dleft += d
+
+        return H
 
 
 class ConstantNNHamiltonian(NNHamiltonian):

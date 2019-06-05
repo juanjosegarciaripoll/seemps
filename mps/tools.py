@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.sparse as sp
 from math import cos, sin, pi
 
 def take_from_list(O, i):

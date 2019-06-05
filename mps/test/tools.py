@@ -1,7 +1,11 @@
 import numpy as np
-
+import scipy.sparse as sp
 
 def similar(A, B, **kwdargs):
+    if sp.issparse(A):
+        A = A.todense()
+    if sp.issparse(B):
+        B = B.todense()
     return (A.shape == B.shape) & np.all(np.isclose(A, B, **kwdargs))
 
 
