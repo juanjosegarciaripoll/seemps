@@ -31,20 +31,25 @@ class NNHamiltonian(object):
         
         # dleft is the dimension of the Hilbert space of sites 0 to (i-1)
         # both included
-        dleft = 0
+        dleft = 1
         # H is the Hamiltonian of sites 0 to i, this site included.
         H = 0 * sp.eye(self.dimension(0))
         for i in range(self.size-1):
             # We extend the existing Hamiltonian to cover site 'i+1'
+            print("shape of H")
             print(H.shape)
             H = sp.kron(H, sp.eye(self.dimension(i+1)))
             # We add now the interaction on the sites (i,i+1)
+            print("shape of interaction")
             print(self.interaction_term(i,t).shape)
+            print(dleft)
+            print("shape of term we add")
             print(sp.kron(sp.eye(dleft if dleft else 1), self.interaction_term(i,t)).shape)
             H += sp.kron(sp.eye(dleft if dleft else 1), self.interaction_term(i,t))
+            print("shape of new H")
             print(H.shape)
             # We extend the dimension covered
-            dleft += self.dimension(i)
+            dleft *= self.dimension(i)
 
         return H
 
@@ -63,6 +68,7 @@ class ConstantNNHamiltonian(NNHamiltonian):
         self.constant = True
         self.int_left = [[] for i in range(size-1)]
         self.int_right = [[] for i in range(size-1)]
+        self.interactions = [0j]*(size-1)
         if isinstance(dimension, Number):
             dimension = [dimension] * size
         self.dimension_ = dimension
@@ -88,14 +94,15 @@ class ConstantNNHamiltonian(NNHamiltonian):
         # Update the self.interactions[ndx] term
         self.int_left[ndx].append(L)
         self.int_right[ndx].append(R)
-
+        self.interactions[ndx] += np.kron(L, R)
+        
     def dimension(self, ndx):
         return self.dimension_[ndx]
 
     def interaction_term(self, ndx, t=0.0):
         #for (L, R) in zip(self.int_left[ndx], self.int_right[ndx]):
-            
-        return sum([np.kron(L, R) for (L, R) in zip(self.int_left[ndx], self.int_right[ndx])])
+        #self.interactions[ndx] = sum([np.kron(L, R) for (L, R) in zip(self.int_left[ndx], self.int_right[ndx])])
+        return self.interactions[ndx]
     
     def constant(self):
         return True

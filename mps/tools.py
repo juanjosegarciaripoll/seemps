@@ -37,3 +37,11 @@ def random_Pauli():
     θ = (2*r[0]-1) * np.pi
     ϕ = r[1] * np.pi
     return cos(ϕ) * (cos(θ) * σx + sin(θ) * σy) + sin(ϕ) * σz
+
+def creation(d):
+    # Returns d dimensional cration operator
+    return np.diag(np.sqrt(np.arange(1,d)),-1).astype(complex)
+
+def annihilation(d):
+    # Returns d dimensional cration operator
+    return np.diag(np.sqrt(np.arange(1,d)),1).astype(complex)
