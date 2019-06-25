@@ -5,25 +5,28 @@ import scipy.sparse as sp
 
 class NNHamiltonian(object):
     
-    def __init__(self, size):
+    def __init__(self, size, dimension):
         #
         # Create a nearest-neighbor interaction Hamiltonian
         # of a given size, initially empty.
         #
         self.size = size
         self.constant = False
+        if isinstance(dimension, Number):
+            dimension = [dimension] * size
+        self.dimension_ = dimension
 
     def dimension(self, ndx):
         #
         # Return the dimension of the local Hilbert space
         #
-        return 0
+        return self.dimension_[ndx]
     
-    def interaction_term(self, ndx, t=0.0):
+    #def interaction_term(self, ndx, t=0.0):
         #
         # Return the interaction between sites (ndx,ndx+1)
         #
-        return 0
+    #    return 0
     
     def tomatrix(self, t=0.0):
         """Return a sparse matrix representing the NNHamiltonian on the
@@ -36,22 +39,32 @@ class NNHamiltonian(object):
         H = 0 * sp.eye(self.dimension(0))
         for i in range(self.size-1):
             # We extend the existing Hamiltonian to cover site 'i+1'
-            print("shape of H")
-            print(H.shape)
+            #print(H.shape)
             H = sp.kron(H, sp.eye(self.dimension(i+1)))
             # We add now the interaction on the sites (i,i+1)
-            print("shape of interaction")
-            print(self.interaction_term(i,t).shape)
-            print(dleft)
-            print("shape of term we add")
-            print(sp.kron(sp.eye(dleft if dleft else 1), self.interaction_term(i,t)).shape)
+            #print(self.interaction_term(i,t).shape)
+            #print(dleft)
+            #print(sp.kron(sp.eye(dleft if dleft else 1), self.interaction_term(i,t)).shape)
             H += sp.kron(sp.eye(dleft if dleft else 1), self.interaction_term(i,t))
-            print("shape of new H")
-            print(H.shape)
+            #print(H.shape)
             # We extend the dimension covered
             dleft *= self.dimension(i)
 
         return H
+    
+    def __copy__(self):
+        #
+        # Return a copy of the NNHamiltonian with a fresh new array.
+        #
+        newH = type(self)(self.size, self.dimension_ )
+        newH.interations = [self.interaction_term(ndx) for ndx in range(self.size-1)]
+        return newH
+
+    def copy(self):
+        """Return a fresh new NNHamiltonian that shares the same interaction terms as its
+        sibling, but which can be destructively modified without affecting it.
+        """
+        return self.__copy__()
 
 
 class ConstantNNHamiltonian(NNHamiltonian):
@@ -64,14 +77,12 @@ class ConstantNNHamiltonian(NNHamiltonian):
         #  - local_term: operators acting on each site (can be different for each site)
         #  - int_left, int_right: list of L and R operators (can be different for each site)
         #
-        super(ConstantNNHamiltonian, self).__init__(size)
+        super(ConstantNNHamiltonian, self).__init__(size, dimension)
         self.constant = True
         self.int_left = [[] for i in range(size-1)]
         self.int_right = [[] for i in range(size-1)]
         self.interactions = [0j]*(size-1)
-        if isinstance(dimension, Number):
-            dimension = [dimension] * size
-        self.dimension_ = dimension
+        
 
     def add_local_term(self, ndx, operator):
         #
@@ -96,9 +107,6 @@ class ConstantNNHamiltonian(NNHamiltonian):
         self.int_right[ndx].append(R)
         self.interactions[ndx] += np.kron(L, R)
         
-    def dimension(self, ndx):
-        return self.dimension_[ndx]
-
     def interaction_term(self, ndx, t=0.0):
         #for (L, R) in zip(self.int_left[ndx], self.int_right[ndx]):
         #self.interactions[ndx] = sum([np.kron(L, R) for (L, R) in zip(self.int_left[ndx], self.int_right[ndx])])
