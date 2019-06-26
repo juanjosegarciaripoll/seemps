@@ -524,7 +524,7 @@ class CanonicalMPS(MPS):
         if center != old:
             dr = +1 if center > old else -1
             for i in range(old, center, dr):
-                self.update_canonical(self._data[i], +1, tolerance)
+                self.update_canonical(self._data[i], dr, tolerance)
         return self
 
     def __copy__(self):

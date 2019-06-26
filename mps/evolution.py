@@ -28,25 +28,34 @@ def apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE):
     
     Returns:
     ψ         -- MPS in canonical form"""
-
+    
+    #print("Apply pairwise unitarities in direction {} and at starting site {} with center {}".format(direction, start, ψ.center))
+    ψ.recenter(start)
     if direction > 0:
-        ψ.recenter(start)
+        newstart = ψ.size-2
         for j in range(start, ψ.size-1, +2):
-            AA = np.einsum('ijk,klm,prjl -> iprm', ψ[j], ψ[j+1], U[j])
-            ψ.update_canonical_2site(AA, j, j+1, +1, tolerance=tol)
-        if j == ψ.size-2:
-            return ψ.size-3, -1
-        else:
-            return ψ.size-2, -1
+            #print('Updating sites ({}, {}), center={}, direction={}'.format(j, j+1, ψ.center, direction))
+            if j == (ψ.size-2):
+                #print("Last two sites, change direction from +1 to -1")
+                newstart = ψ.size-3
+                direction = -1
+            AA = np.einsum('ijk,klm,nrjl -> inrm', ψ[j], ψ[j+1], U[j])
+            ψ.update_canonical_2site(AA, j, j+1, direction, tolerance=tol)
+            #print("New center= {}, new direction = {}".format(ψ.center, direction))
+        return newstart, -1
     else:
-        ψ.recenter(start)
+        newstart = 1
         for j in range(start, -1, -2):
-            AA = np.einsum('ijk,klm,prjl -> iprm', ψ[j], ψ[j+1], U[j])
-            ψ.update_canonical_2site(AA, j, j+1, -1, tolerance=tol)
-        if j == 0:
-            return 1, +1
-        else:
-            return 0, +1
+            #print('Updating sites ({}, {}), center={}, direction={}'.format(j, j+1, ψ.center, direction))
+            if j == 0:
+                #print("First two sites, change direction from -1 to +1")
+                newstart = 1
+                direction = +1
+            AA = np.einsum('ijk,klm,nrjl -> inrm', ψ[j], ψ[j+1], U[j])
+            ψ.update_canonical_2site(AA, j, j+1, direction, tolerance=tol)
+            #print("New center= {}, new direction = {}".format(ψ.center, direction))
+        return newstart, +1
+        
 
 
 class TEBD_evolution(object):
@@ -88,17 +97,25 @@ class TEBD_evolution(object):
     def evolve(self, timesteps=None):
         """Update the quantum state with `timesteps` repetitions of the
         Trotter algorithms."""
+        
+        #print("Apply TEBD for {} timesteps in the order {}".format(self.timesteps, self.order))
+        
         if timesteps is None:
             timesteps = self.timesteps
         for i in range(self.timesteps):
             #print(i)
             if self.order == 1:
+                #print("Sweep in direction {} and at starting site {}".format(self.direction, self.start))
                 self.start, self.direction = apply_pairwise_unitaries(self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance)
+                #print("Sweep in direction {} and at starting site {}".format(self.direction, self.start))
                 self.start, self.direction = apply_pairwise_unitaries(self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance)
             else:
                 self.start, self.direction = apply_pairwise_unitaries(self.Udt2, self.ψ, self.start, self.direction, tol=self.tolerance)
                 self.start, self.direction = apply_pairwise_unitaries(self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance)
                 self.start, self.direction = apply_pairwise_unitaries(self.Udt2, self.ψ, self.start, self.direction, tol=self.tolerance)
+        
+            #print("New direction = {} and new starting site = {}".format(self.direction, self.start))
+        
         return self.ψ
 
     def state():

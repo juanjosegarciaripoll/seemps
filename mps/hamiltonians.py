@@ -36,18 +36,9 @@ class NNHamiltonian(object):
         H = 0 * sp.eye(self.dimension(0))
         for i in range(self.size-1):
             # We extend the existing Hamiltonian to cover site 'i+1'
-            print("shape of H")
-            print(H.shape)
             H = sp.kron(H, sp.eye(self.dimension(i+1)))
             # We add now the interaction on the sites (i,i+1)
-            print("shape of interaction")
-            print(self.interaction_term(i,t).shape)
-            print(dleft)
-            print("shape of term we add")
-            print(sp.kron(sp.eye(dleft if dleft else 1), self.interaction_term(i,t)).shape)
             H += sp.kron(sp.eye(dleft if dleft else 1), self.interaction_term(i,t))
-            print("shape of new H")
-            print(H.shape)
             # We extend the dimension covered
             dleft *= self.dimension(i)
 
