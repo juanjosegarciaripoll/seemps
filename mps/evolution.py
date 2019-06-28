@@ -44,7 +44,7 @@ def apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE):
             #print("New center= {}, new direction = {}".format(ψ.center, direction))
         return newstart, -1
     else:
-        newstart = 1
+        newstart = 0
         for j in range(start, -1, -2):
             #print('Updating sites ({}, {}), center={}, direction={}'.format(j, j+1, ψ.center, direction))
             if j == 0:
