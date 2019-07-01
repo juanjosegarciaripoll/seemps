@@ -496,6 +496,11 @@ class CanonicalMPS(MPS):
         A = self._data[self.center]
         return np.vdot(A, np.einsum('ij,ajb->aib', operator, A))/np.vdot(A,A)
 
+    def entanglement_entropyAtCenter(self):
+        d1, d2, d3 = self[center].shape
+        u,s,v = np.linalg.svd(np.reshape(self[center], (d1*d2,d3)))
+        return -np.sum(s**2 * np.log(s**2))
+    
     def update_canonical(self, A, direction, tolerance=DEFAULT_TOLERANCE):
         self.center = _update_in_canonical_form(self, A, self.center,
                                                 direction, tolerance)
