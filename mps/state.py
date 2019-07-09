@@ -67,7 +67,7 @@ def _truncate_vector(S, tolerance):
     # and use that to estimate the size of the array
     # log('--S='+str(S))
     #log('--truncated to '+str(ndx))
-    return S[0:(S.size - ndx)]
+    return S[0:(S.size - ndx)], (S[(S.size - ndx):]**2).sum()/total
 
 
 class TensorArray(object):
@@ -347,17 +347,17 @@ def gaussian(n, x0, w0, k0, mps=True):
 def _ortho_right(A, tol):
     α, i, β = A.shape
     U, s, V = np.linalg.svd(np.reshape(A, (α*i, β)), full_matrices=False)
-    s = _truncate_vector(s, tol)
+    s, err = _truncate_vector(s, tol)
     D = s.size
-    return np.reshape(U[:,:D], (α, i, D)), np.reshape(s, (D, 1)) * V[:D, :]
+    return np.reshape(U[:,:D], (α, i, D)), np.reshape(s, (D, 1)) * V[:D, :], err
 
 
 def _ortho_left(A, tol):
     α, i, β = A.shape
     U, s, V = np.linalg.svd(np.reshape(A, (α, i*β)), full_matrices=False)
-    s = _truncate_vector(s, tol)
+    s, err = _truncate_vector(s, tol)
     D = s.size
-    return np.reshape(V[:D,:], (D, i, β)), U[:, :D] * np.reshape(s, (1, D))
+    return np.reshape(V[:D,:], (D, i, β)), U[:, :D] * np.reshape(s, (1, D)), err
 
 
 def _update_in_canonical_form(Ψ, A, site, direction, tolerance):
@@ -379,16 +379,17 @@ def _update_in_canonical_form(Ψ, A, site, direction, tolerance):
         if site+1 == Ψ.size:
             Ψ[site] = A
         else:
-            Ψ[site], sV = _ortho_right(A, tolerance)
+            Ψ[site], sV, err = _ortho_right(A, tolerance)
             site += 1
             Ψ[site] = np.einsum('ab,bic->aic', sV, Ψ[site])
     else:
         if site == 0:
             Ψ[site] = A
         else:
-            Ψ[site], Us = _ortho_left(A, tolerance)
+            Ψ[site], Us, err = _ortho_left(A, tolerance)
             site -= 1
             Ψ[site] = np.einsum('aib,bc->aic', Ψ[site], Us)
+    Ψ.trunc_error[site] = err
     return site
 
 
@@ -402,21 +403,21 @@ def left_orth_2site(AA,tol):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α*d1, β*d2))
     U, S, V = np.linalg.svd(Ψ, full_matrices=False)
-    S = _truncate_vector(S, tolerance=tol)
+    S, err = _truncate_vector(S, tolerance=tol)
     D = S.size
     U = np.reshape(U[:,:D], (α, d1, D))
     SV = np.reshape( np.reshape(S, (D,1)) * V[:D,:], (D,d2,β) )
-    return U, SV
+    return U, SV, err
     
 def right_orth_2site(AA,tol):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α*d1, β*d2))
     U, S, V = np.linalg.svd(Ψ, full_matrices=False)
-    S = _truncate_vector(S, tolerance=tol)
+    S, err = _truncate_vector(S, tolerance=tol)
     D = S.size    
     US = np.reshape(U[:,:D] * np.reshape(S, (1, D)), (α, d1, D))
     V = np.reshape(V[:D,:], (D,d2,β))
-    return US, V
+    return US, V, err
 
 def _update_in_canonical_form_2site(Ψ, AA, leftsite, rightsite, direction, tolerance):
     """Split a two-site tensor into two one-site tensors by 
@@ -437,12 +438,14 @@ def _update_in_canonical_form_2site(Ψ, AA, leftsite, rightsite, direction, tole
     """
 
     if direction < 0:
-        Ψ[leftsite], Ψ[rightsite] = right_orth_2site(AA,tolerance)
+        Ψ[leftsite], Ψ[rightsite], err = right_orth_2site(AA,tolerance)
         Ψ.center = leftsite
     else:
-        Ψ[leftsite], Ψ[rightsite] = left_orth_2site(AA,tolerance)
+        Ψ[leftsite], Ψ[rightsite], err = left_orth_2site(AA,tolerance)
         #Ψ.center += 1
         Ψ.center = rightsite
+        
+    Ψ.trunc_error[Ψ.center] = err
             
     return _update_in_canonical_form(Ψ, Ψ[Ψ.center], Ψ.center, direction, tolerance)
     
@@ -459,6 +462,7 @@ class CanonicalMPS(MPS):
     Attributes:
     size = number of tensors in the array
     center = site that defines the canonical form of the MPS
+    trunc_error = the error 
     """
 
     #
@@ -468,6 +472,7 @@ class CanonicalMPS(MPS):
     def __init__(self, data, center=0, normalize=False,
                  tolerance=DEFAULT_TOLERANCE):
         super(MPS, self).__init__(data)
+        self.trunc_error = [0]*self.size
         if isinstance(data, CanonicalMPS):
             self.center = data.center
             self.recenter(center)
