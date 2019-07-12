@@ -61,13 +61,17 @@ def _truncate_vector(S, tolerance):
     # This is the sum of all values
     total = err[-1]
     #
-    # we find the number of values we can drop within the relative
-    # tolerance
+    # The vector err[0],err[1],...,err[k] is the error that we make
+    # by keeping the singular values from 0 to N-k
+    # We find the first position that is above tolerance err[k],
+    # which tells us which is the smallest singular value that we
+    # have to keep, s[k-1]
+    #
     ndx = np.argmax(err >= tolerance*total)
-    # and use that to estimate the size of the array
-    # log('--S='+str(S))
-    #log('--truncated to '+str(ndx))
-    return S[0:(S.size - ndx)], (S[(S.size - ndx):]**2).sum()/total
+    #
+    # We use that to estimate the size of the array and the actual error
+    #
+    return S[0:(S.size - ndx)], err[ndx-1] if ndx > 0 else 0.
 
 
 class TensorArray(object):
@@ -378,6 +382,7 @@ def _update_in_canonical_form(Ψ, A, site, direction, tolerance):
     if direction > 0:
         if site+1 == Ψ.size:
             Ψ[site] = A
+            err = 0.
         else:
             Ψ[site], sV, err = _ortho_right(A, tolerance)
             site += 1
@@ -385,19 +390,23 @@ def _update_in_canonical_form(Ψ, A, site, direction, tolerance):
     else:
         if site == 0:
             Ψ[site] = A
+            err = 0.
         else:
             Ψ[site], Us, err = _ortho_left(A, tolerance)
             site -= 1
             Ψ[site] = np.einsum('aib,bc->aic', Ψ[site], Us)
-    Ψ.trunc_error[site] = err
-    return site
+    return site, err
 
 
 def _canonicalize(Ψ, center, tolerance):
+    err = 0.
     for i in range(0, center):
-        _update_in_canonical_form(Ψ, Ψ[i], i, +1, tolerance)
+        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, +1, tolerance)
+        err += errk
     for i in range(Ψ.size-1, center, -1):
-        _update_in_canonical_form(Ψ, Ψ[i], i, -1, tolerance)
+        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, -1, tolerance)
+        err += errk
+    return err
 
 def left_orth_2site(AA,tol):
     α, d1, d2, β = AA.shape
@@ -443,11 +452,9 @@ def _update_in_canonical_form_2site(Ψ, AA, leftsite, rightsite, direction, tole
     else:
         Ψ[leftsite], Ψ[rightsite], err = left_orth_2site(AA,tolerance)
         #Ψ.center += 1
-        Ψ.center = rightsite
-        
-    Ψ.trunc_error[Ψ.center] = err
-            
-    return _update_in_canonical_form(Ψ, Ψ[Ψ.center], Ψ.center, direction, tolerance)
+        Ψ.center = rightsite 
+    center, err2 = _update_in_canonical_form(Ψ, Ψ[Ψ.center], Ψ.center, direction, tolerance)
+    return center, (np.sqrt(err)+np.sqrt(err2))**2
     
 
 
@@ -472,13 +479,14 @@ class CanonicalMPS(MPS):
     def __init__(self, data, center=0, normalize=False,
                  tolerance=DEFAULT_TOLERANCE):
         super(MPS, self).__init__(data)
-        self.trunc_error = [0]*self.size
+        self.trunc_error = 0
         if isinstance(data, CanonicalMPS):
             self.center = data.center
             self.recenter(center)
+            self.trunc_error = data.trunc_error
         else:
             self.center = center = self._interpret_center(center)
-            _canonicalize(self, center, tolerance)
+            self.trunc_error = _canonicalize(self, center, tolerance)
         if normalize:
             A = self[center]
             self[center] = A / np.linalg.norm(A)
@@ -507,12 +515,16 @@ class CanonicalMPS(MPS):
         return -np.sum(s**2 * np.log(s**2))
     
     def update_canonical(self, A, direction, tolerance=DEFAULT_TOLERANCE):
-        self.center = _update_in_canonical_form(self, A, self.center,
-                                                direction, tolerance)
+        self.center, err = _update_in_canonical_form(self, A, self.center,
+                                                     direction, tolerance)
+        self.trunc_error = (np.sqrt(err)+np.sqrt(self.trunc_error))**2
+        return err
         
     def update_canonical_2site(self, AA, start, nextsite, direction, tolerance=DEFAULT_TOLERANCE):
-        self.center = _update_in_canonical_form_2site(self, AA, start, nextsite,
-                                                direction, tolerance)
+        self.center, err = _update_in_canonical_form_2site(self, AA, start, nextsite,
+                                                           direction, tolerance)
+        self.trunc_error = (np.sqrt(err)+np.sqrt(self.trunc_error))**2
+        return err
                
     def _interpret_center(self, center):
         """Converts `center` into an integer between [0,size-1], with the
@@ -534,7 +546,8 @@ class CanonicalMPS(MPS):
         if center != old:
             dr = +1 if center > old else -1
             for i in range(old, center, dr):
-                self.update_canonical(self._data[i], dr, tolerance)
+                err = self.update_canonical(self._data[i], dr, tolerance)
+                self.trunc_error = (np.sqrt(err)+np.sqrt(self.trunc_error))**2
         return self
 
     def __copy__(self):
