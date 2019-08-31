@@ -8,8 +8,7 @@ def take_from_list(O, i):
     else:
         return O
 
-DEBUG = True
-
+DEBUG = False
 
 def log(*args):
     if DEBUG:

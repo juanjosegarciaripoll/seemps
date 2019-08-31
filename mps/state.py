@@ -1,4 +1,5 @@
 import numpy as np
+import scipy.linalg
 from mps import expectation
 
 DEFAULT_TOLERANCE = np.finfo(np.float64).eps
@@ -8,16 +9,17 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE):
     """Construct a list of tensors for an MPS that approximates the state ψ
     represented as a complex vector in a Hilbert space.
 
-    Arguments:
+    Parameters
     ----------
-    ψ = wavefunction with \prod_i dimensions[i] elements
-    dimension = list of dimensions of the Hilbert spaces that build ψ
-    tolerance = truncation criterion for dropping Schmidt numbers"""
+    ψ         -- wavefunction with \prod_i dimensions[i] elements
+    dimension -- list of dimensions of the Hilbert spaces that build ψ
+    tolerance -- truncation criterion for dropping Schmidt numbers
+    """
 
     def SchmidtSplit(ψ, tolerance):
         a, b = ψ.shape
         U, s, V = np.linalg.svd(ψ, full_matrices=False)
-        s = _truncate_vector(s, tolerance)
+        s, err = _truncate_vector(s, tolerance, None)
         D = s.size
         return np.reshape(U[:, :D], (a, D)), np.reshape(s, (D, 1)) * V[:D, :]
 
@@ -40,20 +42,25 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE):
     return output
 
 
-def _truncate_vector(S, tolerance):
-    #
-    # Input:
-    # - S: a vector containing singular values in descending order
-    # - tolerance: truncation relative tolerance, which specifies an
-    #   upper bound for the sum of the squares of the singular values
-    #   eliminated. 0 <= tolerance <= 1
-    #
-    # Output:
-    # - truncS: truncated version of S
-    #
+def _truncate_vector(S, tolerance, dimension):
+    """Given a vector of Schmidt numbers 'S', a 'tolerance' and a maximum
+    bond 'dimension', determine where to truncate the vector and return
+    the absolute error in norm-2 made by that truncation.
+    
+    Parameters
+    ----------
+    S         -- non-negative Schmidt numbers in decreasing order.
+    tolerance -- absolute error allowed by the truncation
+    dimension -- maximum size allowed by the truncation (or None)
+    
+    Output
+    ------
+    S         -- new, truncated vector of Schmidt numbers
+    error     -- norm-2 error made by the truncation
+    """
     if tolerance == 0:
         #log('--no truncation')
-        return S
+        return S, 0
     # We sum all reduced density matrix eigenvalues, starting from
     # the smallest ones, to avoid rounding errors
     err = np.cumsum(np.flip(S, axis=0)**2)
@@ -68,10 +75,12 @@ def _truncate_vector(S, tolerance):
     # have to keep, s[k-1]
     #
     ndx = np.argmax(err >= tolerance*total)
+    if dimension is not None:
+        ndx = min(ndx, dimension)
     #
     # We use that to estimate the size of the array and the actual error
     #
-    return S[0:(S.size - ndx)], err[ndx-1] if ndx > 0 else 0.
+    return S[0:(S.size - ndx)], err[ndx-1] if ndx else 0.
 
 
 class TensorArray(object):
@@ -114,6 +123,9 @@ class TensorArray(object):
         # Return a copy of the MPS with a fresh new array.
         #
         return type(self)(self._data)
+    
+    def __len__(self):
+        return self.size
 
     def copy(self):
         """Return a fresh new TensorArray that shares the same tensor as its
@@ -138,8 +150,10 @@ class MPS(TensorArray):
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
     #
-    def __init__(self, data):
+    def __init__(self, data, error=0.):
         super(MPS, self).__init__(data)
+        assert data[0].shape[0] == data[-1].shape[-1] == 1
+        self._error = error
 
     def dimension(self):
         """Return the total size of the Hilbert space in which this MPS lives."""
@@ -173,6 +187,17 @@ class MPS(TensorArray):
         """Return all expectation values of 'operator' acting on all possible
         sites of the MPS."""
         return expectation.all_expectation1_non_canonical(self, operator)
+    
+    def error(self):
+        """Return any recorded norm-2 truncation errors in this state. More
+        precisely, |exact - actual|^2."""
+        return self._error
+
+    def update_error(self, delta):
+        """Update an estimate of the norm-2 truncation errors. We use the
+        triangle inequality to guess an upper bound."""
+        self._error = (np.sqrt(self._error)+np.sqrt(delta))**2
+        return self._error
 
 
 def _mps2vector(data):
@@ -347,24 +372,29 @@ def gaussian(n, x0, w0, k0, mps=True):
     coefs = np.exp(-(xx-x0)**2 / w0**2 + 1j * k0*xx, dtype=complex)
     return wavepacket(coefs / np.linalg.norm(coefs))
 
-
-def _ortho_right(A, tol):
+def _ortho_right(A, tol, normalize):
     α, i, β = A.shape
-    U, s, V = np.linalg.svd(np.reshape(A, (α*i, β)), full_matrices=False)
-    s, err = _truncate_vector(s, tol)
+    U, s, V = scipy.linalg.svd(np.reshape(A, (α*i, β)), full_matrices=False,
+                               lapack_driver='gesvd')
+    s, err = _truncate_vector(s, tol, None)
+    if normalize:
+        s /= np.linalg.norm(s)
     D = s.size
     return np.reshape(U[:,:D], (α, i, D)), np.reshape(s, (D, 1)) * V[:D, :], err
 
 
-def _ortho_left(A, tol):
+def _ortho_left(A, tol, normalize):
     α, i, β = A.shape
-    U, s, V = np.linalg.svd(np.reshape(A, (α, i*β)), full_matrices=False)
-    s, err = _truncate_vector(s, tol)
+    U, s, V = scipy.linalg.svd(np.reshape(A, (α, i*β)), full_matrices=False,
+                               lapack_driver='gesvd')
+    s, err = _truncate_vector(s, tol, None)
+    if normalize:
+        s /= np.linalg.norm(s)
     D = s.size
     return np.reshape(V[:D,:], (D, i, β)), U[:, :D] * np.reshape(s, (1, D)), err
 
 
-def _update_in_canonical_form(Ψ, A, site, direction, tolerance):
+def _update_in_canonical_form(Ψ, A, site, direction, tolerance, normalize):
     """Insert a tensor in canonical form into the MPS Ψ at the given site.
     Update the neighboring sites in the process.
     
@@ -384,7 +414,7 @@ def _update_in_canonical_form(Ψ, A, site, direction, tolerance):
             Ψ[site] = A
             err = 0.
         else:
-            Ψ[site], sV, err = _ortho_right(A, tolerance)
+            Ψ[site], sV, err = _ortho_right(A, tolerance, normalize)
             site += 1
             Ψ[site] = np.einsum('ab,bic->aic', sV, Ψ[site])
     else:
@@ -392,70 +422,45 @@ def _update_in_canonical_form(Ψ, A, site, direction, tolerance):
             Ψ[site] = A
             err = 0.
         else:
-            Ψ[site], Us, err = _ortho_left(A, tolerance)
+            Ψ[site], Us, err = _ortho_left(A, tolerance, normalize)
             site -= 1
             Ψ[site] = np.einsum('aib,bc->aic', Ψ[site], Us)
     return site, err
 
 
-def _canonicalize(Ψ, center, tolerance):
+def _canonicalize(Ψ, center, tolerance, normalize):
     err = 0.
     for i in range(0, center):
-        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, +1, tolerance)
+        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, +1, tolerance, normalize)
         err += errk
     for i in range(Ψ.size-1, center, -1):
-        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, -1, tolerance)
+        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, -1, tolerance, normalize)
         err += errk
     return err
 
-def left_orth_2site(AA,tol):
+def left_orth_2site(AA, tolerance, normalize, dimension):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α*d1, β*d2))
-    U, S, V = np.linalg.svd(Ψ, full_matrices=False)
-    S, err = _truncate_vector(S, tolerance=tol)
+    U, S, V = scipy.linalg.svd(Ψ, full_matrices=False, lapack_driver='gesvd')
+    S, err = _truncate_vector(S, tolerance, None)
+    if normalize:
+        S /= np.linalg.norm(S)
     D = S.size
     U = np.reshape(U[:,:D], (α, d1, D))
     SV = np.reshape( np.reshape(S, (D,1)) * V[:D,:], (D,d2,β) )
     return U, SV, err
-    
-def right_orth_2site(AA,tol):
+
+def right_orth_2site(AA, tolerance, normalize, dimension):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α*d1, β*d2))
-    U, S, V = np.linalg.svd(Ψ, full_matrices=False)
-    S, err = _truncate_vector(S, tolerance=tol)
+    U, S, V = scipy.linalg.svd(Ψ, full_matrices=False, lapack_driver='gesvd')
+    S, err = _truncate_vector(S, tolerance, dimension)
+    if normalize:
+        S /= np.linalg.norm(S)
     D = S.size    
     US = np.reshape(U[:,:D] * np.reshape(S, (1, D)), (α, d1, D))
     V = np.reshape(V[:D,:], (D,d2,β))
     return US, V, err
-
-def _update_in_canonical_form_2site(Ψ, AA, leftsite, rightsite, direction, tolerance):
-    """Split a two-site tensor into two one-site tensors by 
-    left/right orthonormalization and insert the tensor in 
-    canonical form into the MPS Ψ at the given site and the site
-    on its left/right. Update the neighboring sites in the process.
-    
-    Arguments:
-    ----------
-    Ψ = MPS in CanonicalMPS form
-    AA = two-site tensor to be split by orthonormalization
-    site = the index of the site with respect to which 
-    orthonormalization is carried out
-    direction = if greater (less) than zero right (left) orthonormalization
-    is carried out
-    tolerance = truncation tolerance for the singular values 
-    (see _truncate_vector in File 1a - MPS class)           
-    """
-
-    if direction < 0:
-        Ψ[leftsite], Ψ[rightsite], err = right_orth_2site(AA,tolerance)
-        Ψ.center = leftsite
-    else:
-        Ψ[leftsite], Ψ[rightsite], err = left_orth_2site(AA,tolerance)
-        #Ψ.center += 1
-        Ψ.center = rightsite 
-    center, err2 = _update_in_canonical_form(Ψ, Ψ[Ψ.center], Ψ.center, direction, tolerance)
-    return center, (np.sqrt(err)+np.sqrt(err2))**2
-    
 
 
 class CanonicalMPS(MPS):
@@ -466,27 +471,28 @@ class CanonicalMPS(MPS):
     The tensors have three indices, A[α,i,β], where 'α,β' are the internal
     labels and 'i' is the physical state of the given site.
 
-    Attributes:
-    size = number of tensors in the array
-    center = site that defines the canonical form of the MPS
-    trunc_error = the error 
+    Parameters
+    ----------
+    data      -- a list of MPS tensors
+    center    -- site to make the canonical form
+    error     -- norm-2 squared truncation error that we carry on
+    tolerance -- truncation tolerance when creating the canonical form
+    normalize -- normalize the state after finishing the canonical form
     """
 
     #
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
     #
-    def __init__(self, data, center=0, normalize=False,
-                 tolerance=DEFAULT_TOLERANCE):
-        super(MPS, self).__init__(data)
-        self.trunc_error = 0
+    def __init__(self, data, error=0, center=0, normalize=False, tolerance=DEFAULT_TOLERANCE):
+        super(CanonicalMPS, self).__init__(data, error=error)
         if isinstance(data, CanonicalMPS):
             self.center = data.center
-            self.recenter(center)
-            self.trunc_error = data.trunc_error
+            self._error = data._error
+            self.recenter(center, tolerance, normalize)
         else:
             self.center = center = self._interpret_center(center)
-            self.trunc_error = _canonicalize(self, center, tolerance)
+            self.update_error(_canonicalize(self, center, tolerance, normalize))
         if normalize:
             A = self[center]
             self[center] = A / np.linalg.norm(A)
@@ -502,7 +508,7 @@ class CanonicalMPS(MPS):
         """Return the square of the norm-2 of this state, ‖ψ‖**2 = <ψ|ψ>."""
         A = self._data[self.center]
         return np.vdot(A, A)
-
+    
     def expectationAtCenter(self, operator):
         """Return the expectation value of 'operator' acting on the central
         site of the MPS."""
@@ -512,18 +518,39 @@ class CanonicalMPS(MPS):
     def entanglement_entropyAtCenter(self):
         d1, d2, d3 = self._data[self.center].shape
         u,s,v = np.linalg.svd(np.reshape(self._data[self.center], (d1*d2,d3)))
-        return -np.sum(s**2 * np.log(s**2))
+        return -np.sum(2 * s * s * np.log2(s))
     
-    def update_canonical(self, A, direction, tolerance=DEFAULT_TOLERANCE):
+    def update_canonical(self, A, direction, tolerance=DEFAULT_TOLERANCE, normalize=False):
         self.center, err = _update_in_canonical_form(self, A, self.center,
-                                                     direction, tolerance)
-        self.trunc_error = (np.sqrt(err)+np.sqrt(self.trunc_error))**2
+                                                     direction, tolerance, normalize)
+        self.update_error(err)
         return err
         
-    def update_canonical_2site(self, AA, start, nextsite, direction, tolerance=DEFAULT_TOLERANCE):
-        self.center, err = _update_in_canonical_form_2site(self, AA, start, nextsite,
-                                                           direction, tolerance)
-        self.trunc_error = (np.sqrt(err)+np.sqrt(self.trunc_error))**2
+    def update_2site(self, AA, site, direction, tolerance=DEFAULT_TOLERANCE, normalize=False, dimension=None):
+        """Split a two-site tensor into two one-site tensors by 
+        left/right orthonormalization and insert the tensor in 
+        canonical form into the MPS Ψ at the given site and the site
+        on its left/right. Update the neighboring sites in the process.
+
+        Arguments:
+        ----------
+        Ψ = MPS in CanonicalMPS form
+        AA = two-site tensor to be split by orthonormalization
+        site = the index of the site with respect to which 
+        orthonormalization is carried out
+        direction = if greater (less) than zero right (left) orthonormalization
+        is carried out
+        tolerance = truncation tolerance for the singular values 
+        (see _truncate_vector in File 1a - MPS class)           
+        """
+        assert site <= self.center <= site+1
+        if direction < 0:
+            self._data[site], self._data[site+1], err = right_orth_2site(AA, tolerance, normalize, dimension)
+            self.center = site
+        else:
+            self._data[site], self._data[site+1], err = left_orth_2site(AA, tolerance, normalize, dimension)
+            self.center = site+1
+        self.update_error(err)
         return err
                
     def _interpret_center(self, center):
@@ -538,7 +565,7 @@ class CanonicalMPS(MPS):
             return center
         raise IndexError()
 
-    def recenter(self, center, tolerance=DEFAULT_TOLERANCE):
+    def recenter(self, center, tolerance=DEFAULT_TOLERANCE, normalize=False):
         """Update destructively the state to be in canonical form with respect
         to a different site."""
         center = self._interpret_center(center)
@@ -546,8 +573,7 @@ class CanonicalMPS(MPS):
         if center != old:
             dr = +1 if center > old else -1
             for i in range(old, center, dr):
-                err = self.update_canonical(self._data[i], dr, tolerance)
-                self.trunc_error = (np.sqrt(err)+np.sqrt(self.trunc_error))**2
+                self.update_canonical(self._data[i], dr, tolerance, normalize)
         return self
 
     def __copy__(self):
@@ -561,4 +587,3 @@ class CanonicalMPS(MPS):
         sibling, but which can be destructively modified without affecting it.
         """
         return self.__copy__()
-
