@@ -164,7 +164,7 @@ class MPS(TensorArray):
         the complete wavefunction that is encoded in the MPS."""
         return _mps2vector(self)
 
-    @classmethod
+    @staticmethod
     def fromvector(ψ, dimensions, **kwdargs):
         return MPS(vector2mps(ψ, dimensions, **kwdargs))
 
