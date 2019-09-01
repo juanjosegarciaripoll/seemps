@@ -1,6 +1,6 @@
 @echo off
 if "%1" == "all" (
-    python -c "import exportnb; import glob; exportnb.export_notebooks(glob.glob('*.ipynb')); quit()"
+    python -c "import exportnb; import glob; exportnb.export_notebooks(glob.glob('*.ipynb'),verbose=True); quit()"
 )
 if "%1" == "clean" (
     rmdir /S /Q seeq
