@@ -20,3 +20,9 @@ MPS simplification
 .. autofunction:: mps.truncate.simplify
 
 .. autofunction:: mps.truncate.combine
+
+Fourier transforms
+------------------
+
+.. automodule:: mps.qft
+   :members:
