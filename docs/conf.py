@@ -90,6 +90,9 @@ def docstring(app, what, name, obj, options, lines):
 def setup(app):
     app.connect('autodoc-process-docstring', docstring)
 
+# This is needed to fix readthedocs
+master_doc = 'index'
+
 
 # -- Options for HTML output -------------------------------------------------
 
