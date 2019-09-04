@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
 from mps.test.tools import *
+from mps.state import MPS
 import scipy.sparse as sp
 
 class TestAlgebraic(unittest.TestCase):
@@ -36,3 +37,24 @@ class TestAlgebraic(unittest.TestCase):
             J = np.random.rand(N,N) - 0.5
             self.assertTrue(similar(qubo_mpo(J=J).tomatrix(),
                                     self.quadratic_operator(J)))
+
+    def test_product(self):
+        np.random.seed(1034)
+        for N in range(1, 10):
+            ψ = np.random.rand(2**N,2)-0.5
+            ψ = ψ[:,0] + 1j*ψ[:,1]
+            ψ /= np.linalg.norm(ψ)
+            ψmps = MPS.fromvector(ψ,[2]*N)
+            ψ = ψmps.tovector()
+            
+            ξ = np.random.rand(2**N,2)-0.5
+            ξ = ξ[:,0] + 1j*ξ[:,1]
+            ξ /= np.linalg.norm(ξ)
+            ξmps = MPS.fromvector(ξ,[2]*N)
+            ξ = ξmps.tovector()
+            
+            ψξ = wavefunction_product(ψmps, ξmps, simplify=True, normalize=False).tovector()
+            self.assertTrue(similar(ψξ, ψ*ξ))
+            
+            ψcξ = wavefunction_product(ψmps, ξmps, conjugate=True, simplify=False, normalize=False).tovector()
+            self.assertTrue(similar(ψcξ, ψ.conj() * ξ))
