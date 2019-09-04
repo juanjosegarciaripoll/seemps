@@ -68,6 +68,43 @@ class MPO(TensorArray):
         else:
             raise Exception(f'Cannot multiply MPO with {b}')
 
+    def extend(self, L, sites=None, dimensions=2):
+        """Enlarge an MPO so that it acts on a larger Hilbert space with 'L' sites.
+
+        Parameters
+        ----------
+        L          -- The new size
+        dimensions -- If it is an integer, it is the dimension of the new sites.
+                      If it is a list, it is the dimension of all sites.
+        sites      -- Where to place the tensors of the original MPO.
+
+        Output
+        ------
+        mpo        -- A new MPO.
+        """
+        assert L >= self.size
+        if np.isscalar(dimensions):
+            dimensions = [dimensions] * L
+        if sites is None:
+            sites = range(self.size)
+        else:
+            assert len(sites) == self.size
+
+        data = [None]*L
+        for (ndx, A) in zip(sites, mpo):
+            data[ndx] = A
+        D = 1
+        for (i, A) in enumerate(data):
+            if A is None:
+                d = dimensions[i]
+                A = np.eye(d).reshape(d,d,1)
+                A = np.ones((D,d,d,D)) * A
+                data[i] = A
+            else:
+                D = A.shape[-1]
+        return MPO(data, simplify=self.simplify, tolerance=self.tolerance,
+                   normalize=self.normalize)
+
 class MPOList(object):
     """MPO (Matrix Product Operator) list.
 
@@ -112,3 +149,22 @@ class MPOList(object):
                                    dimension=self.dimension)
             log(f'Total error after applying MPOList {b.error()}, incremented by {err}')
         return b
+
+    def extend(self, L, sites=None, dimensions=2):
+        """Enlarge an MPOList so that it acts on a larger Hilbert space with 'L' sites.
+
+        Parameters
+        ----------
+        L          -- The new size
+        dimensions -- If it is an integer, it is the dimension of the new sites.
+                      If it is a list, it is the dimension of all sites.
+        sites      -- Where to place the tensors of the original MPO.
+
+        Output
+        ------
+        mpo        -- A new MPOList.
+        """
+        data = [mpo.extend(L, sites=sites, dimensions=dimensions)
+                for mpo in self.mpos]
+        return MPOList(data, simplify=self.simplify, tolerance=self.tolerance,
+                       normalize=self.normalize)
