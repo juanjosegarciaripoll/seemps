@@ -1,11 +1,16 @@
 import numpy as np
 import scipy.sparse as sp
+from mps.state import MPS
 
 def similar(A, B, **kwdargs):
     if sp.issparse(A):
         A = A.todense()
+    elif isinstance(A, MPS):
+        A = A.tovector()
     if sp.issparse(B):
         B = B.todense()
+    elif isinstance(B, MPS):
+        B = B.tovector()
     return (A.shape == B.shape) & np.all(np.isclose(A, B, **kwdargs))
 
 
