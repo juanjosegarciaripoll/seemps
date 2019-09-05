@@ -55,6 +55,7 @@ class MPO(TensorArray):
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
         if isinstance(b, MPS):
+            assert self.size == b.size
             log(f'Total error before applying MPO {b.error()}')
             err = 0.
             b = MPS([mpo_multiply_tensor(A, B) for A,B in zip(self._data, b)],
@@ -91,7 +92,7 @@ class MPO(TensorArray):
             assert len(sites) == self.size
 
         data = [None]*L
-        for (ndx, A) in zip(sites, mpo):
+        for (ndx, A) in zip(sites, self):
             data[ndx] = A
         D = 1
         for (i, A) in enumerate(data):
