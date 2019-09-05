@@ -199,6 +199,43 @@ class MPS(TensorArray):
         self._error = (np.sqrt(self._error)+np.sqrt(delta))**2
         return self._error
 
+    def extend(self, L, sites=None, dimensions=2):
+        """Enlarge an MPS so that it lives in a Hilbert space with 'L' sites.
+
+        Parameters
+        ----------
+        L          -- The new size
+        dimensions -- If it is an integer, it is the dimension of the new sites.
+                      If it is a list, it is the dimension of all sites.
+        sites      -- Where to place the tensors of the original MPO.
+
+        Output
+        ------
+        mpo        -- A new MPO.
+        """
+        assert L >= self.size
+        if np.isscalar(dimensions):
+            dimensions = [dimensions] * L
+        if sites is None:
+            sites = range(self.size)
+        else:
+            assert len(sites) == self.size
+
+        data = [None]*L
+        for (ndx, A) in zip(sites, self):
+            data[ndx] = A
+            dimensions[ndx] = A.shape[1]
+        D = 1
+        for (i, A) in enumerate(data):
+            if A is None:
+                d = dimensions[i]
+                A = np.zeros((D,d,D))
+                A[:,0,:] = np.eye(D)
+                data[i] = A
+            else:
+                D = A.shape[-1]
+        return MPS(data)
+
 
 def _mps2vector(data):
     #
