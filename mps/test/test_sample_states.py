@@ -1,6 +1,8 @@
 
+import numpy as np
 import unittest
-
+from mps.tools import *
+from mps.state import *
 
 class TestSampleStates(unittest.TestCase):
 
@@ -99,7 +101,7 @@ class TestSampleStates(unittest.TestCase):
         AKLT3 = AKLT3/(np.sqrt(2)**2)
         self.assertTrue(np.array_equal(AKLT(3).tovector(), AKLT3))
 
-        for i in range(1, 5):
+        for i in range(2, 5):
             Ψ = AKLT(i)
             self.assertEqual(Ψ.size, i)
             self.assertEqual(Ψ.dimension(), 3**i)
