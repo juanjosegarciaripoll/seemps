@@ -24,10 +24,4 @@ MPS simplification
 
 .. autofunction:: mps.truncate.combine
 
-Fourier transforms
-------------------
-
-.. automodule:: mps.qft
-   :members: qft, iqft, qft_flip, qft_nd_mpo, iqft_nd_mpo
-
 
