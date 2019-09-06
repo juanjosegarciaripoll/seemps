@@ -183,7 +183,7 @@ class MPS(TensorArray):
     def expectation2(self, operator1, operator2, i, j=None):
         """Return the expectation value of `operator1` and `operator2` acting
         on the sites `i` and `j`. See `mps.expectation.expectation2()`"""
-        return expectation.expectation2(self, operator1, operator2, n)
+        return expectation.expectation2(self, operator1, operator2, i, j)
 
     def all_expectation1(self, operator):
         """Return all expectation values of `operator` acting on all possible
@@ -564,17 +564,17 @@ class CanonicalMPS(MPS):
         return np.vdot(A, A)
     
     def left_environment(self, site):
-        start = min(site, center)
+        start = min(site, self.center)
         ρ = expectation.begin_environment(self[start].shape[0])
         for A in self[start:site]:
             ρ = expectation.update_left_environment(A, A, ρ)
         return ρ
     
     def right_environment(self, site):
-        start = max(site, center)
+        start = max(site, self.center)
         ρ = expectation.begin_environment(self[start].shape[-1])
         for A in self[start:site:-1]:
-            ρ = expectation.update_left_environment(A, A, ρ)
+            ρ = expectation.update_right_environment(A, A, ρ)
         return ρ
     
     def expectation1(self, operator, site=None):

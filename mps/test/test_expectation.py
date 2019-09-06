@@ -1,8 +1,7 @@
-from mps.expectation import *
-
 import unittest
-import mps.state
+from mps.state import CanonicalMPS
 from mps.test.tools import *
+from mps.expectation import *
 
 def bit2state(b):
     if b:
@@ -64,6 +63,22 @@ class TestExpectation(unittest.TestCase):
             for i in range(nbits):
                 self.assertAlmostEqual(ψGHZ.expectation1(O,i), 0.5)
                 self.assertAlmostEqual(ψW.expectation1(O,i), 1/nbits)
+
+    def test_expected1(self):
+        O1 = np.array([[0.3,1.0+0.2j],[1.0-0.2j,0.5]])
+        def expected1_ok(ϕ, canonical=False):
+            if canonical:
+                for i in range(ϕ.size):
+                    expected1_ok(CanonicalMPS(ϕ, center=i), canonical=False)
+            else:
+                nrm2 = ϕ.norm2()
+                for n in range(ϕ.size):
+                    ψ = ϕ.copy()
+                    ψ[n] = np.einsum('ij,kjl->kil', O1, ψ[n])
+                    desired= np.vdot(ϕ.tovector(), ψ.tovector())
+                    self.assertAlmostEqual(desired/nrm2, expectation1(ϕ, O1, n)/nrm2)
+        test_over_random_mps(expected1_ok)
+        test_over_random_mps(lambda ϕ: expected1_ok(ϕ, canonical=True))
     
     def test_expected1_density(self):
         def random_wavefunction(n):
@@ -97,8 +112,11 @@ class TestExpectation(unittest.TestCase):
     def test_expected2(self):
         O1 = np.array([[0.3,1.0+0.2j],[1.0-0.2j,0.5]])
         O2 = np.array([[0.34,0.4-0.7j],[0.4+0.7j,-0.6]])
-        def expected2_ok(ϕ):
-            nrm2 = φ.norm2()
+        def expected2_ok(ϕ, canonical=False):
+            if canonical:
+                for i in range(ϕ.size):
+                    CanonicalMPS(ϕ, center=i)
+            nrm2 = ϕ.norm2()
             for n in range(1, ϕ.size):
                 ψ = ϕ.copy()
                 ψ[n-1] = np.einsum('ij,kjl->kil', O1, ψ[n-1])
@@ -106,3 +124,4 @@ class TestExpectation(unittest.TestCase):
                 desired= mps.expectation.scprod(ϕ, ψ)
                 self.assertAlmostEqual(desired/nrm2, expectation2(ϕ, O1, O2, n-1)/nrm2)
         test_over_random_mps(expected2_ok)
+        test_over_random_mps(lambda ϕ: expected2_ok(ϕ, canonical=True))
