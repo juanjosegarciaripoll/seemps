@@ -537,7 +537,7 @@ class CanonicalMPS(MPS):
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
     #
-    def __init__(self, data, error=0, center=None, normalize=False, tolerance=DEFAULT_TOLERANCE):
+    def __init__(self, data, center=None, error=0, normalize=False, tolerance=DEFAULT_TOLERANCE):
         super(CanonicalMPS, self).__init__(data, error=error)
         if isinstance(data, CanonicalMPS):
             self.center = data.center
