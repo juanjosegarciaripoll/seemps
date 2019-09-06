@@ -1,6 +1,7 @@
 
 import unittest
-
+import numpy as np
+from mps.state import TensorArray
 
 class TestTensorArray(unittest.TestCase):
 
