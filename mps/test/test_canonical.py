@@ -89,6 +89,21 @@ class TestCanonicalForm(unittest.TestCase):
                     self.assertTrue(similar(ξ[i], χ[i]))
         test_over_random_mps(ok)
 
+    def test_environments(self):
+        #
+        # Verify that the canonical form is indeed canonical and the
+        # environment is orthogonal
+        #
+        def ok(Ψ):
+            for center in range(Ψ.size):
+                ξ = CanonicalMPS(Ψ, center=center)
+                Lenv = super(CanonicalMPS, ξ).left_environment(center)
+                Renv = super(CanonicalMPS, ξ).left_environment(center)
+                print(Lenv)
+                self.assertTrue(almostIdentity(Lenv))
+                self.assertTrue(almostIdentity(Renv))
+        test_over_random_mps(ok)
+
     def test_canonical_mps_normalization(self):
         #
         # We verify CanonicalMPS(...,normalize=True) normalizes the
