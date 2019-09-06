@@ -1,6 +1,9 @@
 
+import numpy as np
 import unittest
 from mps.test.tools import *
+from mps.state import CanonicalMPS, MPS
+from mps.truncate import simplify, combine, AntilinearForm
 
 class TestLinearForm(unittest.TestCase):
     
