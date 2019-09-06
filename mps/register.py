@@ -57,7 +57,7 @@ def qubo_mpo(J=None, h=None, **kwdargs):
     return MPO(data, **kwdargs)
 
 def qubo_exponential_mpo(J=None, h=None, **kwdargs):
-    """Return the MPO associated to the exponential $\exp(\beta H)$ of 
+    """Return the MPO associated to the exponential $\exp(\\beta H)$ of 
     the QUBO operator
          $H = \sum_i J_{ij} s_i s_j + \sum_i h_i s_i$
     defined by the interaction 'J' and the field 'h'.
@@ -111,7 +111,9 @@ def qubo_exponential_mpo(J=None, h=None, **kwdargs):
 
 def wavefunction_product(ψ, ξ, conjugate=False, simplify=True, **kwdargs):
     """Implement a nonlinear transformation that multiplies two MPS, to
-    create a new MPS with combined bond dimensions.
+    create a new MPS with combined bond dimensions. In other words, act
+    with the nonlinear transformation <s|ψξ> = ψ(s)ξ(s)|s> or
+    <s|ψ*ξ> = ψ*(s)ξ(s)|s>
     
     Arguments
     ---------
@@ -122,7 +124,7 @@ def wavefunction_product(ψ, ξ, conjugate=False, simplify=True, **kwdargs):
     
     Output
     ------
-    ψξ        -- An MPS product of both.
+    mps       -- The MPS product ψξ or ψ*ξ.
     """
     
     def combine(A, B):
