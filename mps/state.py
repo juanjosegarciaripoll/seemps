@@ -175,19 +175,30 @@ class MPS(TensorArray):
     def expectation1(self, operator, n):
         """Return the expectation value of 'operator' acting on the 'n'-th
         site of the MPS."""
-        return expectation.expectation1_non_canonical(self, operator, n)
+        return expectation.expectation1(self, operator, n)
 
     def expectation2(self, operator1, operator2, n):
         """Return the expectation value of 'operator1' and 'operator2' acting
         on the 'n'-th and 'n+1'-th sites of the MPS."""
-        return expectation.expectation2_non_canonical(self, operator1,
-                                                      operator2, n)
+        return expectation.expectation2(self, operator1, operator2, n)
 
     def all_expectation1(self, operator):
         """Return all expectation values of 'operator' acting on all possible
         sites of the MPS."""
-        return expectation.all_expectation1_non_canonical(self, operator)
+        return expectation.all_expectation1(self, operator)
+
+    def left_environment(self, site):
+        ρ = expectation.begin_environment()
+        for A in self[:site]:
+            ρ = expectation.update_left_environment(A, A, ρ)
+        return ρ
     
+    def right_environment(self, site):
+        ρ = expectation.begin_environment()
+        for A in self[-1:site:-1]:
+            ρ = expectation.update_right_environment(A, A, ρ)
+        return ρ
+
     def error(self):
         """Return any recorded norm-2 truncation errors in this state. More
         precisely, |exact - actual|^2."""
@@ -273,7 +284,7 @@ def product(vectors, length=None):
     if length is not None:
         return MPS([to_tensor(vectors)] * length)
     else:
-        return MPS(map(to_tensor, vectors))
+        return MPS([to_tensor(v) for v in vectors])
     
 
 
@@ -343,6 +354,7 @@ def graph(n, mps=True):
     """Create a one-dimensional graph state of `n` qubits."""
     # Choose entangled pair state as : |00>+|11>
     # Apply Hadamard H on the left virtual spins (which are the right spins of the entangled bond pairs)
+    assert n > 1
     H = np.array([[1, 1], [1, -1]])
     # which gives |0>x(|0>+|1>)+|1>x(|0>-|1>) = |00>+|01>+|10>-|11>
     # Project as  |0><00| + |1><11|
@@ -354,7 +366,6 @@ def graph(n, mps=True):
     data = [AA]*n
     data[0] = np.dot(np.array([[[1, 0], [0, 1]]]), H)
     data[-1] = np.swapaxes(np.array([[[1, 0], [0, 1]]]), 0, 2) / np.sqrt(2**n)
-
     return MPS(data)
 
 # open boundary conditions
@@ -363,6 +374,7 @@ def graph(n, mps=True):
 
 def AKLT(n, mps=True):
     """Return an AKL state with `n` spin-1 particles."""
+    assert n > 1
     # Choose entangled pair state as : |00>+|11>
     # Apply i * Pauli Y matrix on the left virtual spins (which are the right spins of the entangled bond pairs)
     iY = np.array([[0, 1], [-1, 0]])
@@ -510,8 +522,9 @@ class CanonicalMPS(MPS):
 
     Parameters
     ----------
-    data      -- a list of MPS tensors
-    center    -- site to make the canonical form
+    data      -- a list of MPS tensors, an MPS or a CanonicalMPS
+    center    -- site to make the canonical form. If defaults either to
+                 the center of the CanonicalMPS or to zero.
     error     -- norm-2 squared truncation error that we carry on
     tolerance -- truncation tolerance when creating the canonical form
     normalize -- normalize the state after finishing the canonical form
@@ -521,14 +534,15 @@ class CanonicalMPS(MPS):
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
     #
-    def __init__(self, data, error=0, center=0, normalize=False, tolerance=DEFAULT_TOLERANCE):
+    def __init__(self, data, error=0, center=None, normalize=False, tolerance=DEFAULT_TOLERANCE):
         super(CanonicalMPS, self).__init__(data, error=error)
         if isinstance(data, CanonicalMPS):
             self.center = data.center
             self._error = data._error
-            self.recenter(center, tolerance, normalize)
+            if center is not None:
+                self.recenter(center, tolerance, normalize)
         else:
-            self.center = center = self._interpret_center(center)
+            self.center = center = self._interpret_center(0 if center is None else center)
             self.update_error(_canonicalize(self, center, tolerance, normalize))
         if normalize:
             A = self[center]
@@ -546,11 +560,27 @@ class CanonicalMPS(MPS):
         A = self._data[self.center]
         return np.vdot(A, A)
     
-    def expectationAtCenter(self, operator):
-        """Return the expectation value of 'operator' acting on the central
-        site of the MPS."""
-        A = self._data[self.center]
-        return np.vdot(A, np.einsum('ij,ajb->aib', operator, A))/np.vdot(A,A)
+    def left_environment(self, site):
+        start = min(site, center)
+        ρ = expectation.begin_environment(self[start].shape[0])
+        for A in self[start:site]:
+            ρ = expectation.update_left_environment(A, A, ρ)
+        return ρ
+    
+    def right_environment(self, site):
+        start = max(site, center)
+        ρ = expectation.begin_environment(self[start].shape[-1])
+        for A in self[start:site:-1]:
+            ρ = expectation.update_left_environment(A, A, ρ)
+        return ρ
+    
+    def expectation1(self, operator, site=None):
+        """Return the expectated value of 'operator' acting on the given 'site'."""
+        if site is None or site == self.center:
+            A = self._data[self.center]
+            return np.vdot(A, np.einsum('ij,ajb->aib', operator, A))
+        else:
+            return expectation.expectation1(ψ, operator, site)
 
     def entanglement_entropyAtCenter(self):
         d1, d2, d3 = self._data[self.center].shape

@@ -10,19 +10,22 @@ class TestCanonicalForm(unittest.TestCase):
         # We verify that _update_in_canonical_form() leaves a tensor that
         # is an approximate isometry.
         #
-        def ok(Ψ):
+        def ok(Ψ, normalization=False):
             for i in range(Ψ.size-1):
                 ξ = Ψ.copy()
                 _update_in_canonical_form(ξ, ξ[i], i, +1,
-                                          DEFAULT_TOLERANCE)
+                                          DEFAULT_TOLERANCE,
+                                          normalization)
                 self.assertTrue(approximateIsometry(ξ[i], +1))
             for i in range(1, Ψ.size):
                 ξ = Ψ.copy()
                 _update_in_canonical_form(ξ, ξ[i], i, -1,
-                                          DEFAULT_TOLERANCE)
+                                          DEFAULT_TOLERANCE,
+                                          normalization)
                 self.assertTrue(approximateIsometry(ξ[i], -1))
 
         test_over_random_mps(ok)
+        test_over_random_mps(lambda ψ: ok(ψ, normalization=True))
 
     def test_canonicalize(self):
         #
@@ -30,10 +33,10 @@ class TestCanonicalForm(unittest.TestCase):
         # that is in canonical form and represents the same state, up to
         # a reasonable tolerance.
         #
-        def ok(Ψ):
+        def ok(Ψ, normalization=False):
             for center in range(Ψ.size):
                 ξ = Ψ.copy()
-                _canonicalize(ξ, center, DEFAULT_TOLERANCE)
+                _canonicalize(ξ, center, DEFAULT_TOLERANCE, normalization)
                 #
                 # All sites to the left and to the right are isometries
                 #
@@ -75,9 +78,9 @@ class TestCanonicalForm(unittest.TestCase):
                 # Local observables give the same
                 #
                 O = np.array([[0, 0], [0, 1]])
-
-                self.assertAlmostEqual(ξ.expectationAtCenter(O),
-                                       Ψ.expectation1(O, center))
+                nrm2 = ξ.norm2()
+                self.assertAlmostEqual(ξ.expectation1(O)/nrm2,
+                                       Ψ.expectation1(O, center)/nrm2)
                 #
                 # The canonical form is the same when we use the
                 # corresponding negative indices of 'center'
@@ -115,25 +118,3 @@ class TestCanonicalForm(unittest.TestCase):
                 for i in range(ξ.size):
                     self.assertTrue(np.all(np.equal(ξ[i], ψ[i])))
         test_over_random_mps(ok)
-        
-    def test_local_update_canonical_2site(self):
-        #
-        # We verify that _update_in_canonical_form_2site() leaves 
-        # a tensor that is an approximate isometry.
-        #
-        def ok(Ψ):
-            for i in range(Ψ.size-1):
-                ξ = Ψ.copy()
-                AA = np.einsum("ijk,klm -> ijlm",  ξ[i],  ξ[i+1])
-                _update_in_canonical_form_2site(ξ, AA, i, +1,
-                                          DEFAULT_TOLERANCE)
-                self.assertTrue(approximateIsometry(ξ[i], +1))                
-            for i in range(1, Ψ.size):
-                ξ = Ψ.copy()
-                AA = np.einsum("ijk,klm -> ijlm",  ξ[i-1],  ξ[i])
-                _update_in_canonical_form_2site(ξ, AA, i, -1,
-                                          DEFAULT_TOLERANCE)
-                self.assertTrue(approximateIsometry(ξ[i], -1))
-
-        test_over_random_mps(ok)
-    

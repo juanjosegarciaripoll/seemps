@@ -1,7 +1,7 @@
+from mps.expectation import *
 
 import unittest
 import mps.state
-from mps.expectation import *
 from mps.test.tools import *
 
 def bit2state(b):
@@ -41,10 +41,11 @@ class TestExpectation(unittest.TestCase):
                                    1.0, places=10)
             self.assertAlmostEqual(mps.state.W(nbits).norm2(),
                                    1.0, places=10)
-            self.assertAlmostEqual(mps.state.graph(nbits).norm2(),
-                                   1.0, places=10)
-            self.assertAlmostEqual(mps.state.AKLT(nbits).norm2(),
-                                   1.0, places=10)
+            if nbits > 1:
+                self.assertAlmostEqual(mps.state.AKLT(nbits).norm2(),
+                                       1.0, places=10)
+                self.assertAlmostEqual(mps.state.graph(nbits).norm2(),
+                                       1.0, places=10)
         
     def test_norm_random(self):
         # Test that the norm works on random states
@@ -77,9 +78,9 @@ class TestExpectation(unittest.TestCase):
                 # We create a random MPS
                 ψwave = random_wavefunction(nbits)
                 ψmps = mps.state.wavepacket(ψwave)
-                ni = all_expectation1_non_canonical(ψmps, O)
+                ni = all_expectation1(ψmps, O)
                 for i in range(nbits):
-                    si = expectation1_non_canonical(ψmps, O, i)
+                    si = expectation1(ψmps, O, i)
                     self.assertAlmostEqual(si, ψwave[i]**2)
                     xi = ψmps.expectation1(O, i)
                     self.assertEqual(si, xi)
@@ -90,16 +91,18 @@ class TestExpectation(unittest.TestCase):
         for nbits in range(2,8):
             ψGHZ = mps.state.GHZ(nbits)
             for i in range(nbits-1):
+                self.assertAlmostEqual(expectation2(ψGHZ,σz,σz,i), 1)
                 self.assertAlmostEqual(ψGHZ.expectation2(σz,σz,i), 1)
-    
+
     def test_expected2(self):
         O1 = np.array([[0.3,1.0+0.2j],[1.0-0.2j,0.5]])
         O2 = np.array([[0.34,0.4-0.7j],[0.4+0.7j,-0.6]])
         def expected2_ok(ϕ):
+            nrm2 = φ.norm2()
             for n in range(1, ϕ.size):
                 ψ = ϕ.copy()
                 ψ[n-1] = np.einsum('ij,kjl->kil', O1, ψ[n-1])
                 ψ[n]   = np.einsum('ij,kjl->kil', O2, ψ[n])
-                desired= mps.expectation.scprod(ϕ, ψ)/mps.expectation.scprod(ϕ,ϕ)
-                self.assertAlmostEqual(desired, expectation2_non_canonical(ϕ, O1, O2, n-1))
+                desired= mps.expectation.scprod(ϕ, ψ)
+                self.assertAlmostEqual(desired/nrm2, expectation2(ϕ, O1, O2, n-1)/nrm2)
         test_over_random_mps(expected2_ok)
