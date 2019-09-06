@@ -31,7 +31,8 @@ release = '1.0'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = ['recommonmark', # For Markdown
-              'sphinx.ext.autodoc' # For using strings from classes/functions
+              'sphinx.ext.autodoc', # For using strings from classes/functions
+              'sphinx.ext.mathjax' # For using equations
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -78,13 +79,13 @@ def docstring(app, what, name, obj, options, lines):
             text.append(l)
     if arg_name:
         text.append('* `' + arg_name + '`: ' + arg_txt)
-    for l in text:
-        print(l)
     md  = '\n'.join(text)
     ast = commonmark.Parser().parse(md)
     rst = commonmark.ReStructuredTextRenderer().render(ast)
     lines.clear()
     for line in rst.splitlines():
+        line = re.sub(r'\$(?P<eqn>[^$]*)\$', r':math:`\1`', line)
+        print(line)
         lines.append(line)
 
 def setup(app):
