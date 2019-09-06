@@ -1,8 +1,7 @@
 import numpy as np
-import mps.state
-import mps.mpo
 from mps.mpo import MPO
-from mps.state import MPS
+from mps.state import MPS, CanonicalMPS
+import mps.truncate
 
 def qubo_mpo(J=None, h=None, **kwdargs):
     """Return the MPO associated to a QUBO operator
