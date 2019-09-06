@@ -1,8 +1,8 @@
 .. _seemps_tools:
 
-*******************
-SeeMPS useful tools
-*******************
+***********
+Other tools
+***********
 
 .. _sample_mps:
 

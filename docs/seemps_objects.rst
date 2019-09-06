@@ -1,8 +1,8 @@
 .. _seemps_objects:
 
-**************
-SeeMPS objects
-**************
+*******************
+Fundamental objects
+*******************
 
 .. _mps_classes:
 

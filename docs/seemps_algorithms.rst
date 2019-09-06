@@ -1,8 +1,8 @@
 .. _seemps_algorithms:
 
-*****************
-SeeMPS algorithms
-*****************
+**************
+MPS algorithms
+**************
 
 .. _mps_expectation:
 

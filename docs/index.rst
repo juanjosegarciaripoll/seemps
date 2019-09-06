@@ -13,8 +13,8 @@ Welcome to SeeMPS's documentation!
    getting_started
    seemps_objects
    seemps_algorithms
-   seemps_tools
    seemps_register
+   seemps_tools
 
 Indices and tables
 ==================

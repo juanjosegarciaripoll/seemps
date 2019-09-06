@@ -17,8 +17,8 @@ Fourier transforms
 
 .. _mps_register_transformations:
 
-Register transformations
-------------------------
+Other transformations
+---------------------
 
 .. automodule:: mps.register
    :members:
