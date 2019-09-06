@@ -133,5 +133,5 @@ def qft_nd_mpo(sites, N=None, sign=-1, **kwdargs):
     #
     return MPOList([make_layer(sites[i:]) for i in range(len(sites))])
 
-def iqft_nd_mpo(sites, N, **kwdargs):
-    return qft_mpo(sites, N, sign=+1, **kwdargs)
+def iqft_nd_mpo(sites, N=None, **kwdargs):
+    return qft_nd_mpo(sites, N=N, sign=+1, **kwdargs)

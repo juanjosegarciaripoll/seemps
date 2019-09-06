@@ -159,7 +159,8 @@ def twoscomplement(L, control=0, sites=None, **kwdargs):
     """
     
     if sites is not None:
-        out = twoscomplement(len(sites), control=control, sites=None, **kwdargs)
+        sites = sorted(sites)
+        out = twoscomplement(len(sites), control=sites.index(control), sites=None, **kwdargs)
         return out.extend(L, sites=sites)
     else:
         A0 = np.zeros((2,2,2,2))

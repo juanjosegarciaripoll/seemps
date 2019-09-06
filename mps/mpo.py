@@ -98,8 +98,7 @@ class MPO(TensorArray):
         for (i, A) in enumerate(data):
             if A is None:
                 d = dimensions[i]
-                A = np.eye(d).reshape(d,d,1)
-                A = np.ones((D,d,d,D)) * A
+                A = np.eye(D).reshape(D,1,1,D) * np.eye(d).reshape(1,d,d,1)
                 data[i] = A
             else:
                 D = A.shape[-1]
