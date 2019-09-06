@@ -35,28 +35,22 @@ def apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE):
         newstart = ψ.size-2
         for j in range(start, ψ.size-1, +2):
             #print('Updating sites ({}, {}), center={}, direction={}'.format(j, j+1, ψ.center, direction))
-            if j == (ψ.size-2):
-                #print("Last two sites, change direction from +1 to -1")
-                newstart = ψ.size-3
-                direction = -1
             AA = np.einsum('ijk,klm,nrjl -> inrm', ψ[j], ψ[j+1], U[j])
-            ψ.update_canonical_2site(AA, j, j+1, direction, tolerance=tol)
+            ψ.update_2site(AA, j, +1, tolerance=tol)
+            if j < newstart:
+                ψ.update_canonical(ψ[j+1], +1, tolerance=tol)
             #print("New center= {}, new direction = {}".format(ψ.center, direction))
         return newstart, -1
     else:
         newstart = 0
         for j in range(start, -1, -2):
             #print('Updating sites ({}, {}), center={}, direction={}'.format(j, j+1, ψ.center, direction))
-            if j == 0:
-                #print("First two sites, change direction from -1 to +1")
-                newstart = 1
-                direction = +1
             AA = np.einsum('ijk,klm,nrjl -> inrm', ψ[j], ψ[j+1], U[j])
-            ψ.update_canonical_2site(AA, j, j+1, direction, tolerance=tol)
+            ψ.update_2site(AA, j, -1, tolerance=tol)
+            if j > 0:
+                ψ.update_canonical(ψ[j], -1, tolerance=tol)
             #print("New center= {}, new direction = {}".format(ψ.center, direction))
-        return newstart, +1
-        
-
+        return newstart, +1  
 
 class TEBD_evolution(object):
     """TEBD_evolution is a class that continuously updates a quantum state ψ

@@ -57,14 +57,14 @@ class TestHamiltonians(unittest.TestCase):
         M2 = H2.tomatrix()
         A2 = sp.kron(i2, -2.5*σy) + sp.kron(σz,σz) + sp.kron(3.5*σx, i2)
         self.assertTrue(similar(M2, A2))
-from mps.evolution import *
-
 import unittest
-import mps.state
-import mps.tools
-from mps.test.tools import *
 import scipy.sparse as sp
 import scipy.sparse.linalg
+from mps.state import CanonicalMPS
+from mps.tools import *
+from mps.test.tools import *
+#from mps.evolution import *
+from mps.hamiltonians import make_ti_Hamiltonian, ConstantNNHamiltonian
 
 def random_wavefunction(n):
     ψ = np.random.rand(n) - 0.5
@@ -72,27 +72,47 @@ def random_wavefunction(n):
 
 class TestTEBD_sweep(unittest.TestCase):
     
-    def test_apply_pairwise_unitaries(self):
-        N = 20
+    @staticmethod
+    def hopping_model(N, t, ω):
+        a = annihilation(2)
+        ad = creation(2)
+        return make_ti_Hamiltonian(N, [t*a, t*ad], [ad, a], local_term = ω*(ad@a))
+
+    @staticmethod
+    def hopping_model_Trotter_matrix(N, t, ω):
+        #
+        # Hamiltonian that generates the evolution of the odd hoppings
+        # and local frequencies
+        return sp.diags([[t,0]*(N//2), [ω]+[ω/2]*(N-2)+[ω], [t,0]*(N//2)],
+                        offsets=[-1,0,+1], shape=(N,N), dtype=np.float64)
+    
+    @staticmethod
+    def hopping_model_matrix(N, t, ω):
+        return sp.diags([[t]*(N), ω, [t]*(N)], offsets=[-1,0,+1], shape=(N,N))
+
+    def inactive_test_apply_pairwise_unitaries(self):
+        N = 2
         tt = -np.pi/2
         ω = np.pi
-        dt = 1e-3
+        dt = 0.1
+        #
+        # Numerically exact solution using Scipy's exponentiation routine
         ψwave = random_wavefunction(N)
-        ψ = CanonicalMPS(mps.state.wavepacket(ψwave))
-        # We use the tight-binding Hamiltonian
-        HMat = sp.diags([[tt,0]*(N//2), [ω]+[ω/2]*(N-2)+[ω], [tt,0]*(N//2)],
-                  offsets=[-1,0,+1],
-                  shape=(N,N),
-                  dtype=np.complex128)
-        ψwave_final = sp.linalg.expm_multiply(-1j * dt * HMat, ψwave)
-        
-        H=make_ti_Hamiltonian(N, [tt * annihilation_op(2) ,tt * creation_op(2)], 
-                            [creation_op(2), annihilation_op(2)], 
-                              local_term=ω*creation_op(2)@ annihilation_op(2))
+        print(mps.state.wavepacket(ψwave).tovector())
+        HMat = self.hopping_model_Trotter_matrix(N, tt, ω)
+        ψwave_final = sp.linalg.expm_multiply(+1j * dt * HMat, ψwave)
+        print(mps.state.wavepacket(ψwave_final).tovector())
+        print(HMat.todense())
+        #
+        # Evolution using Trrotter
+        H = self.hopping_model(N, tt, ω)
         U = pairwise_unitaries(H, dt)
+        ψ = CanonicalMPS(mps.state.wavepacket(ψwave))
         start = 0
         direction = 1
         apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE)
+        print(ψ.tovector())
+        print(np.abs(mps.state.wavepacket(ψwave_final).tovector() - ψ.tovector()))
         
         self.assertTrue(similar(abs(mps.state.wavepacket(ψwave_final).tovector()), 
                                 abs(ψ.tovector())))
@@ -111,29 +131,20 @@ class TestTEBD_sweep(unittest.TestCase):
         x0 = int(N//2)
         w0 = 5
         k0 = np.pi/2
-
+        #
+        # Approximate evolution of a wavepacket in a tight-binding model
         ψwave = np.exp(-(xx-x0)**2 / w0**2 + 1j * k0*xx) 
-        ψwave = ψwave / np.linalg.norm(ψwave) 
+        ψwave = ψwave / np.linalg.norm(ψwave)
+        Hmat = self.hopping_model_matrix(N, t, ω)
+        ψwave_final = sp.linalg.expm_multiply(-1j * dt* Nt * Hmat, ψwave)
+        #
+        # Trotter solution
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave))
-        # We use the tight-binding Hamiltonian
-        H=make_ti_Hamiltonian(N, [t * annihilation_op(2) , t * creation_op(2)], 
-                            [creation_op(2), annihilation_op(2)], 
-                              local_term=ω*creation_op(2)@ annihilation_op(2))
-        #for i in range(Nt):
-        #    
-        #    ψmps = TEBD_sweep(H, ψmps, dt, 1, 0, tol=DEFAULT_TOLERANCE)
-        #    ψmps = TEBD_sweep(H, ψmps, dt, -1, 1, tol=DEFAULT_TOLERANCE)
+        H = self.hopping_model(N, t, ω)
         ψmps = TEBD_evolution(ψmps, H, dt, timesteps=Nt, order=1, tol=DEFAULT_TOLERANCE).evolve()
-        Hmat = sp.diags([[t]*(N), ω, [t]*(N)],
-                  offsets=[-1,0,+1],
-                  shape=(N,N),
-                  dtype=np.complex128)
-        
-        ψwave_final = sp.linalg.expm_multiply(-1j * dt*Nt * Hmat, ψwave)
         
         self.assertTrue(similar(abs(mps.state.wavepacket(ψwave_final).tovector()), 
-                                abs(ψmps.tovector())))
-                
+                                abs(ψmps.tovector())))               
         
     def test_TEBD_evolution_second_order(self):
         #
@@ -149,29 +160,17 @@ class TestTEBD_sweep(unittest.TestCase):
         x0 = int(N//2)
         w0 = 5
         k0 = np.pi/2
-
+        #
+        # Approximate evolution of a wavepacket in a tight-binding model
         ψwave = np.exp(-(xx-x0)**2 / w0**2 + 1j * k0*xx) 
         ψwave = ψwave / np.linalg.norm(ψwave) 
+        Hmat = self.hopping_model_matrix(N, t, ω)
+        ψwave_final = sp.linalg.expm_multiply(-1j * dt * Nt * Hmat, ψwave)
+        #
+        # Trotter evolution
+        H = self.hopping_model(N, t, ω)
         ψmps = CanonicalMPS(mps.state.wavepacket(ψwave))
-        # We use the tight-binding Hamiltonian
-        H=make_ti_Hamiltonian(N, [t * annihilation_op(2) , t * creation_op(2)], 
-                            [creation_op(2), annihilation_op(2)], 
-                              local_term=ω*creation_op(2)@ annihilation_op(2))
-        #for i in range(Nt):
-        #    
-        #    ψmps = TEBD_sweep(H, ψmps, dt, 1, 0, tol=DEFAULT_TOLERANCE)
-        #    ψmps = TEBD_sweep(H, ψmps, dt, -1, 1, tol=DEFAULT_TOLERANCE)
         ψmps = TEBD_evolution(ψmps, H, dt, timesteps=Nt, order=2, tol=DEFAULT_TOLERANCE).evolve()
-        Hmat = sp.diags([[t]*(N), ω, [t]*(N)],
-                  offsets=[-1,0,+1],
-                  shape=(N,N),
-                  dtype=np.complex128)
-        
-        ψwave_final = sp.linalg.expm_multiply(-1j * dt*Nt * Hmat, ψwave)
         
         self.assertTrue(similar(abs(mps.state.wavepacket(ψwave_final).tovector()), 
                                 abs(ψmps.tovector())))
-                
-
-
-    
