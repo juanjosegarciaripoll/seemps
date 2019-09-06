@@ -99,7 +99,6 @@ class TestCanonicalForm(unittest.TestCase):
                 ξ = CanonicalMPS(Ψ, center=center)
                 Lenv = super(CanonicalMPS, ξ).left_environment(center)
                 Renv = super(CanonicalMPS, ξ).left_environment(center)
-                print(Lenv)
                 self.assertTrue(almostIdentity(Lenv))
                 self.assertTrue(almostIdentity(Renv))
         test_over_random_mps(ok)
