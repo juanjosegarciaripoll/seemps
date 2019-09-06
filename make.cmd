@@ -13,3 +13,6 @@ if "%1" == "docs" (
 if "%1" == "cleanup" (
     for %%i in (*.ipynb); do jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace "%%i"
 )
+if "%1" == "check" (
+    python -m unittest discover -s mps\test
+)

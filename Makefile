@@ -7,3 +7,5 @@ clean:
 cleanup:
 	for in *.ipynb; do jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace "$i"; done
 
+check:
+	python -m unittest discover -s mps\test
