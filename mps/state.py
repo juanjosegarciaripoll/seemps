@@ -583,7 +583,7 @@ class CanonicalMPS(MPS):
             A = self._data[self.center]
             return np.vdot(A, np.einsum('ij,ajb->aib', operator, A))
         else:
-            return expectation.expectation1(ψ, operator, site)
+            return expectation.expectation1(self, operator, site)
 
     def entanglement_entropyAtCenter(self):
         d1, d2, d3 = self._data[self.center].shape
@@ -650,7 +650,7 @@ class CanonicalMPS(MPS):
         #
         # Return a copy of the MPS with a fresh new array.
         #
-        return type(self)(self, self.center)
+        return type(self)(self)
 
     def copy(self):
         """Return a fresh new TensorArray that shares the same tensor as its

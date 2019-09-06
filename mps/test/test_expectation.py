@@ -77,6 +77,7 @@ class TestExpectation(unittest.TestCase):
                     ψ[n] = np.einsum('ij,kjl->kil', O1, ψ[n])
                     desired= np.vdot(ϕ.tovector(), ψ.tovector())
                     self.assertAlmostEqual(desired/nrm2, expectation1(ϕ, O1, n)/nrm2)
+                    self.assertAlmostEqual(desired/nrm2, ϕ.expectation1(O1, n)/nrm2)
         test_over_random_mps(expected1_ok)
         test_over_random_mps(lambda ϕ: expected1_ok(ϕ, canonical=True))
     
@@ -123,5 +124,6 @@ class TestExpectation(unittest.TestCase):
                 ψ[n]   = np.einsum('ij,kjl->kil', O2, ψ[n])
                 desired= mps.expectation.scprod(ϕ, ψ)
                 self.assertAlmostEqual(desired/nrm2, expectation2(ϕ, O1, O2, n-1)/nrm2)
+                self.assertAlmostEqual(desired/nrm2, ϕ.expectation2(O1, O2, n-1)/nrm2)
         test_over_random_mps(expected2_ok)
         test_over_random_mps(lambda ϕ: expected2_ok(ϕ, canonical=True))
