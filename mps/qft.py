@@ -10,7 +10,7 @@ def qft_mpo(N, sign=-1, **kwdargs):
     Parameters
     ----------
     N         -- Number of qubits in a quantum register
-    **kwdargs -- All other arguments accepted by MPO
+    kwdargs   -- All other arguments accepted by MPO
     
     Output
     ------
@@ -46,19 +46,22 @@ def qft_mpo(N, sign=-1, **kwdargs):
                     for n in range(0, N)])
 
 def iqft_mpo(N, **kwdargs):
+    """Implement the inverse of the qft_mpo() operator."""
     return qft_mpo(N, +1, kwdargs)
 
 def qft(Ψmps, **kwdargs):
-    """Apply the Quantum Fourier Transform onto a quantum register
+    """Apply the quantum Fourier transform onto a quantum register
     of qubits encoded in the matrix product state 'Ψ'"""
     return qft_mpo(len(Ψmps), sign=-1, **kwdargs).apply(Ψmps)
 
 def iqft(Ψmps, **kwdargs):
-    """Apply the Quantum Fourier Transform onto a quantum register
+    """Apply the inverse quantum Fourier transform onto a quantum register
     of qubits encoded in the matrix product state 'Ψ'"""
     return qft_mpo(len(Ψmps), sign=+1, **kwdargs).apply(Ψmps)
 
 def qft_flip(Ψmps):
+    """Swap the qubits in the quantum register, to fix the reversal
+    suffered during the quantum Fourier transform."""
     return MPS([np.moveaxis(A, [0,1,2],[2,1,0]) for A in reversed(Ψmps)], error=Ψmps.error())
 
 def qft_wavefunction(Ψ):
@@ -134,4 +137,5 @@ def qft_nd_mpo(sites, N=None, sign=-1, **kwdargs):
     return MPOList([make_layer(sites[i:]) for i in range(len(sites))])
 
 def iqft_nd_mpo(sites, N=None, **kwdargs):
+    """Implement the inverse of the qft_nd_mpo() operator."""
     return qft_nd_mpo(sites, N=N, sign=+1, **kwdargs)
