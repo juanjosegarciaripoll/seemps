@@ -9,8 +9,11 @@ SeeMPS algorithms
 Expectation values
 ------------------
 
+The following are the main routines to compute scalar products and expectation values. The classes MPS and CanonicalMPS provide additional convenience methods with similar names.
+
 .. automodule:: mps.expectation
-   :members:
+   :members: scprod, expectation1, expectation2, all_expectation1
+
 
 .. _mps_truncate:
 
@@ -25,4 +28,6 @@ Fourier transforms
 ------------------
 
 .. automodule:: mps.qft
-   :members:
+   :members: qft, iqft, qft_flip, qft_nd_mpo, iqft_nd_mpo
+
+

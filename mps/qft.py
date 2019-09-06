@@ -5,7 +5,7 @@ from mps.mpo import MPOList, MPO
 
 def qft_mpo(N, sign=-1, **kwdargs):
     """Create an MPOList object representing a Quantum Fourier Transform
-    for a quantum register with 'N' qubits.
+    for a quantum register with `N` qubits.
     
     Parameters
     ----------
@@ -14,7 +14,7 @@ def qft_mpo(N, sign=-1, **kwdargs):
     
     Output
     ------
-    mpolist   -- An MPOList object that can be applied '@' to an MPS.
+    mpolist   -- An MPOList object that can be applied `@` to an MPS.
     """
     
     def fix_last(mpo_list):
@@ -70,20 +70,20 @@ def qft_wavefunction(Ψ):
 
 def qft_nd_mpo(sites, N=None, sign=-1, **kwdargs):
     """Create an MPOList object representing a Quantum Fourier Transform
-    for subset of qubits in a quantum register with 'N' qubits.
+    for subset of qubits in a quantum register with `N` qubits.
     
     Parameters
     ----------
     sites     -- Sites on which to apply the QFT, in order of decreasing
                  significance.
     N         -- Number of qubits in a quantum register.
-                 Defaults to max(sites)+1.
+                 Defaults to `max(sites)+1`.
     sign      -- Sign of the FFT (defaults to -1, direct FFT)
-    **kwdargs -- All other arguments accepted by MPO
+    kwdargs   -- All other arguments accepted by `MPO`
     
     Output
     ------
-    mpolist   -- An MPOList object that can be applied '@' to an MPS.
+    mpolist   -- An MPOList object that can be applied `@` to an MPS.
     """
     if N is None:
         N = max(sites)+1

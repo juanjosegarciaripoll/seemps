@@ -43,8 +43,8 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE):
 
 
 def _truncate_vector(S, tolerance, dimension):
-    """Given a vector of Schmidt numbers 'S', a 'tolerance' and a maximum
-    bond 'dimension', determine where to truncate the vector and return
+    """Given a vector of Schmidt numbers `S`, a `tolerance` and a maximum
+    bond `dimension`, determine where to truncate the vector and return
     the absolute error in norm-2 made by that truncation.
     
     Parameters
@@ -96,7 +96,7 @@ class TensorArray(object):
     """
 
     def __init__(self, data):
-        """Create a new TensorArray from a list of tensors. 'data' is an
+        """Create a new TensorArray from a list of tensors. `data` is an
         iterable object, such as a list or other sequence. The list is cloned
         before storing it into this object, so as to avoid side effects when
         destructively modifying the array."""
@@ -138,12 +138,15 @@ class MPS(TensorArray):
     """MPS (Matrix Product State) class.
 
     This implements a bare-bones Matrix Product State object with open
-    boundary conditions. The tensors have three indices, A[α,i,β], where
-    'α,β' are the internal labels and 'i' is the physical state of the given
+    boundary conditions. The tensors have three indices, `A[α,i,β]`, where
+    `α,β` are the internal labels and `i` is the physical state of the given
     site.
 
-    Attributes:
-    size = number of tensors in the array
+    Parameters
+    ----------
+    data -- A list of tensors that form the MPS. The class assumes they
+            have three legs and are well formed--i.e. the bond dimensions
+            of neighboring sites match.
     """
 
     #
@@ -169,22 +172,22 @@ class MPS(TensorArray):
         return MPS(vector2mps(ψ, dimensions, **kwdargs))
 
     def norm2(self):
-        """Return the square of the norm-2 of this state, ‖ψ‖**2 = <ψ|ψ>."""
+        """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
         return expectation.scprod(self, self)
 
     def expectation1(self, operator, n):
-        """Return the expectation value of 'operator' acting on the 'n'-th
-        site of the MPS."""
+        """Return the expectation value of `operator` acting on the `n`-th
+        site of the MPS. See `mps.expectation.expectation1()`."""
         return expectation.expectation1(self, operator, n)
 
-    def expectation2(self, operator1, operator2, n):
-        """Return the expectation value of 'operator1' and 'operator2' acting
-        on the 'n'-th and 'n+1'-th sites of the MPS."""
+    def expectation2(self, operator1, operator2, i, j=None):
+        """Return the expectation value of `operator1` and `operator2` acting
+        on the sites `i` and `j`. See `mps.expectation.expectation2()`"""
         return expectation.expectation2(self, operator1, operator2, n)
 
     def all_expectation1(self, operator):
-        """Return all expectation values of 'operator' acting on all possible
-        sites of the MPS."""
+        """Return all expectation values of `operator` acting on all possible
+        sites of the MPS. See `mps.expectation.all_expectation1()`."""
         return expectation.all_expectation1(self, operator)
 
     def left_environment(self, site):
@@ -201,7 +204,7 @@ class MPS(TensorArray):
 
     def error(self):
         """Return any recorded norm-2 truncation errors in this state. More
-        precisely, |exact - actual|^2."""
+        precisely, ‖exact - actual‖^2."""
         return self._error
 
     def update_error(self, delta):
@@ -211,7 +214,7 @@ class MPS(TensorArray):
         return self._error
 
     def extend(self, L, sites=None, dimensions=2):
-        """Enlarge an MPS so that it lives in a Hilbert space with 'L' sites.
+        """Enlarge an MPS so that it lives in a Hilbert space with `L` sites.
 
         Parameters
         ----------
@@ -517,8 +520,8 @@ class CanonicalMPS(MPS):
 
     This implements a Matrix Product State object with open boundary
     conditions, that is always on canonical form with respect to a given site.
-    The tensors have three indices, A[α,i,β], where 'α,β' are the internal
-    labels and 'i' is the physical state of the given site.
+    The tensors have three indices, `A[α,i,β]`, where `α,β` are the internal
+    labels and `i` is the physical state of the given site.
 
     Parameters
     ----------
@@ -556,7 +559,7 @@ class CanonicalMPS(MPS):
                             tolerance=tolerance)
 
     def norm2(self):
-        """Return the square of the norm-2 of this state, ‖ψ‖**2 = <ψ|ψ>."""
+        """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
         A = self._data[self.center]
         return np.vdot(A, A)
     
@@ -575,7 +578,7 @@ class CanonicalMPS(MPS):
         return ρ
     
     def expectation1(self, operator, site=None):
-        """Return the expectated value of 'operator' acting on the given 'site'."""
+        """Return the expectated value of `operator` acting on the given `site`."""
         if site is None or site == self.center:
             A = self._data[self.center]
             return np.vdot(A, np.einsum('ij,ajb->aib', operator, A))

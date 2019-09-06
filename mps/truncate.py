@@ -108,7 +108,7 @@ def simplify(ψ, maxsweeps=4, direction=+1,
     Output
     ------
     φ         -- CanonicalMPS approximation to the state ψ
-    error     -- error made in the approximation, as |φ/|φ|-ψ/|ψ||**2
+    error     -- error made in the approximation, as $‖φ/‖φ‖ - ψ/‖ψ‖‖^2$
     direction -- direction that the next sweep would be
     """
     size = ψ.size

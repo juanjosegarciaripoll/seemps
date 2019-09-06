@@ -40,7 +40,7 @@ templates_path = ['_templates']
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.ipynb_checkpoints']
 
 # We need this for autodoc to find the modules it will document
 import sys
@@ -65,7 +65,7 @@ def docstring(app, what, name, obj, options, lines):
                 # Continues argument description
                 arg_txt += ' ' + l.strip()
                 continue
-            text.append('* ' + arg_name + ': ' + arg_txt)
+            text.append('* `' + arg_name + '`: ' + arg_txt)
             arg_name = None
         if is_line.match(l):
             continue
@@ -77,7 +77,7 @@ def docstring(app, what, name, obj, options, lines):
         else:
             text.append(l)
     if arg_name:
-        text.append('* ' + arg_name + ': ' + arg_txt)
+        text.append('* `' + arg_name + '`: ' + arg_txt)
     for l in text:
         print(l)
     md  = '\n'.join(text)
