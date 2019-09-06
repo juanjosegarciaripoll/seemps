@@ -38,9 +38,9 @@ def random_Pauli():
     return cos(ϕ) * (cos(θ) * σx + sin(θ) * σy) + sin(ϕ) * σz
 
 def creation(d):
-    # Returns d dimensional cration operator
+    """Returns d dimensional bosonic creation operator"""
     return np.diag(np.sqrt(np.arange(1,d)),-1).astype(complex)
 
 def annihilation(d):
-    # Returns d dimensional cration operator
+    """Returns d dimensional bosonic annihilation operator"""
     return np.diag(np.sqrt(np.arange(1,d)),1).astype(complex)
