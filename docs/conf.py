@@ -14,6 +14,10 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+# We need this for autodoc to find the modules it will document
+import sys
+sys.path.append('../')
+import mps.version
 
 # -- Project information -----------------------------------------------------
 
@@ -22,7 +26,7 @@ copyright = '2019, Juan Jose Garcia-Ripoll'
 author = 'Juan Jose Garcia-Ripoll'
 
 # The full version, including alpha/beta/rc tags
-release = '1.0'
+release = mps.version.number
 
 
 # -- General configuration ---------------------------------------------------
@@ -42,10 +46,6 @@ templates_path = ['_templates']
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store', '.ipynb_checkpoints']
-
-# We need this for autodoc to find the modules it will document
-import sys
-sys.path.append('../')
 
 # -- Markdown parsing of docstrings -----------------------------------------
 
