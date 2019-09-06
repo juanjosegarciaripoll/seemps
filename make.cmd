@@ -8,6 +8,7 @@ if "%1" == "clean" (
 if "%1" == "docs" (
     cd docs
     make html
+    cd ..
 )
 if "%1" == "cleanup" (
     for %%i in (*.ipynb); do jupyter nbconvert --ClearOutputPreprocessor.enabled=True --inplace "%%i"
