@@ -5,7 +5,12 @@ from mps import expectation
 DEFAULT_TOLERANCE = np.finfo(np.float64).eps
 
 
-def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE):
+# file: mps/state.py
+
+DEFAULT_TOLERANCE = np.finfo(np.float64).eps
+
+
+def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
     """Construct a list of tensors for an MPS that approximates the state ψ
     represented as a complex vector in a Hilbert space.
 
@@ -14,8 +19,9 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE):
     ψ         -- wavefunction with \prod_i dimensions[i] elements
     dimension -- list of dimensions of the Hilbert spaces that build ψ
     tolerance -- truncation criterion for dropping Schmidt numbers
+    normalize -- boolean to determine if the MPS is normalized
     """
-
+    
     def SchmidtSplit(ψ, tolerance):
         a, b = ψ.shape
         U, s, V = np.linalg.svd(ψ, full_matrices=False)
@@ -27,7 +33,7 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE):
     dimensions = np.array(dimensions, dtype=np.int)
     Db = np.prod(dimensions)
     output = [0] * len(dimensions)
-    for (i, d) in enumerate(dimensions):
+    for (i, d) in enumerate(dimensions[:-1]):
         # We split a new subsystem and group the left bond dimension
         # and the physical index into a large index
         ψ = np.reshape(ψ, (Da * d, int(Db / d)))
@@ -38,9 +44,12 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE):
         A, ψ = SchmidtSplit(ψ, tolerance)
         output[i] = np.reshape(A, (Da, d, A.shape[1]))
         Da, Db = ψ.shape
-
+        
+    output[-1] = np.reshape(ψ, (Da, Db, 1))
+    if normalize == True:
+        output[-1] /= np.linalg.norm(ψ) 
+    
     return output
-
 
 def _truncate_vector(S, tolerance, dimension):
     """Given a vector of Schmidt numbers `S`, a `tolerance` and a maximum
