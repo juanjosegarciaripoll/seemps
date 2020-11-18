@@ -21,7 +21,7 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
     tolerance -- truncation criterion for dropping Schmidt numbers
     normalize -- boolean to determine if the MPS is normalized
     """
-
+    
     def SchmidtSplit(ψ, tolerance):
         a, b = ψ.shape
         U, s, V = np.linalg.svd(ψ, full_matrices=False)
@@ -45,16 +45,11 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
         output[i] = np.reshape(A, (Da, d, A.shape[1]))
         Da, Db = ψ.shape
         
+    output[-1] = np.reshape(ψ, (Da, Db, 1))
     if normalize == True:
-        d = dimensions[-1]
-        ψ = np.reshape(ψ, (Da * d, int(Db / d)))
-        A, ψ = SchmidtSplit(ψ, tolerance)
-        output[-1] = np.reshape(A, (Da, d, A.shape[1]))
-    else:
-        output[-1] = np.reshape(ψ, (Da, Db, 1))
-   
+        output[-1] /= np.linalg.norm(ψ) 
+    
     return output
-
 
 def _truncate_vector(S, tolerance, dimension):
     """Given a vector of Schmidt numbers `S`, a `tolerance` and a maximum
