@@ -1,8 +1,8 @@
+import numpy as np
 import copy
 from mps.state import MPS, TensorArray, DEFAULT_TOLERANCE
 from mps.truncate import simplify
 from mps.tools import log
-from mps.mpo import MPOList
 
 def mpo_multiply_tensor(A, B):
     C = np.einsum('aijb,cjd->acibd',A,B)
