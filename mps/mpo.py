@@ -57,7 +57,7 @@ class MPO(TensorArray):
 
         Parameters
         ----------
-        n          -- Scalar to multiply the MPS by.
+        n          -- Scalar to multiply the MPO by.
 
         Output
         ------
@@ -165,7 +165,7 @@ class MPOList(object):
 
         Parameters
         ----------
-        n          -- Scalar to multiply the MPS by.
+        n          -- Scalar to multiply the MPO by.
 
         Output
         ------
@@ -180,7 +180,7 @@ class MPOList(object):
 
         Parameters
         ----------
-        n          -- Scalar to multiply the MPS by.
+        n          -- Scalar to multiply the MPO by.
 
         Output
         ------
