@@ -192,9 +192,9 @@ class MPS(TensorArray):
         ------
         mps -- New mps.
         """
-        mpo_mult = copy.deepcopy(self)
-        mpo_mult._data[0] = n*mpo_mult._data[0]
-        return mpo_mult
+        mps_mult = copy.deepcopy(self)
+        mps_mult._data[0] = n*mps_mult._data[0]
+        return mps_mult
     
     def __rmul__(self,n):
         """Multiply an MPS quantum state by an scalar n (n * MPS).
