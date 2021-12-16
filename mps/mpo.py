@@ -1,7 +1,8 @@
-import numpy as np
+import copy
 from mps.state import MPS, TensorArray, DEFAULT_TOLERANCE
 from mps.truncate import simplify
 from mps.tools import log
+from mps.mpo import MPOList
 
 def mpo_multiply_tensor(A, B):
     C = np.einsum('aijb,cjd->acibd',A,B)
@@ -35,6 +36,36 @@ class MPO(TensorArray):
         self.normalize = normalize
         self.dimension = dimension
         self.simplify = simplify
+        
+    def __mul__(self,n):
+        """Multiply an MPO quantum state by an scalar n (MPO * n)
+
+        Parameters
+        ----------
+        n          -- Scalar to multiply the MPO by.
+
+        Output
+        ------
+        mpo -- New mpo.
+        """
+        mpo_mult = copy.deepcopy(self)
+        mpo_mult._data[0] = n*mpo_mult._data[0]
+        return mpo_mult
+    
+    def __rmul__(self,n):
+        """Multiply an MPO quantum state by an scalar n (n * MPO).
+
+        Parameters
+        ----------
+        n          -- Scalar to multiply the MPS by.
+
+        Output
+        ------
+        mpo -- New mpo.
+        """
+        mpo_mult = copy.deepcopy(self)
+        mpo_mult._data[0] = n*mpo_mult._data[0]
+        return mpo_mult
 
     def dimensions(self):
         """Return the local dimensions of the MPO."""
@@ -128,7 +159,37 @@ class MPOList(object):
         self.normalize = normalize
         self.dimension = dimension
         self.simplify = simplify
+        
+    def __mul__(self,n):
+        """Multiply an MPO quantum state by an scalar n (MPOList * n).
 
+        Parameters
+        ----------
+        n          -- Scalar to multiply the MPS by.
+
+        Output
+        ------
+        mpo -- New mpo.
+        """
+        mpo_mult = copy.deepcopy(self)
+        mpo_mult.mpos[0]._data[0] = n*mpo_mult.mpos[0]._data[0]
+        return mpo_mult
+        
+    def __rmul__(self,n):
+        """Multiply an MPO quantum state by an scalar n (n * MPOList).
+
+        Parameters
+        ----------
+        n          -- Scalar to multiply the MPS by.
+
+        Output
+        ------
+        mpo -- New mpo.
+        """
+        mpo_mult = copy.deepcopy(self)
+        mpo_mult.mpos[0]._data[0] = n*mpo_mult.mpos[0]._data[0]
+        return mpo_mult
+    
     def tomatrix(self):
         """Return the matrix representation of this MPO."""
         A = 1
