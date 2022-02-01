@@ -1,12 +1,8 @@
 import numpy as np
 import copy
 import scipy.linalg
+import mps.truncate
 from mps import expectation
-
-DEFAULT_TOLERANCE = np.finfo(np.float64).eps
-
-
-# file: mps/state.py
 
 DEFAULT_TOLERANCE = np.finfo(np.float64).eps
 
@@ -52,6 +48,7 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
     
     return output
 
+
 def _truncate_vector(S, tolerance, dimension):
     """Given a vector of Schmidt numbers `S`, a `tolerance` and a maximum
     bond `dimension`, determine where to truncate the vector and return
@@ -61,7 +58,7 @@ def _truncate_vector(S, tolerance, dimension):
     ----------
     S         -- non-negative Schmidt numbers in decreasing order.
     tolerance -- absolute error allowed by the truncation
-    dimension -- maximum size allowed by the truncation (or None)
+    dimension -- maximum bond dimension (or None)
     
     Output
     ------
@@ -86,7 +83,7 @@ def _truncate_vector(S, tolerance, dimension):
     #
     ndx = np.argmax(err >= tolerance*total)
     if dimension is not None:
-        ndx = min(ndx, dimension)
+        ndx = max(ndx, S.size - dimension)
     #
     # We use that to estimate the size of the array and the actual error
     #
@@ -154,19 +151,29 @@ class MPS(TensorArray):
 
     Parameters
     ----------
-    data -- A list of tensors that form the MPS. The class assumes they
-            have three legs and are well formed--i.e. the bond dimensions
-            of neighboring sites match.
+    data    -- A list of tensors that form the MPS. The class assumes they
+               have three legs and are well formed--i.e. the bond dimensions
+               of neighboring sites match.
+    error   -- Accumulated error of the simplifications of the MPS.
+    maxsweeps, tolerance, normalize, dimension -- arguments used by
+                 the simplification routine, if simplify is True.
     """
 
     #
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
     #
-    def __init__(self, data, error=0.):
+    __array_priority__ = 10000 
+    def __init__(self, data, error=0, maxsweeps=16,
+                 tolerance=DEFAULT_TOLERANCE,
+                 normalize=False, dimension=None):
         super(MPS, self).__init__(data)
         assert data[0].shape[0] == data[-1].shape[-1] == 1
         self._error = error
+        self.maxsweeps = maxsweeps
+        self.tolerance = tolerance
+        self.normalize = normalize
+        self.dimension = dimension
 
     def dimension(self):
         """Return the total size of the Hilbert space in which this MPS lives."""
@@ -181,19 +188,82 @@ class MPS(TensorArray):
     def fromvector(ψ, dimensions, **kwdargs):
         return MPS(vector2mps(ψ, dimensions, **kwdargs))
     
+    def __add__(self,φ):
+        """Add an MPS or an MPSList to the MPS.
+
+        Parameters
+        ----------
+        φ    -- MPS or MPSList object.
+
+        Output
+        ------
+        mps_list    -- New MPSList.
+        """
+        maxsweeps = min(self.maxsweeps, φ.maxsweeps)
+        tolerance = min(self.tolerance, φ.tolerance)
+        if self.dimension is None:
+            dimension = φ.dimension
+        elif φ.dimension is None:
+            dimension = self.dimension
+        else:
+            dimension = min(self.dimension, φ.dimension)
+        if isinstance(φ,MPS):
+            new_weights = [1,1]
+            new_states = [self,φ]
+        elif isinstance(φ,MPSList):
+            new_weights = [1] + φ.weights
+            new_states = [self] + φ.states
+        new_MPSList = MPSList(weights=new_weights,states=new_states,
+                      maxsweeps=maxsweeps,tolerance=tolerance,
+                      normalize=self.normalize, dimension=dimension)
+        return new_MPSList
+    
+    def __sub__(self,φ):
+        """Subtract an MPS or an MPSList from the MPS.
+
+        Parameters
+        ----------
+        φ    -- MPS or MPSList object.
+
+        Output
+        ------
+        mps_list    -- New MPSList.
+        """
+        maxsweeps = min(self.maxsweeps, φ.maxsweeps)
+        tolerance = min(self.tolerance, φ.tolerance)
+        if self.dimension is None:
+            dimension = φ.dimension
+        elif φ.dimension is None:
+            dimension = self.dimension
+        else:
+            dimension = min(self.dimension, φ.dimension)
+        if isinstance(φ,MPS):
+            new_weights = [1,-1]
+            new_states = [self,φ]
+        elif isinstance(φ,MPSList):
+            new_weights = [1]  + list((-1) * np.asarray(φ.weights))
+            new_states = [self] + φ.states
+        new_MPSList = MPSList(weights=new_weights,states=new_states,
+                      maxsweeps=maxsweeps,tolerance=tolerance,
+                      normalize=self.normalize, dimension=dimension)
+        return new_MPSList
+    
     def __mul__(self,n):
         """Multiply an MPS quantum state by an scalar n (MPS * n)
 
         Parameters
         ----------
-        n          -- Scalar to multiply the MPS by.
+        n    -- Scalar to multiply the MPS by.
 
         Output
         ------
-        mps -- New mps.
+        mps    -- New mps.
         """
+        if not np.isscalar(n):
+            raise Exception(f'Cannot multiply MPS by {n}')
         mps_mult = copy.deepcopy(self)
         mps_mult._data[0] = n*mps_mult._data[0]
+        mps_mult._error = np.abs(n)**2 * mps_mult._error
         return mps_mult
     
     def __rmul__(self,n):
@@ -201,14 +271,17 @@ class MPS(TensorArray):
 
         Parameters
         ----------
-        n          -- Scalar to multiply the MPS by.
+        n    -- Scalar to multiply the MPS by.
 
         Output
         ------
-        mps -- New mps.
+        mps    -- New mps.
         """
+        if not np.isscalar(n):
+            raise Exception(f'Cannot multiply MPS by {n}')
         mps_mult = copy.deepcopy(self)
         mps_mult._data[0] = n*mps_mult._data[0]
+        mps_mult._error = np.abs(n)**2 * mps_mult._error
         return mps_mult
     
     def norm2(self):
@@ -310,6 +383,141 @@ def _mps2vector(data):
         D = D * d
         Ψ = np.reshape(Ψ, (D, β))
     return Ψ.reshape((Ψ.size,))
+
+class MPSList():
+    """MPSList class.
+    
+    Stores the MPS as a list  for its future combination when an MPO acts on it.
+
+    Parameters
+    ----------
+    data -- A list of tensors that form the MPS. The class assumes they
+            have three legs and are well formed--i.e. the bond dimensions
+            of neighboring sites match.
+    maxsweeps, tolerance, normalize, dimension -- arguments used by
+                 the simplification routine, if simplify is True.
+    """
+
+    #
+    # This class contains all the matrices and vectors that form
+    # a Matrix-Product State.
+    #
+    __array_priority__ = 10000
+    def __init__(self, weights, states, error=0, maxsweeps=16,
+                 tolerance=DEFAULT_TOLERANCE,
+                 normalize=False, dimension=None):
+        self.weights = weights
+        self.states = states
+        self.maxsweeps = maxsweeps
+        self.tolerance = tolerance
+        self.normalize = normalize
+        self.dimension = dimension
+        
+    def __add__(self,φ):
+        """Add an MPS or an MPSList to the MPSList.
+
+        Parameters
+        ----------
+        φ    -- MPS or MPSList object.
+
+        Output
+        ------
+        mps_list    -- New MPSList.
+        """
+        maxsweeps = min(self.maxsweeps, φ.maxsweeps)
+        tolerance = min(self.tolerance, φ.tolerance)
+        if self.dimension is None:
+            dimension = φ.dimension
+        elif φ.dimension is None:
+            dimension = self.dimension
+        else:
+            dimension = min(self.dimension, φ.dimension)
+        if isinstance(φ,MPS):
+            new_weights = self.weights + [1]
+            new_states = self.states + [φ]
+        elif isinstance(φ,MPSList):
+            maxsweeps = self.maxsweeps if self.maxsweeps < φ.maxsweeps else φ.maxsweeps
+            tolerance = self.tolerance if self.tolerance < φ.tolerance else φ.tolerance
+            new_weights = self.weights + φ.weights
+            new_states = self.states + φ.states
+        new_MPSList = MPSList(weights=new_weights,states=new_states,
+                      maxsweeps=maxsweeps,tolerance=tolerance,
+                      normalize=self.normalize, dimension=self.dimension)
+        return new_MPSList
+    
+    def __sub__(self,φ):
+        """Subtract an MPS or an MPSList from the MPSList.
+
+        Parameters
+        ----------
+        φ    -- MPS or MPSList object.
+
+        Output
+        ------
+        mps_list    -- New MPSList.
+        """
+        maxsweeps = min(self.maxsweeps, φ.maxsweeps)
+        tolerance = min(self.tolerance, φ.tolerance)
+        if self.dimension is None:
+            dimension = φ.dimension
+        elif φ.dimension is None:
+            dimension = self.dimension
+        else:
+            dimension = min(self.dimension, φ.dimension)
+        if isinstance(φ,MPS):
+            new_weights = self.weights + [-1]
+            new_states = self.states + [φ]
+        elif isinstance(φ,MPSList):
+            new_weights = self.weights + list((-1) * np.asarray(φ.weights))
+            new_states = self.states + φ.states
+        new_MPSList = MPSList(weights=new_weights,states=new_states,
+                      maxsweeps=maxsweeps,tolerance=tolerance,
+                      normalize=self.normalize, dimension=self.dimension)
+        return new_MPSList
+    
+    def __mul__(self,n):
+        """Multiply an MPSList quantum state by an scalar n (MPSList * n)
+
+        Parameters
+        ----------
+        n    -- Scalar to multiply the MPSList by.
+
+        Output
+        ------
+        mps    -- New mps.
+        """
+        if not np.isscalar(n):
+            raise Exception(f'Cannot multiply MPSList by {n}')
+        new_states = [n * mps for mps in self.states]
+        new_MPSList = MPSList(weights=self.weights,states=new_states,
+                          maxsweeps=self.maxsweeps,tolerance=self.tolerance,
+                          normalize=self.normalize, dimension=self.dimension)
+        return new_MPSList
+    
+    def __rmul__(self,n):
+        """Multiply an MPSList quantum state by an scalar n (n * MPSList).
+
+        Parameters
+        ----------
+        n    -- Scalar to multiply the MPSList by.
+
+        Output
+        ------
+        mps    -- New mps.
+        """
+        if not np.isscalar(n):
+            raise Exception(f'Cannot multiply MPSList by {n}')
+        new_states = [n * mps for mps in self.states]
+        new_MPSList = MPSList(weights=self.weights,states=new_states,
+                          maxsweeps=self.maxsweeps,tolerance=self.tolerance,
+                          normalize=self.normalize, dimension=self.dimension)
+        return new_MPSList   
+    
+    def toMPS(self):
+        ψ, _ = mps.truncate.combine(self.weights,self.states,maxsweeps=self.maxsweeps,
+               tolerance=self.tolerance,normalize=self.normalize, 
+               dimension=self.dimension)
+        return ψ
 
 
 def product(vectors, length=None):
@@ -534,7 +742,7 @@ def left_orth_2site(AA, tolerance, normalize, dimension):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α*d1, β*d2))
     U, S, V = scipy.linalg.svd(Ψ, full_matrices=False, lapack_driver='gesvd')
-    S, err = _truncate_vector(S, tolerance, None)
+    S, err = _truncate_vector(S, tolerance, dimension)
     if normalize:
         S /= np.linalg.norm(S)
     D = S.size
