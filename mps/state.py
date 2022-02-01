@@ -1,4 +1,5 @@
 import numpy as np
+import copy
 import scipy.linalg
 from mps import expectation
 
@@ -179,7 +180,37 @@ class MPS(TensorArray):
     @staticmethod
     def fromvector(ψ, dimensions, **kwdargs):
         return MPS(vector2mps(ψ, dimensions, **kwdargs))
+    
+    def __mul__(self,n):
+        """Multiply an MPS quantum state by an scalar n (MPS * n)
 
+        Parameters
+        ----------
+        n          -- Scalar to multiply the MPS by.
+
+        Output
+        ------
+        mps -- New mps.
+        """
+        mps_mult = copy.deepcopy(self)
+        mps_mult._data[0] = n*mps_mult._data[0]
+        return mps_mult
+    
+    def __rmul__(self,n):
+        """Multiply an MPS quantum state by an scalar n (n * MPS).
+
+        Parameters
+        ----------
+        n          -- Scalar to multiply the MPS by.
+
+        Output
+        ------
+        mps -- New mps.
+        """
+        mps_mult = copy.deepcopy(self)
+        mps_mult._data[0] = n*mps_mult._data[0]
+        return mps_mult
+    
     def norm2(self):
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
         return expectation.scprod(self, self)
