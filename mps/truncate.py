@@ -2,13 +2,15 @@
 import numpy as np
 import math
 import mps
-from mps.state import *
+import mps.state
 from mps.tools import log
 from mps.expectation import \
     begin_environment, \
     update_right_environment, \
     update_left_environment, \
     scprod
+
+DEFAULT_TOLERANCE = np.finfo(np.float64).eps
 
 class AntilinearForm:
     #
@@ -115,7 +117,7 @@ def simplify(ψ, maxsweeps=4, direction=+1,
     start = 0 if direction > 0 else size-1
 
     base_error = ψ.error()
-    φ = CanonicalMPS(ψ, center=start, tolerance=tolerance, normalize=normalize)
+    φ = mps.state.CanonicalMPS(ψ, center=start, tolerance=tolerance, normalize=normalize)
     if dimension == 0 and tolerance <= 0:
         return φ
     
@@ -148,7 +150,7 @@ def simplify(ψ, maxsweeps=4, direction=+1,
         scprod_φψ = np.vdot(B, form.tensor1site())
         real_scprod_φψ = mps.expectation.scprod(φ,ψ)
         old_err = err
-        err = abs(1.0 - scprod_φψ.real/np.sqrt(norm_φsqr*norm_ψsqr))
+        err = 2 * abs(1.0 - scprod_φψ.real/np.sqrt(norm_φsqr*norm_ψsqr))
         log(f'rel.err.={err}, old err.={old_err}, |φ|={norm_φsqr**0.5}')
         if err < tolerance:
             log(f'Stopping, as tolerance reached')
@@ -196,11 +198,11 @@ def combine(weights, states, guess=None, maxsweeps=4, direction=+1,
     
     if guess is None:
         guess = states[0]
-    base_error = np.sum(np.sqrt(α)*np.sqrt(ψ.error()) for α,ψ in zip(weights, states))
-    φ = CanonicalMPS(guess, center=start, tolerance=tolerance)
+    base_error = sum(np.sqrt(np.abs(α))*np.sqrt(ψ.error()) for α,ψ in zip(weights, states))
+    φ = mps.state.CanonicalMPS(guess, center=start, tolerance=tolerance)
     err = norm_ψsqr = multi_norm2(weights, states)
     if norm_ψsqr < tolerance:
-        return MPS([np.zeros((1,P.shape[1],1)) for P in φ]), 0
+        return mps.state.MPS([np.zeros((1,P.shape[1],1)) for P in φ]), 0
     log(f'Approximating ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps.')
     log(f'Weights: {weights}')
 
@@ -233,7 +235,7 @@ def combine(weights, states, guess=None, maxsweeps=4, direction=+1,
         C = sum(α * f.tensor1site() for α,f in zip(weights, forms))
         scprod_φψ = np.vdot(B, C)
         old_err = err
-        err = abs(1.0 - scprod_φψ.real/np.sqrt(norm_φsqr*norm_ψsqr))
+        err = 2 * abs(1.0 - scprod_φψ.real/np.sqrt(norm_φsqr*norm_ψsqr))
         log(f'rel.err.={err}, old err.={old_err}, |φ|={norm_φsqr**0.5}')
         if err < tolerance:
             log(f'Stopping, as tolerance reached')
