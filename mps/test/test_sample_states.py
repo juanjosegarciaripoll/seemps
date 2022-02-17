@@ -17,7 +17,7 @@ class TestSampleStates(unittest.TestCase):
         #
         # Test whether the MPS has the right size and dimension
         self.assertEqual(state1.size, 3)
-        self.assertEqual(state1.dimension(), 8)
+        self.assertEqual(state1.mps_dimension(), 8)
         #
         # Verify that it has the same data as input
         self.assertTrue(np.array_equal(state1[0], tensor1))
@@ -38,7 +38,7 @@ class TestSampleStates(unittest.TestCase):
         #
         # Test whether the MPS has the right size and dimension
         self.assertEqual(state2.size, 3)
-        self.assertEqual(state2.dimension(), 2*3*2)
+        self.assertEqual(state2.mps_dimension(), 2*3*2)
         #
         # Verify that it has the same data as input
         self.assertTrue(np.array_equal(state2[0], tensor2a))
@@ -66,7 +66,7 @@ class TestSampleStates(unittest.TestCase):
         for i in range(1, 2):
             Ψ = GHZ(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 2**i)
+            self.assertEqual(Ψ.mps_dimension(), 2**i)
 
     def test_W(self):
         W1 = np.array([0, 1.0])
@@ -84,7 +84,7 @@ class TestSampleStates(unittest.TestCase):
         for i in range(1, 2):
             Ψ = W(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 2**i)
+            self.assertEqual(Ψ.mps_dimension(), 2**i)
 
     def test_AKLT(self):
         AKLT2 = np.zeros(3**2)
@@ -104,7 +104,7 @@ class TestSampleStates(unittest.TestCase):
         for i in range(2, 5):
             Ψ = AKLT(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 3**i)
+            self.assertEqual(Ψ.mps_dimension(), 3**i)
 
     def test_graph(self):
         GR = np.ones(2**2)/np.sqrt(2**2)
@@ -119,4 +119,4 @@ class TestSampleStates(unittest.TestCase):
         for i in range(1, 2):
             Ψ = W(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 2**i)
+            self.assertEqual(Ψ.mps_dimension(), 2**i)

@@ -9,6 +9,26 @@ def mpo_multiply_tensor(A, B):
     s = C.shape
     return C.reshape(s[0]*s[1],s[2],s[3]*s[4])
 
+def mpo2matrix(data):
+    """ Transform an MPO into the corresponding matrix.
+    
+    Parameters
+    ----------
+    data    -- list of tensors for the MPO.
+    
+    Returns
+    -------
+    Ψ    -- matrix of the MPO.
+    """
+    Ψ = np.ones((1, 1, 1,))
+    for (i, A) in enumerate(data):
+        Ψ = np.einsum('iaj,almb->ilbjm', Ψ, A)
+        s = Ψ.shape
+        Ψ = Ψ.reshape(s[0]*s[1],s[2],s[3]*s[4])
+    matrix_dim = Ψ.size
+    final_shape = (int(np.sqrt(matrix_dim)), int(np.sqrt(matrix_dim)))
+    return np.reshape(Ψ, final_shape)
+
 class MPO(TensorArray):
     """MPO (Matrix Product Operator) class.
 
