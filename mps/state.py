@@ -14,7 +14,7 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
     Parameters
     ----------
     ψ         -- wavefunction with \prod_i dimensions[i] elements
-    dimension -- list of dimensions of the Hilbert spaces that build ψ
+    dimensions -- list of dimensions of the Hilbert spaces that build ψ
     tolerance -- truncation criterion for dropping Schmidt numbers
     normalize -- boolean to determine if the MPS is normalized
     """
@@ -49,16 +49,16 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
     return output
 
 
-def _truncate_vector(S, tolerance, dimension):
+def _truncate_vector(S, tolerance, max_bond_dimension):
     """Given a vector of Schmidt numbers `S`, a `tolerance` and a maximum
-    bond `dimension`, determine where to truncate the vector and return
+    bond `max_bond_dimension`, determine where to truncate the vector and return
     the absolute error in norm-2 made by that truncation.
     
     Parameters
     ----------
     S         -- non-negative Schmidt numbers in decreasing order.
     tolerance -- absolute error allowed by the truncation
-    dimension -- maximum bond dimension (or None)
+    max_bond_dimension -- maximum bond dimension (or None)
     
     Output
     ------
@@ -82,8 +82,8 @@ def _truncate_vector(S, tolerance, dimension):
     # have to keep, s[k-1]
     #
     ndx = np.argmax(err >= tolerance*total)
-    if dimension is not None:
-        ndx = max(ndx, S.size - dimension)
+    if max_bond_dimension is not None:
+        ndx = max(ndx, S.size - max_bond_dimension)
     #
     # We use that to estimate the size of the array and the actual error
     #
@@ -155,7 +155,7 @@ class MPS(TensorArray):
                have three legs and are well formed--i.e. the bond dimensions
                of neighboring sites match.
     error   -- Accumulated error of the simplifications of the MPS.
-    maxsweeps, tolerance, normalize, dimension -- arguments used by
+    maxsweeps, tolerance, normalize, max_bond_dimension -- arguments used by
                  the simplification routine, if simplify is True.
     """
 
@@ -166,21 +166,21 @@ class MPS(TensorArray):
     __array_priority__ = 10000 
     def __init__(self, data, error=0, maxsweeps=16,
                  tolerance=DEFAULT_TOLERANCE,
-                 normalize=False, dimension=None):
+                 normalize=False, max_bond_dimension=None):
         super(MPS, self).__init__(data)
         assert data[0].shape[0] == data[-1].shape[-1] == 1
         self._error = error
         self.maxsweeps = maxsweeps
         self.tolerance = tolerance
         self.normalize = normalize
-        self.dimension = dimension
+        self.max_bond_dimension = max_bond_dimension
 
-    def mps_dimension(self):
+    def dimension(self):
         """Return the total size of the Hilbert space in which this MPS lives."""
         return np.product([a.shape[1] for a in self._data])
 
     def tovector(self):
-        """Return one-dimensional complex vector of mps_dimension() elements, with
+        """Return one-dimensional complex vector of dimension() elements, with
         the complete wavefunction that is encoded in the MPS."""
         return _mps2vector(self)
 
@@ -201,12 +201,12 @@ class MPS(TensorArray):
         """
         maxsweeps = min(self.maxsweeps, φ.maxsweeps)
         tolerance = min(self.tolerance, φ.tolerance)
-        if self.dimension is None:
-            dimension = φ.dimension
-        elif φ.dimension is None:
-            dimension = self.dimension
+        if self.dimensimax_bond_dimension is None:
+            max_bond_dimension = φ.max_bond_dimension
+        elif φ.max_bond_dimension is None:
+            max_bond_dimension = self.max_bond_dimension
         else:
-            dimension = min(self.dimension, φ.dimension)
+            max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
         if isinstance(φ,MPS):
             new_weights = [1,1]
             new_states = [self,φ]
@@ -215,7 +215,7 @@ class MPS(TensorArray):
             new_states = [self] + φ.states
         new_MPSList = MPSList(weights=new_weights,states=new_states,
                       maxsweeps=maxsweeps,tolerance=tolerance,
-                      normalize=self.normalize, dimension=dimension)
+                      normalize=self.normalize, max_bond_dimension=max_bond_dimension)
         return new_MPSList
     
     def __sub__(self,φ):
@@ -231,12 +231,12 @@ class MPS(TensorArray):
         """
         maxsweeps = min(self.maxsweeps, φ.maxsweeps)
         tolerance = min(self.tolerance, φ.tolerance)
-        if self.dimension is None:
-            dimension = φ.dimension
-        elif φ.dimension is None:
-            dimension = self.dimension
+        if self.max_bond_dimension is None:
+            max_bond_dimension = φ.max_bond_dimension
+        elif φ.max_bond_dimension is None:
+            max_bond_dimension = self.max_bond_dimension
         else:
-            dimension = min(self.dimension, φ.dimension)
+            max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
         if isinstance(φ,MPS):
             new_weights = [1,-1]
             new_states = [self,φ]
@@ -245,7 +245,7 @@ class MPS(TensorArray):
             new_states = [self] + φ.states
         new_MPSList = MPSList(weights=new_weights,states=new_states,
                       maxsweeps=maxsweeps,tolerance=tolerance,
-                      normalize=self.normalize, dimension=dimension)
+                      normalize=self.normalize, max_bond_dimension=max_bond_dimension)
         return new_MPSList
     
     def __mul__(self,n):
@@ -394,7 +394,7 @@ class MPSList():
     data -- A list of tensors that form the MPS. The class assumes they
             have three legs and are well formed--i.e. the bond dimensions
             of neighboring sites match.
-    maxsweeps, tolerance, normalize, dimension -- arguments used by
+    maxsweeps, tolerance, normalize, max_bond_dimension -- arguments used by
                  the simplification routine, if simplify is True.
     """
 
@@ -405,13 +405,13 @@ class MPSList():
     __array_priority__ = 10000
     def __init__(self, weights, states, error=0, maxsweeps=16,
                  tolerance=DEFAULT_TOLERANCE,
-                 normalize=False, dimension=None):
+                 normalize=False, max_bond_dimension=None):
         self.weights = weights
         self.states = states
         self.maxsweeps = maxsweeps
         self.tolerance = tolerance
         self.normalize = normalize
-        self.dimension = dimension
+        self.max_bond_dimension = max_bond_dimension
         
     def __add__(self,φ):
         """Add an MPS or an MPSList to the MPSList.
@@ -426,12 +426,12 @@ class MPSList():
         """
         maxsweeps = min(self.maxsweeps, φ.maxsweeps)
         tolerance = min(self.tolerance, φ.tolerance)
-        if self.dimension is None:
-            dimension = φ.dimension
-        elif φ.dimension is None:
-            dimension = self.dimension
+        if self.max_bond_dimension is None:
+            max_bond_dimension = φ.max_bond_dimension
+        elif φ.max_bond_dimension is None:
+            max_bond_dimension = self.max_bond_dimension
         else:
-            dimension = min(self.dimension, φ.dimension)
+            max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
         if isinstance(φ,MPS):
             new_weights = self.weights + [1]
             new_states = self.states + [φ]
@@ -442,7 +442,7 @@ class MPSList():
             new_states = self.states + φ.states
         new_MPSList = MPSList(weights=new_weights,states=new_states,
                       maxsweeps=maxsweeps,tolerance=tolerance,
-                      normalize=self.normalize, dimension=self.dimension)
+                      normalize=self.normalize, max_bond_dimension=self.max_bond_dimension)
         return new_MPSList
     
     def __sub__(self,φ):
@@ -458,12 +458,12 @@ class MPSList():
         """
         maxsweeps = min(self.maxsweeps, φ.maxsweeps)
         tolerance = min(self.tolerance, φ.tolerance)
-        if self.dimension is None:
-            dimension = φ.dimension
-        elif φ.dimension is None:
-            dimension = self.dimension
+        if self.max_bond_dimension is None:
+            max_bond_dimension = φ.max_bond_dimension
+        elif φ.max_bond_dimension is None:
+            max_bond_dimension = self.max_bond_dimension
         else:
-            dimension = min(self.dimension, φ.dimension)
+            max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
         if isinstance(φ,MPS):
             new_weights = self.weights + [-1]
             new_states = self.states + [φ]
@@ -472,7 +472,7 @@ class MPSList():
             new_states = self.states + φ.states
         new_MPSList = MPSList(weights=new_weights,states=new_states,
                       maxsweeps=maxsweeps,tolerance=tolerance,
-                      normalize=self.normalize, dimension=self.dimension)
+                      normalize=self.normalize, max_bond_dimension=self.max_bond_dimension)
         return new_MPSList
     
     def __mul__(self,n):
@@ -491,7 +491,7 @@ class MPSList():
         new_states = [n * mps for mps in self.states]
         new_MPSList = MPSList(weights=self.weights,states=new_states,
                           maxsweeps=self.maxsweeps,tolerance=self.tolerance,
-                          normalize=self.normalize, dimension=self.dimension)
+                          normalize=self.normalize, max_bond_dimension=self.max_bond_dimension)
         return new_MPSList
     
     def __rmul__(self,n):
@@ -510,13 +510,13 @@ class MPSList():
         new_states = [n * mps for mps in self.states]
         new_MPSList = MPSList(weights=self.weights,states=new_states,
                           maxsweeps=self.maxsweeps,tolerance=self.tolerance,
-                          normalize=self.normalize, dimension=self.dimension)
+                          normalize=self.normalize, max_bond_dimension=self.max_bond_dimension)
         return new_MPSList   
     
     def toMPS(self):
         ψ, _ = mps.truncate.combine(self.weights,self.states,maxsweeps=self.maxsweeps,
                tolerance=self.tolerance,normalize=self.normalize, 
-               dimension=self.dimension)
+               max_bond_dimension=self.max_bond_dimension)
         return ψ
 
 
@@ -738,11 +738,11 @@ def _canonicalize(Ψ, center, tolerance, normalize):
         err += errk
     return err
 
-def left_orth_2site(AA, tolerance, normalize, dimension):
+def left_orth_2site(AA, tolerance, normalize, max_bond_dimension):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α*d1, β*d2))
     U, S, V = scipy.linalg.svd(Ψ, full_matrices=False, lapack_driver='gesvd')
-    S, err = _truncate_vector(S, tolerance, dimension)
+    S, err = _truncate_vector(S, tolerance, max_bond_dimension)
     if normalize:
         S /= np.linalg.norm(S)
     D = S.size
@@ -750,11 +750,11 @@ def left_orth_2site(AA, tolerance, normalize, dimension):
     SV = np.reshape( np.reshape(S, (D,1)) * V[:D,:], (D,d2,β) )
     return U, SV, err
 
-def right_orth_2site(AA, tolerance, normalize, dimension):
+def right_orth_2site(AA, tolerance, normalize, max_bond_dimension):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α*d1, β*d2))
     U, S, V = scipy.linalg.svd(Ψ, full_matrices=False, lapack_driver='gesvd')
-    S, err = _truncate_vector(S, tolerance, dimension)
+    S, err = _truncate_vector(S, tolerance, max_bond_dimension)
     if normalize:
         S /= np.linalg.norm(S)
     D = S.size    
@@ -844,7 +844,7 @@ class CanonicalMPS(MPS):
         self.update_error(err)
         return err
         
-    def update_2site(self, AA, site, direction, tolerance=DEFAULT_TOLERANCE, normalize=False, dimension=None):
+    def update_2site(self, AA, site, direction, tolerance=DEFAULT_TOLERANCE, normalize=False, max_bond_dimension=None):
         """Split a two-site tensor into two one-site tensors by 
         left/right orthonormalization and insert the tensor in 
         canonical form into the MPS Ψ at the given site and the site
@@ -863,10 +863,10 @@ class CanonicalMPS(MPS):
         """
         assert site <= self.center <= site+1
         if direction < 0:
-            self._data[site], self._data[site+1], err = right_orth_2site(AA, tolerance, normalize, dimension)
+            self._data[site], self._data[site+1], err = right_orth_2site(AA, tolerance, normalize, max_bond_dimension)
             self.center = site
         else:
-            self._data[site], self._data[site+1], err = left_orth_2site(AA, tolerance, normalize, dimension)
+            self._data[site], self._data[site+1], err = left_orth_2site(AA, tolerance, normalize, max_bond_dimension)
             self.center = site+1
         self.update_error(err)
         return err

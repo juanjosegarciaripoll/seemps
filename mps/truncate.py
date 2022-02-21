@@ -95,7 +95,7 @@ class AntilinearForm:
 
 def simplify(ψ, maxsweeps=4, direction=+1,
              tolerance=DEFAULT_TOLERANCE, normalize=True,
-             dimension=None):
+             max_bond_dimension=None):
     """Simplify an MPS ψ transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
     
@@ -105,7 +105,7 @@ def simplify(ψ, maxsweeps=4, direction=+1,
     direction -- +1/-1 for the direction of the first sweep
     maxsweeps -- maximum number of sweeps to run
     tolerance -- relative tolerance when splitting the tensors
-    dimension -- maximum bond dimension (defaults to None, which is ignored)
+    max_bond_dimension -- maximum bond dimension (defaults to None, which is ignored)
     
     Output
     ------
@@ -118,7 +118,7 @@ def simplify(ψ, maxsweeps=4, direction=+1,
 
     base_error = ψ.error()
     φ = mps.state.CanonicalMPS(ψ, center=start, tolerance=tolerance, normalize=normalize)
-    if dimension == 0 and tolerance <= 0:
+    if max_bond_dimension == 0 and tolerance <= 0:
         return φ
     
     form = AntilinearForm(φ, ψ, center=start)
@@ -129,13 +129,13 @@ def simplify(ψ, maxsweeps=4, direction=+1,
         if direction > 0:
             for n in range(0, size-1):
                 log(f'Updating sites ({n},{n+1}) left-to-right, form.center={form.center}, φ.center={φ.center}')
-                φ.update_2site(form.tensor2site(direction), n, direction, tolerance, normalize, dimension)
+                φ.update_2site(form.tensor2site(direction), n, direction, tolerance, normalize, max_bond_dimension)
                 form.update(direction)
             last = size-1
         else:
             for n in reversed(range(0, size-1)):
                 log(f'Updating sites ({n},{n+1}) right-to-left, form.center={form.center}, φ.center={φ.center}')
-                φ.update_2site(form.tensor2site(direction), n, direction, tolerance, normalize, dimension)
+                φ.update_2site(form.tensor2site(direction), n, direction, tolerance, normalize, max_bond_dimension)
                 form.update(direction)
             last = 0
         #
@@ -175,7 +175,7 @@ def multi_norm2(α, ψ):
 
 def combine(weights, states, guess=None, maxsweeps=4, direction=+1,
             tolerance=DEFAULT_TOLERANCE, normalize=True,
-            dimension=None):
+            max_bond_dimension=None):
     """Simplify an MPS ψ transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
     
@@ -187,7 +187,7 @@ def combine(weights, states, guess=None, maxsweeps=4, direction=+1,
     direction -- +1/-1 for the direction of the first sweep
     maxsweeps -- maximum number of sweeps to run
     tolerance -- relative tolerance when splitting the tensors
-    dimension -- maximum bond dimension (defaults to None, which is ignored)
+    max_bond_dimension -- maximum bond dimension (defaults to None, which is ignored)
     
     Output
     ------
@@ -214,13 +214,13 @@ def combine(weights, states, guess=None, maxsweeps=4, direction=+1,
             for n in range(0, size-1):
                 log(f'Updating sites ({n},{n+1}) left-to-right, form.center={forms[0].center}, φ.center={φ.center}')
                 tensor = sum(α * f.tensor2site(direction) for α, f in zip(weights, forms))
-                φ.update_2site(tensor, n, direction, tolerance, normalize, dimension)
+                φ.update_2site(tensor, n, direction, tolerance, normalize, max_bond_dimension)
                 for f in forms: f.update(direction)
         else:
             for n in reversed(range(0, size-1)):
                 log(f'Updating sites ({n},{n+1}) right-to-left, form.center={forms[0].center}, φ.center={φ.center}')
                 tensor = sum(α * f.tensor2site(direction) for α, f in zip(weights, forms))
-                φ.update_2site(tensor, n, direction, tolerance, normalize, dimension)
+                φ.update_2site(tensor, n, direction, tolerance, normalize, max_bond_dimension)
                 for f in forms: f.update(direction)
             last = 0
         #
@@ -257,7 +257,7 @@ def cgs(A, b, guess=None, maxiter=100, tolerance=DEFAULT_TOLERANCE):
     b         -- Right-hand side of the equation
     maxiter   -- Maximum number of iterations
     tolerance -- Truncation tolerance and also error tolerance
-    dimension -- None (ignore) or maximum bond dimension
+    max_bond_dimension -- None (ignore) or maximum bond dimension
     
     Output
     ------
