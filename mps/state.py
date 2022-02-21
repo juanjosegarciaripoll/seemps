@@ -201,7 +201,7 @@ class MPS(TensorArray):
         """
         maxsweeps = min(self.maxsweeps, φ.maxsweeps)
         tolerance = min(self.tolerance, φ.tolerance)
-        if self.dimensimax_bond_dimension is None:
+        if self.max_bond_dimension is None:
             max_bond_dimension = φ.max_bond_dimension
         elif φ.max_bond_dimension is None:
             max_bond_dimension = self.max_bond_dimension
