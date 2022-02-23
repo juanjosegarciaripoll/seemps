@@ -22,20 +22,20 @@ class MPO(TensorArray):
     data      -- A list of the tensors that form the MPO
     simplify  -- Use the simplification algorithm after applying the MPO
                  Defaults to False
-    maxsweeps, tolerance, normalize, dimension -- arguments used by
+    maxsweeps, tolerance, normalize, max_bond_dimension -- arguments used by
                  the simplification routine, if simplify is True.
     """
 
     __array_priority__ = 10000 
     def __init__(self, data, simplify=False, maxsweeps=16,
                  tolerance=DEFAULT_TOLERANCE,
-                 normalize=False, dimension=None):
+                 normalize=False, max_bond_dimension=None):
         super(MPO, self).__init__(data)
         assert data[0].shape[0] == data[-1].shape[-1] == 1
         self.maxsweeps = maxsweeps
         self.tolerance = tolerance
         self.normalize = normalize
-        self.dimension = dimension
+        self.max_bond_dimension = max_bond_dimension
         self.simplify = simplify
         
     def __mul__(self,n):
@@ -101,7 +101,7 @@ class MPO(TensorArray):
             if self.simplify:
                 b, err, _ = simplify(b, maxsweeps=self.maxsweeps, tolerance=self.tolerance,
                                      normalize=self.normalize,
-                                     dimension=self.dimension)
+                                     max_bond_dimension=self.max_bond_dimension)
             log(f'Total error after applying MPO {b.error()}, incremented by {err}')
             return b
         else:
@@ -158,19 +158,19 @@ class MPOList(object):
     mpos  -- A list of the MPOs
     simplify  -- Use the simplification algorithm after applying the MPO
                  Defaults to False
-    maxsweeps, tolerance, normalize, dimension -- arguments used by
+    maxsweeps, tolerance, normalize, max_bond_dimension -- arguments used by
                  the simplification routine, if simplify is True.
     """
  
     __array_priority__ = 10000 
     def __init__(self, mpos, simplify=False, maxsweeps=4,
                  tolerance=DEFAULT_TOLERANCE,
-                 normalize=False, dimension=None,):
+                 normalize=False, max_bond_dimension=None,):
         self.mpos = mpos
         self.maxsweeps = maxsweeps
         self.tolerance = tolerance
         self.normalize = normalize
-        self.dimension = dimension
+        self.max_bond_dimension = max_bond_dimension
         self.simplify = simplify
         
     def __mul__(self,n):
@@ -209,8 +209,8 @@ class MPOList(object):
     
     def tomatrix(self):
         """Return the matrix representation of this MPO."""
-        A = 1
-        for mpo in self.mpos:
+        A = self.mpos[0].tomatrix()
+        for mpo in self.mpos[1:]:
             A = A @ mpo.tomatrix()
         return A
     
@@ -226,7 +226,7 @@ class MPOList(object):
             if self.simplify:
                 b, err, _ = simplify(b, maxsweeps=self.maxsweeps, tolerance=self.tolerance,
                                    normalize=self.normalize,
-                                   dimension=self.dimension)
+                                   max_bond_dimension=self.max_bond_dimension)
             log(f'Total error after applying MPOList {b.error()}, incremented by {err}')
         return b
     
