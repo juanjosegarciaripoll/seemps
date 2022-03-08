@@ -4,14 +4,14 @@ import math
 from mps.state import MPS
 from mps.mpo import MPOList, MPO
 
-def qft_mpo(N, sign=-1, **kwdargs):
+def qft_mpo(N, sign=-1, **kwargs):
     """Create an MPOList object representing a Quantum Fourier Transform
     for a quantum register with `N` qubits.
     
     Parameters
     ----------
     N         -- Number of qubits in a quantum register
-    kwdargs   -- All other arguments accepted by MPO
+    kwargs   -- All other arguments accepted by MPO
     
     Output
     ------
@@ -43,22 +43,22 @@ def qft_mpo(N, sign=-1, **kwdargs):
     jϕ = sign*1j*π
     rots = [R0 + R1 * np.exp(jϕ/(2**n)) for n in range(1, N)]
     #
-    return MPOList([MPO(fix_last([noop]*n + [Hop] + rots[:N-n-1]), **kwdargs)
-                    for n in range(0, N)])
+    return MPOList([MPO(fix_last([noop]*n + [Hop] + rots[:N-n-1]), **kwargs)
+                    for n in range(0, N)], **kwargs)
 
-def iqft_mpo(N, **kwdargs):
+def iqft_mpo(N, **kwargs):
     """Implement the inverse of the qft_mpo() operator."""
-    return qft_mpo(N, +1, kwdargs)
+    return qft_mpo(N, +1, **kwargs)
 
-def qft(Ψmps, **kwdargs):
+def qft(Ψmps, **kwargs):
     """Apply the quantum Fourier transform onto a quantum register
     of qubits encoded in the matrix product state 'Ψ'"""
-    return qft_mpo(len(Ψmps), sign=-1, **kwdargs).apply(Ψmps)
+    return qft_mpo(len(Ψmps), sign=-1, **kwargs).apply(Ψmps)
 
-def iqft(Ψmps, **kwdargs):
+def iqft(Ψmps, **kwargs):
     """Apply the inverse quantum Fourier transform onto a quantum register
     of qubits encoded in the matrix product state 'Ψ'"""
-    return qft_mpo(len(Ψmps), sign=+1, **kwdargs).apply(Ψmps)
+    return qft_mpo(len(Ψmps), sign=+1, **kwargs).apply(Ψmps)
 
 def qft_flip(Ψmps):
     """Swap the qubits in the quantum register, to fix the reversal
@@ -69,7 +69,7 @@ def qft_wavefunction(Ψ):
     N = int(round(math.log2(Ψ.size)))
     return np.fft.fft(Ψ)/np.sqrt(Ψ.size)
 
-def qft_nd_mpo(sites, N=None, sign=-1, **kwdargs):
+def qft_nd_mpo(sites, N=None, sign=-1, **kwargs):
     """Create an MPOList object representing a Quantum Fourier Transform
     for subset of qubits in a quantum register with `N` qubits.
     
@@ -80,7 +80,7 @@ def qft_nd_mpo(sites, N=None, sign=-1, **kwdargs):
     N         -- Number of qubits in a quantum register.
                  Defaults to `max(sites)+1`.
     sign      -- Sign of the FFT (defaults to -1, direct FFT)
-    kwdargs   -- All other arguments accepted by `MPO`
+    kwargs   -- All other arguments accepted by `MPO`
     
     Output
     ------
@@ -133,10 +133,10 @@ def qft_nd_mpo(sites, N=None, sign=-1, **kwdargs):
                 a, i, j, b = A.shape
                 l[n] = np.sum(A,-1).reshape(a,i,j,1)
                 break
-        return MPO(l, **kwdargs)
+        return MPO(l, **kwargs)
     #
-    return MPOList([make_layer(sites[i:]) for i in range(len(sites))])
+    return MPOList([make_layer(sites[i:]) for i in range(len(sites))], **kwargs)
 
-def iqft_nd_mpo(sites, N=None, **kwdargs):
+def iqft_nd_mpo(sites, N=None, **kwargs):
     """Implement the inverse of the qft_nd_mpo() operator."""
-    return qft_nd_mpo(sites, N=N, sign=+1, **kwdargs)
+    return qft_nd_mpo(sites, N=N, sign=+1, **kwargs)

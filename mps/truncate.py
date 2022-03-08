@@ -148,7 +148,6 @@ def simplify(ψ, maxsweeps=4, direction=+1,
             φ[last] = B = B/norm_φsqr
             norm_φsqr = 1.
         scprod_φψ = np.vdot(B, form.tensor1site())
-        real_scprod_φψ = mps.expectation.scprod(φ,ψ)
         old_err = err
         err = 2 * abs(1.0 - scprod_φψ.real/np.sqrt(norm_φsqr*norm_ψsqr))
         log(f'rel.err.={err}, old err.={old_err}, |φ|={norm_φsqr**0.5}')
