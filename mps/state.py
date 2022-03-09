@@ -21,7 +21,13 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
     
     def SchmidtSplit(ψ, tolerance):
         a, b = ψ.shape
-        U, s, V = np.linalg.svd(ψ, full_matrices=False)
+        U, s, V = scipy.linalg.svd(
+            ψ,
+            full_matrices=False,
+            check_finite=False,
+            overwrite_a=True,
+            lapack_driver="gesdd",
+        )
         s, err = _truncate_vector(s, tolerance, None)
         D = s.size
         return np.reshape(U[:, :D], (a, D)), np.reshape(s, (D, 1)) * V[:D, :]
@@ -70,7 +76,7 @@ def _truncate_vector(S, tolerance, max_bond_dimension):
         return S, 0
     # We sum all reduced density matrix eigenvalues, starting from
     # the smallest ones, to avoid rounding errors
-    err = np.cumsum(np.flip(S, axis=0)**2)
+    err = np.cumsum(S[::-1] ** 2)
     #
     # This is the sum of all values
     total = err[-1]
@@ -391,9 +397,8 @@ class MPSList():
 
     Parameters
     ----------
-    data -- A list of tensors that form the MPS. The class assumes they
-            have three legs and are well formed--i.e. the bond dimensions
-            of neighboring sites match.
+    weights    -- weights of the linear combination of MPS.
+    states    --  states of the linear combination of MPS.
     maxsweeps, tolerance, normalize, max_bond_dimension -- arguments used by
                  the simplification routine, if simplify is True.
     """
@@ -403,7 +408,7 @@ class MPSList():
     # a Matrix-Product State.
     #
     __array_priority__ = 10000
-    def __init__(self, weights, states, error=0, maxsweeps=16,
+    def __init__(self, weights, states, maxsweeps=16,
                  tolerance=DEFAULT_TOLERANCE,
                  normalize=False, max_bond_dimension=None):
         self.weights = weights
@@ -436,8 +441,6 @@ class MPSList():
             new_weights = self.weights + [1]
             new_states = self.states + [φ]
         elif isinstance(φ,MPSList):
-            maxsweeps = self.maxsweeps if self.maxsweeps < φ.maxsweeps else φ.maxsweeps
-            tolerance = self.tolerance if self.tolerance < φ.tolerance else φ.tolerance
             new_weights = self.weights + φ.weights
             new_states = self.states + φ.states
         new_MPSList = MPSList(weights=new_weights,states=new_states,
@@ -513,10 +516,17 @@ class MPSList():
                           normalize=self.normalize, max_bond_dimension=self.max_bond_dimension)
         return new_MPSList   
     
-    def toMPS(self):
-        ψ, _ = mps.truncate.combine(self.weights,self.states,maxsweeps=self.maxsweeps,
-               tolerance=self.tolerance,normalize=self.normalize, 
-               max_bond_dimension=self.max_bond_dimension)
+    def toMPS(self, normalize=None):
+        if normalize is None:
+            normalize = self.normalize
+        ψ, _ = mps.truncate.combine(
+            self.weights,
+            self.states,
+            maxsweeps=self.maxsweeps,
+            tolerance=self.tolerance,
+            normalize=normalize,
+            max_bond_dimension=self.max_bond_dimension,
+        )
         return ψ
 
 

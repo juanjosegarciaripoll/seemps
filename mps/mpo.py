@@ -223,7 +223,7 @@ class MPOList(object):
             #log(f'Total error before applying MPOList {b.error()}')
             b = mpo.apply(b)
             err = 0.
-            if self.simplify:
+            if self.simplify and not mpo.simplify:
                 b, err, _ = simplify(b, maxsweeps=self.maxsweeps, tolerance=self.tolerance,
                                    normalize=self.normalize,
                                    max_bond_dimension=self.max_bond_dimension)
