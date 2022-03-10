@@ -1,8 +1,6 @@
-import copy
-
 import numpy as np
+import copy
 import scipy.linalg
-
 import mps.truncate
 from mps import expectation
 
