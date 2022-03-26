@@ -1,26 +1,31 @@
 import unittest
 from tools import *
-from mps.state import DEFAULT_TOLERANCE, _update_in_canonical_form, _canonicalize, CanonicalMPS
+from mps.state import (
+    DEFAULT_TOLERANCE,
+    _update_in_canonical_form,
+    _canonicalize,
+    CanonicalMPS,
+)
+
 
 class TestCanonicalForm(unittest.TestCase):
-
     def test_local_update_canonical(self):
         #
         # We verify that _update_in_canonical_form() leaves a tensor that
         # is an approximate isometry.
         #
         def ok(Ψ, normalization=False):
-            for i in range(Ψ.size-1):
+            for i in range(Ψ.size - 1):
                 ξ = Ψ.copy()
-                _update_in_canonical_form(ξ, ξ[i], i, +1,
-                                          DEFAULT_TOLERANCE,
-                                          normalization)
+                _update_in_canonical_form(
+                    ξ, ξ[i], i, +1, DEFAULT_TOLERANCE, normalization
+                )
                 self.assertTrue(approximateIsometry(ξ[i], +1))
             for i in range(1, Ψ.size):
                 ξ = Ψ.copy()
-                _update_in_canonical_form(ξ, ξ[i], i, -1,
-                                          DEFAULT_TOLERANCE,
-                                          normalization)
+                _update_in_canonical_form(
+                    ξ, ξ[i], i, -1, DEFAULT_TOLERANCE, normalization
+                )
                 self.assertTrue(approximateIsometry(ξ[i], -1))
 
         run_over_random_mps(ok)
@@ -41,12 +46,13 @@ class TestCanonicalForm(unittest.TestCase):
                 #
                 for i in range(center):
                     self.assertTrue(approximateIsometry(ξ[i], +1))
-                for i in range(center+1, ξ.size):
+                for i in range(center + 1, ξ.size):
                     self.assertTrue(approximateIsometry(ξ[i], -1))
                 #
                 # Both states produce the same wavefunction
                 #
                 self.assertTrue(similar(ξ.tovector(), Ψ.tovector()))
+
         run_over_random_mps(ok)
 
     def test_canonical_mps(self):
@@ -63,7 +69,7 @@ class TestCanonicalForm(unittest.TestCase):
                 #
                 for i in range(center):
                     self.assertTrue(approximateIsometry(ξ[i], +1))
-                for i in range(center+1, ξ.size):
+                for i in range(center + 1, ξ.size):
                     self.assertTrue(approximateIsometry(ξ[i], -1))
                 #
                 # Both states produce the same wavefunction
@@ -72,21 +78,23 @@ class TestCanonicalForm(unittest.TestCase):
                 #
                 # The norm is correct
                 #
-                self.assertAlmostEqual(ξ.norm2()/Ψ.norm2(), 1.0)
+                self.assertAlmostEqual(ξ.norm2() / Ψ.norm2(), 1.0)
                 #
                 # Local observables give the same
                 #
                 O = np.array([[0, 0], [0, 1]])
                 nrm2 = ξ.norm2()
-                self.assertAlmostEqual(ξ.expectation1(O)/nrm2,
-                                       Ψ.expectation1(O, center)/nrm2)
+                self.assertAlmostEqual(
+                    ξ.expectation1(O) / nrm2, Ψ.expectation1(O, center) / nrm2
+                )
                 #
                 # The canonical form is the same when we use the
                 # corresponding negative indices of 'center'
                 #
-                χ = CanonicalMPS(Ψ, center=center-Ψ.size)
+                χ = CanonicalMPS(Ψ, center=center - Ψ.size)
                 for i in range(Ψ.size):
                     self.assertTrue(similar(ξ[i], χ[i]))
+
         run_over_random_mps(ok)
 
     def test_environments(self):
@@ -101,6 +109,7 @@ class TestCanonicalForm(unittest.TestCase):
                 Renv = super(CanonicalMPS, ξ).left_environment(center)
                 self.assertTrue(almostIdentity(Lenv))
                 self.assertTrue(almostIdentity(Renv))
+
         run_over_random_mps(ok)
 
     def test_canonical_mps_normalization(self):
@@ -113,8 +122,10 @@ class TestCanonicalForm(unittest.TestCase):
                 ξ1 = CanonicalMPS(Ψ, center=center, normalize=False)
                 ξ2 = CanonicalMPS(Ψ, center=center, normalize=True)
                 self.assertAlmostEqual(ξ2.norm2(), 1.0)
-                self.assertTrue(similar(ξ1.tovector()/np.sqrt(ξ1.norm2()),
-                                        ξ2.tovector()))
+                self.assertTrue(
+                    similar(ξ1.tovector() / np.sqrt(ξ1.norm2()), ξ2.tovector())
+                )
+
         run_over_random_mps(ok)
 
     def test_canonical_mps_copy(self):
@@ -130,4 +141,5 @@ class TestCanonicalForm(unittest.TestCase):
                 self.assertEqual(ξ.center, ψ.center)
                 for i in range(ξ.size):
                     self.assertTrue(np.all(np.equal(ξ[i], ψ[i])))
+
         run_over_random_mps(ok)

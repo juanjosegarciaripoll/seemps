@@ -1,10 +1,9 @@
-
 import unittest
 from mps.tools import *
 from tools import *
 
+
 class TestTools(unittest.TestCase):
-    
     def test_random_isometry(self):
         for N in range(1, 10):
             for M in range(1, 10):

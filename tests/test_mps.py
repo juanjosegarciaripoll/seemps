@@ -1,14 +1,15 @@
-
 import unittest
 import numpy as np
 from mps.state import TensorArray
 
-class TestTensorArray(unittest.TestCase):
 
+class TestTensorArray(unittest.TestCase):
     def setUp(self):
-        self.product_state = [np.reshape([1.0, 2.0], (1, 2, 1)),
-                              np.reshape([3.0, 5.0], (1, 2, 1)),
-                              np.reshape([7.0, 11.0], (1, 2, 1))]
+        self.product_state = [
+            np.reshape([1.0, 2.0], (1, 2, 1)),
+            np.reshape([3.0, 5.0], (1, 2, 1)),
+            np.reshape([7.0, 11.0], (1, 2, 1)),
+        ]
 
     def test_independence(self):
         #
@@ -42,5 +43,5 @@ class TestTensorArray(unittest.TestCase):
         A = TensorArray(data)
         B = A.copy()
         for i in range(A.size):
-            A[i][0,0,0] = 17.0
+            A[i][0, 0, 0] = 17.0
             self.assertTrue(np.all(A[i] == B[i]))

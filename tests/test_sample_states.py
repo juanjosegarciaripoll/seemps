@@ -1,11 +1,10 @@
-
 import numpy as np
 import unittest
 from mps.tools import *
 from mps.state import *
 
-class TestSampleStates(unittest.TestCase):
 
+class TestSampleStates(unittest.TestCase):
     def test_product_state(self):
         a = np.array([1.0, 7.0])
         b = np.array([0.0, 1.0, 3.0])
@@ -38,7 +37,7 @@ class TestSampleStates(unittest.TestCase):
         #
         # Test whether the MPS has the right size and dimension
         self.assertEqual(state2.size, 3)
-        self.assertEqual(state2.dimension(), 2*3*2)
+        self.assertEqual(state2.dimension(), 2 * 3 * 2)
         #
         # Verify that it has the same data as input
         self.assertTrue(np.array_equal(state2[0], tensor2a))
@@ -51,67 +50,67 @@ class TestSampleStates(unittest.TestCase):
         self.assertTrue(np.array_equal(state2.tovector(), state2ψ))
 
     def test_GHZ(self):
-        ghz1 = np.array([1.0, 1.0])/np.sqrt(2.0)
+        ghz1 = np.array([1.0, 1.0]) / np.sqrt(2.0)
         mps1 = GHZ(1)
         self.assertTrue(np.array_equal(mps1.tovector(), ghz1))
 
-        ghz2 = np.array([1.0, 0.0, 0.0, 1.0])/np.sqrt(2.0)
+        ghz2 = np.array([1.0, 0.0, 0.0, 1.0]) / np.sqrt(2.0)
         mps2 = GHZ(2)
         self.assertTrue(np.array_equal(mps2.tovector(), ghz2))
 
-        ghz3 = np.array([1.0, 0, 0, 0, 0, 0, 0, 1.0])/np.sqrt(2.0)
+        ghz3 = np.array([1.0, 0, 0, 0, 0, 0, 0, 1.0]) / np.sqrt(2.0)
         mps3 = GHZ(3)
         self.assertTrue(np.array_equal(mps3.tovector(), ghz3))
 
         for i in range(1, 2):
             Ψ = GHZ(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 2**i)
+            self.assertEqual(Ψ.dimension(), 2 ** i)
 
     def test_W(self):
         W1 = np.array([0, 1.0])
         mps1 = W(1)
         self.assertTrue(np.array_equal(mps1.tovector(), W1))
 
-        W2 = np.array([0, 1, 1, 0])/np.sqrt(2.0)
+        W2 = np.array([0, 1, 1, 0]) / np.sqrt(2.0)
         mps2 = W(2)
         self.assertTrue(np.array_equal(mps2.tovector(), W2))
 
-        W3 = np.array([0, 1, 1, 0, 1, 0, 0, 0])/np.sqrt(3.0)
+        W3 = np.array([0, 1, 1, 0, 1, 0, 0, 0]) / np.sqrt(3.0)
         mps3 = W(3)
         self.assertTrue(np.array_equal(mps3.tovector(), W3))
 
         for i in range(1, 2):
             Ψ = W(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 2**i)
+            self.assertEqual(Ψ.dimension(), 2 ** i)
 
     def test_AKLT(self):
-        AKLT2 = np.zeros(3**2)
+        AKLT2 = np.zeros(3 ** 2)
         AKLT2[1] = 1
         AKLT2[3] = -1
-        AKLT2 = AKLT2/np.sqrt(2)
+        AKLT2 = AKLT2 / np.sqrt(2)
         self.assertTrue(np.array_equal(AKLT(2).tovector(), AKLT2))
 
-        AKLT3 = np.zeros(3**3)
+        AKLT3 = np.zeros(3 ** 3)
         AKLT3[4] = 1
         AKLT3[6] = -1
         AKLT3[10] = -1
         AKLT3[12] = 1
-        AKLT3 = AKLT3/(np.sqrt(2)**2)
+        AKLT3 = AKLT3 / (np.sqrt(2) ** 2)
         self.assertTrue(np.array_equal(AKLT(3).tovector(), AKLT3))
 
         for i in range(2, 5):
             Ψ = AKLT(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 3**i)
+            self.assertEqual(Ψ.dimension(), 3 ** i)
 
     def test_graph(self):
-        GR = np.ones(2**2)/np.sqrt(2**2)
+        GR = np.ones(2 ** 2) / np.sqrt(2 ** 2)
         GR[-1] = -GR[-1]
         self.assertTrue(np.array_equal(graph(2).tovector(), GR))
 
-        GR = np.ones(2**3)/np.sqrt(2**3)
+        GR = np.ones(2 ** 3) / np.sqrt(2 ** 3)
         GR[3] = -GR[3]
         GR[-2] = -GR[-2]
         self.assertTrue(np.array_equal(graph(3).tovector(), GR))
@@ -119,4 +118,4 @@ class TestSampleStates(unittest.TestCase):
         for i in range(1, 2):
             Ψ = W(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 2**i)
+            self.assertEqual(Ψ.dimension(), 2 ** i)
