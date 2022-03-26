@@ -3,6 +3,7 @@ import copy
 import mps.truncate
 from mps import expectation
 from .truncation import DEFAULT_TOLERANCE
+import warnings
 
 
 class TensorArray(object):
@@ -220,7 +221,18 @@ class MPS(TensorArray):
 
     def norm2(self):
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
-        return expectation.scprod(self, self)
+        warnings.warn(
+            "method norm2 is deprecated, use norm_squared", category=DeprecationWarning
+        )
+        return abs(expectation.scprod(self, self))
+
+    def norm_squared(self):
+        """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
+        return abs(expectation.scprod(self, self))
+
+    def norm(self):
+        """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
+        return np.sqrt(abs(expectation.scprod(self, self)))
 
     def expectation1(self, operator, n):
         """Return the expectation value of `operator` acting on the `n`-th

@@ -85,17 +85,30 @@ class TestMPS(StatesFixture):
         self.assertTrue(
             all(a.shape == b.shape for a, b in zip(A, self.inhomogeneous_state))
         )
-        ψA = A.to_vector()
-        print(ψA)
-        print(self.inhomogeneous_state_wavefunction)
-        self.assertTrue(similar(ψA, self.inhomogeneous_state_wavefunction))
+        self.assertTrue(similar(A.to_vector(), self.inhomogeneous_state_wavefunction))
 
 
 class TestMPSOperations(StatesFixture):
-    def test_norm2_returns_wavefunction_norm(self):
+    def test_norm2_is_deprecated(self):
+        with self.assertWarns(DeprecationWarning):
+            MPS(self.inhomogeneous_state).norm2()
+
+    def test_norm_returns_real_nonnegative_values(self):
+        complex_mps = MPS([-1j * x for x in self.inhomogeneous_state])
+        complex_mps_norm = complex_mps.norm()
+        self.assertTrue(complex_mps_norm > 0)
+        self.assertTrue(isinstance(complex_mps_norm, np.double))
+
+    def test_norm_returns_wavefunction_norm(self):
         self.assertAlmostEqual(
-            MPS(self.inhomogeneous_state).norm2(),
+            MPS(self.inhomogeneous_state).norm(),
             np.linalg.norm(self.inhomogeneous_state_wavefunction),
+        )
+
+    def test_norm_squared_returns_wavefunction_norm_squared(self):
+        self.assertAlmostEqual(
+            MPS(self.inhomogeneous_state).norm_squared(),
+            np.linalg.norm(self.inhomogeneous_state_wavefunction) ** 2,
         )
 
     def test_adding_mps_creates_mps_list(self):
