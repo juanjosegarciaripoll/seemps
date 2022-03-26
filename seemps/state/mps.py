@@ -218,10 +218,10 @@ class MPS(TensorArray):
             mps_mult._data[0] = n * mps_mult._data[0]
             mps_mult._error = np.abs(n) ** 2 * mps_mult._error
             return mps_mult
-        elif isinstance(n, np.ndarray):
-            raise TypeError("Multiplication of MPS by array is not allowed")
         else:
-            return NotImplemented
+            raise TypeError(
+                f"Invalid multiplication between MPS and object of type {n}"
+            )
 
     def norm2(self):
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
