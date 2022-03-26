@@ -18,7 +18,7 @@ class TestExpectation(unittest.TestCase):
         for nbits in range(1, 8):
             # We create a random MPS
             ψmps = mps.state.random(2, nbits, 2)
-            ψwave = ψmps.tovector()
+            ψwave = ψmps.to_vector()
 
             # We then create the basis of all states with well defined
             # values of the qubits
@@ -49,7 +49,7 @@ class TestExpectation(unittest.TestCase):
             for _ in range(10):
                 # We create a random MPS
                 ψmps = mps.state.random(2, nbits, 2)
-                ψwave = ψmps.tovector()
+                ψwave = ψmps.to_vector()
                 self.assertAlmostEqual(ψmps.norm2(), np.vdot(ψwave, ψwave))
 
     def test_expected1_standard(self):
@@ -73,7 +73,7 @@ class TestExpectation(unittest.TestCase):
                 for n in range(ϕ.size):
                     ψ = ϕ.copy()
                     ψ[n] = np.einsum("ij,kjl->kil", O1, ψ[n])
-                    desired = np.vdot(ϕ.tovector(), ψ.tovector())
+                    desired = np.vdot(ϕ.to_vector(), ψ.to_vector())
                     self.assertAlmostEqual(
                         desired / nrm2, expectation1(ϕ, O1, n) / nrm2
                     )

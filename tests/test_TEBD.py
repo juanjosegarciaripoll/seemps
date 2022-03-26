@@ -106,10 +106,10 @@ class TestTEBD_sweep(unittest.TestCase):
         #
         # Numerically exact solution using Scipy's exponentiation routine
         ψwave = random_wavefunction(N)
-        print(mps.state.wavepacket(ψwave).tovector())
+        print(mps.state.wavepacket(ψwave).to_vector())
         HMat = self.hopping_model_Trotter_matrix(N, tt, ω)
         ψwave_final = sp.linalg.expm_multiply(+1j * dt * HMat, ψwave)
-        print(mps.state.wavepacket(ψwave_final).tovector())
+        print(mps.state.wavepacket(ψwave_final).to_vector())
         print(HMat.todense())
         #
         # Evolution using Trrotter
@@ -119,12 +119,12 @@ class TestTEBD_sweep(unittest.TestCase):
         start = 0
         direction = 1
         apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE)
-        print(ψ.tovector())
-        print(np.abs(mps.state.wavepacket(ψwave_final).tovector() - ψ.tovector()))
+        print(ψ.to_vector())
+        print(np.abs(mps.state.wavepacket(ψwave_final).to_vector() - ψ.to_vector()))
 
         self.assertTrue(
             similar(
-                abs(mps.state.wavepacket(ψwave_final).tovector()), abs(ψ.tovector())
+                abs(mps.state.wavepacket(ψwave_final).to_vector()), abs(ψ.to_vector())
             )
         )
 
@@ -158,7 +158,8 @@ class TestTEBD_sweep(unittest.TestCase):
 
         self.assertTrue(
             similar(
-                abs(mps.state.wavepacket(ψwave_final).tovector()), abs(ψmps.tovector())
+                abs(mps.state.wavepacket(ψwave_final).to_vector()),
+                abs(ψmps.to_vector()),
             )
         )
 
@@ -191,7 +192,8 @@ class TestTEBD_sweep(unittest.TestCase):
         ).evolve()
         self.assertTrue(
             similar(
-                abs(mps.state.wavepacket(ψwave_final).tovector()), abs(ψmps.tovector())
+                abs(mps.state.wavepacket(ψwave_final).to_vector()),
+                abs(ψmps.to_vector()),
             )
         )
 

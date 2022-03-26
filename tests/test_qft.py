@@ -15,14 +15,14 @@ class TestQFT(unittest.TestCase):
         x = np.linspace(-4, 4, 2 ** N + 1)[:-1]
         ψ = np.exp(-(x ** 2) / 2.0)
         ψ /= np.linalg.norm(ψ)
-        return MPS.fromvector(ψ, [2] * N), ψ
+        return MPS.from_vector(ψ, [2] * N), ψ
 
     def test_qft_is_fft(self):
         np.random.seed(1022)
         for N in range(4, 10):
             ψmps, ψ = self.gaussian_mps(N)
             self.assertTrue(
-                similar(qft_flip(qft(ψmps)).tovector(), numpy.fft.fft(ψ, norm="ortho"))
+                similar(qft_flip(qft(ψmps)).to_vector(), numpy.fft.fft(ψ, norm="ortho"))
             )
 
     def test_iqft_is_fft(self):

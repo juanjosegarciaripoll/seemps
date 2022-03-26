@@ -50,7 +50,7 @@ class TestCanonicalForm(unittest.TestCase):
                 #
                 # Both states produce the same wavefunction
                 #
-                self.assertTrue(similar(ξ.tovector(), Ψ.tovector()))
+                self.assertTrue(similar(ξ.to_vector(), Ψ.to_vector()))
 
         run_over_random_mps(ok)
 
@@ -73,7 +73,7 @@ class TestCanonicalForm(unittest.TestCase):
                 #
                 # Both states produce the same wavefunction
                 #
-                self.assertTrue(similar(ξ.tovector(), Ψ.tovector()))
+                self.assertTrue(similar(ξ.to_vector(), Ψ.to_vector()))
                 #
                 # The norm is correct
                 #
@@ -122,7 +122,7 @@ class TestCanonicalForm(unittest.TestCase):
                 ξ2 = CanonicalMPS(Ψ, center=center, normalize=True)
                 self.assertAlmostEqual(ξ2.norm2(), 1.0)
                 self.assertTrue(
-                    similar(ξ1.tovector() / np.sqrt(ξ1.norm2()), ξ2.tovector())
+                    similar(ξ1.to_vector() / np.sqrt(ξ1.norm2()), ξ2.to_vector())
                 )
 
         run_over_random_mps(ok)

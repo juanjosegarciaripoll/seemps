@@ -142,7 +142,7 @@ class CanonicalMPS(MPS):
             self[center] = A / np.linalg.norm(A)
 
     @classmethod
-    def fromvector(
+    def from_vector(
         ψ, dimensions, center=0, normalize=False, tolerance=DEFAULT_TOLERANCE
     ):
         return CanonicalMPS(

@@ -101,13 +101,13 @@ class MPS(TensorArray):
         """Return the total size of the Hilbert space in which this MPS lives."""
         return np.product([a.shape[1] for a in self._data])
 
-    def tovector(self):
+    def to_vector(self):
         """Return one-dimensional complex vector of dimension() elements, with
         the complete wavefunction that is encoded in the MPS."""
         return _mps2vector(self)
 
     @staticmethod
-    def fromvector(ψ, dimensions, **kwdargs):
+    def from_vector(ψ, dimensions, **kwdargs):
         from .factories import vector2mps
 
         return MPS(vector2mps(ψ, dimensions, **kwdargs))

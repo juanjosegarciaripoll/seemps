@@ -50,21 +50,21 @@ class TestAlgebraic(unittest.TestCase):
             ψ = np.random.rand(2 ** N, 2) - 0.5
             ψ = ψ[:, 0] + 1j * ψ[:, 1]
             ψ /= np.linalg.norm(ψ)
-            ψmps = MPS.fromvector(ψ, [2] * N)
-            ψ = ψmps.tovector()
+            ψmps = MPS.from_vector(ψ, [2] * N)
+            ψ = ψmps.to_vector()
 
             ξ = np.random.rand(2 ** N, 2) - 0.5
             ξ = ξ[:, 0] + 1j * ξ[:, 1]
             ξ /= np.linalg.norm(ξ)
-            ξmps = MPS.fromvector(ξ, [2] * N)
-            ξ = ξmps.tovector()
+            ξmps = MPS.from_vector(ξ, [2] * N)
+            ξ = ξmps.to_vector()
 
             ψξ = wavefunction_product(
                 ψmps, ξmps, simplify=True, normalize=False
-            ).tovector()
+            ).to_vector()
             self.assertTrue(similar(ψξ, ψ * ξ))
 
             ψcξ = wavefunction_product(
                 ψmps, ξmps, conjugate=True, simplify=False, normalize=False
-            ).tovector()
+            ).to_vector()
             self.assertTrue(similar(ψcξ, ψ.conj() * ξ))
