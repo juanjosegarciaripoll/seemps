@@ -23,8 +23,8 @@ class TestCanonicalForm(unittest.TestCase):
                                           normalization)
                 self.assertTrue(approximateIsometry(ξ[i], -1))
 
-        test_over_random_mps(ok)
-        test_over_random_mps(lambda ψ: ok(ψ, normalization=True))
+        run_over_random_mps(ok)
+        run_over_random_mps(lambda ψ: ok(ψ, normalization=True))
 
     def test_canonicalize(self):
         #
@@ -47,7 +47,7 @@ class TestCanonicalForm(unittest.TestCase):
                 # Both states produce the same wavefunction
                 #
                 self.assertTrue(similar(ξ.tovector(), Ψ.tovector()))
-        test_over_random_mps(ok)
+        run_over_random_mps(ok)
 
     def test_canonical_mps(self):
         #
@@ -87,7 +87,7 @@ class TestCanonicalForm(unittest.TestCase):
                 χ = CanonicalMPS(Ψ, center=center-Ψ.size)
                 for i in range(Ψ.size):
                     self.assertTrue(similar(ξ[i], χ[i]))
-        test_over_random_mps(ok)
+        run_over_random_mps(ok)
 
     def test_environments(self):
         #
@@ -101,7 +101,7 @@ class TestCanonicalForm(unittest.TestCase):
                 Renv = super(CanonicalMPS, ξ).left_environment(center)
                 self.assertTrue(almostIdentity(Lenv))
                 self.assertTrue(almostIdentity(Renv))
-        test_over_random_mps(ok)
+        run_over_random_mps(ok)
 
     def test_canonical_mps_normalization(self):
         #
@@ -115,7 +115,7 @@ class TestCanonicalForm(unittest.TestCase):
                 self.assertAlmostEqual(ξ2.norm2(), 1.0)
                 self.assertTrue(similar(ξ1.tovector()/np.sqrt(ξ1.norm2()),
                                         ξ2.tovector()))
-        test_over_random_mps(ok)
+        run_over_random_mps(ok)
 
     def test_canonical_mps_copy(self):
         #
@@ -130,4 +130,4 @@ class TestCanonicalForm(unittest.TestCase):
                 self.assertEqual(ξ.center, ψ.center)
                 for i in range(ξ.size):
                     self.assertTrue(np.all(np.equal(ξ[i], ψ[i])))
-        test_over_random_mps(ok)
+        run_over_random_mps(ok)

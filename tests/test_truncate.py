@@ -26,7 +26,7 @@ class TestLinearForm(unittest.TestCase):
                         self.assertTrue(similar(LF.R[i], ϕ.right_environment(i)))
                         self.assertTrue(almostIdentity(LF.R[i],+1))
         
-        test_over_random_mps(ok)
+        run_over_random_mps(ok)
     
     def tensor1siteok(self, aϕ, O):
         for center in range(aϕ.size):
@@ -53,11 +53,11 @@ class TestLinearForm(unittest.TestCase):
 
     def test_tensor1site_product(self):
         O = np.array([[0.3,0.2+1.0j],[0.2-1.0j,2.0]])
-        test_over_random_mps(lambda ϕ: self.tensor1siteok(ϕ, O), D=1)
+        run_over_random_mps(lambda ϕ: self.tensor1siteok(ϕ, O), D=1)
 
     def test_tensor1site(self):
         O = np.array([[0.3,0.2+1.0j],[0.2-1.0j,2.0]])
-        test_over_random_mps(lambda ϕ: self.tensor1siteok(ϕ, O))
+        run_over_random_mps(lambda ϕ: self.tensor1siteok(ϕ, O))
     
     def tensor2siteok(self, aϕ, O1, O2):
         for center in range(aϕ.size):
@@ -92,9 +92,9 @@ class TestLinearForm(unittest.TestCase):
     def test_tensor2site_product(self):
         O1 = np.array([[0.3,0.2+1.0j],[0.2-1.0j,2.0]])
         O2 = np.array([[0.34,0.4-0.7j],[0.4+0.7j,-0.6]])
-        test_over_random_mps(lambda ϕ: self.tensor2siteok(ϕ, O1, O2), D=1)
+        run_over_random_mps(lambda ϕ: self.tensor2siteok(ϕ, O1, O2), D=1)
 
     def test_tensor2site(self):
         O1 = np.array([[0.3,0.2+1.0j],[0.2-1.0j,2.0]])
         O2 = np.array([[0.34,0.4-0.7j],[0.4+0.7j,-0.6]])
-        test_over_random_mps(lambda ϕ: self.tensor2siteok(ϕ, O1, O2))
+        run_over_random_mps(lambda ϕ: self.tensor2siteok(ϕ, O1, O2))

@@ -41,7 +41,7 @@ def approximateIsometry(A, direction, places=7):
 import mps.state
 
 
-def test_over_random_mps(function, d=2, N=10, D=10, repeats=10):
+def run_over_random_mps(function, d=2, N=10, D=10, repeats=10):
     for nqubits in range(1, N+1):
         for _ in range(repeats):
             function(mps.state.random(d, N, D))

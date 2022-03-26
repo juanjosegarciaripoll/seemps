@@ -78,8 +78,8 @@ class TestExpectation(unittest.TestCase):
                     desired= np.vdot(ϕ.tovector(), ψ.tovector())
                     self.assertAlmostEqual(desired/nrm2, expectation1(ϕ, O1, n)/nrm2)
                     self.assertAlmostEqual(desired/nrm2, ϕ.expectation1(O1, n)/nrm2)
-        test_over_random_mps(expected1_ok)
-        test_over_random_mps(lambda ϕ: expected1_ok(ϕ, canonical=True))
+        run_over_random_mps(expected1_ok)
+        run_over_random_mps(lambda ϕ: expected1_ok(ϕ, canonical=True))
     
     def test_expected1_density(self):
         def random_wavefunction(n):
@@ -125,5 +125,5 @@ class TestExpectation(unittest.TestCase):
                 desired= mps.expectation.scprod(ϕ, ψ)
                 self.assertAlmostEqual(desired/nrm2, expectation2(ϕ, O1, O2, n-1)/nrm2)
                 self.assertAlmostEqual(desired/nrm2, ϕ.expectation2(O1, O2, n-1)/nrm2)
-        test_over_random_mps(expected2_ok)
-        test_over_random_mps(lambda ϕ: expected2_ok(ϕ, canonical=True))
+        run_over_random_mps(expected2_ok)
+        run_over_random_mps(lambda ϕ: expected2_ok(ϕ, canonical=True))
