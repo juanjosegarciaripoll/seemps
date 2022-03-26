@@ -122,25 +122,25 @@ class MPS(TensorArray):
         ------
         mps_list    -- New MPSSum.
         """
-        maxsweeps = min(self.maxsweeps, φ.maxsweeps)
-        tolerance = min(self.tolerance, φ.tolerance)
+        if isinstance(φ, MPS):
+            new_weights = [1, 1]
+            new_states = [self, φ]
+        elif isinstance(φ, MPSList):
+            new_weights = [1] + list((1) * np.asarray(φ.weights))
+            new_states = [self] + φ.states
+        else:
+            raise TypeError(f"Invalid addition between MPS and object of type {φ}")
         if self.max_bond_dimension is None:
             max_bond_dimension = φ.max_bond_dimension
         elif φ.max_bond_dimension is None:
             max_bond_dimension = self.max_bond_dimension
         else:
             max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
-        if isinstance(φ, MPS):
-            new_weights = [1, 1]
-            new_states = [self, φ]
-        elif isinstance(φ, MPSSum):
-            new_weights = [1] + φ.weights
-            new_states = [self] + φ.states
-        new_MPSSum = MPSSum(
+        new_MPSSum = MPSum(
             weights=new_weights,
             states=new_states,
-            maxsweeps=maxsweeps,
-            tolerance=tolerance,
+            maxsweeps=min(self.maxsweeps, φ.maxsweeps),
+            tolerance=min(self.tolerance, φ.tolerance),
             normalize=self.normalize,
             max_bond_dimension=max_bond_dimension,
         )
@@ -157,32 +157,32 @@ class MPS(TensorArray):
         ------
         mps_list    -- New MPSSum.
         """
-        maxsweeps = min(self.maxsweeps, φ.maxsweeps)
-        tolerance = min(self.tolerance, φ.tolerance)
-        if self.max_bond_dimension is None:
-            max_bond_dimension = φ.max_bond_dimension
-        elif φ.max_bond_dimension is None:
-            max_bond_dimension = self.max_bond_dimension
-        else:
-            max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
         if isinstance(φ, MPS):
             new_weights = [1, -1]
             new_states = [self, φ]
         elif isinstance(φ, MPSSum):
             new_weights = [1] + list((-1) * np.asarray(φ.weights))
             new_states = [self] + φ.states
+        else:
+            raise TypeError(f"Invalid subtraction between MPS and object of type {φ}")
+        if self.max_bond_dimension is None:
+            max_bond_dimension = φ.max_bond_dimension
+        elif φ.max_bond_dimension is None:
+            max_bond_dimension = self.max_bond_dimension
+        else:
+            max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
         new_MPSSum = MPSSum(
             weights=new_weights,
             states=new_states,
-            maxsweeps=maxsweeps,
-            tolerance=tolerance,
+            maxsweeps=min(self.maxsweeps, φ.maxsweeps),
+            tolerance=min(self.tolerance, φ.tolerance),
             normalize=self.normalize,
             max_bond_dimension=max_bond_dimension,
         )
         return new_MPSSum
 
     def __mul__(self, n):
-        """Multiply an MPS quantum state by an scalar n (MPS * n)
+        """Multiply an MPS quantum state by a scalar n (MPS * n)
 
         Parameters
         ----------
@@ -197,10 +197,13 @@ class MPS(TensorArray):
             mps_mult._data[0] = n * mps_mult._data[0]
             mps_mult._error = np.abs(n) ** 2 * mps_mult._error
             return mps_mult
-        raise Exception(f"Cannot multiply MPS by {n}")
+        else:
+            raise TypeError(
+                f"Invalid multiplication between MPS and object of type {n}"
+            )
 
     def __rmul__(self, n):
-        """Multiply an MPS quantum state by an scalar n (n * MPS).
+        """Multiply an MPS quantum state by a scalar n (n * MPS).
 
         Parameters
         ----------
@@ -215,7 +218,10 @@ class MPS(TensorArray):
             mps_mult._data[0] = n * mps_mult._data[0]
             mps_mult._error = np.abs(n) ** 2 * mps_mult._error
             return mps_mult
-        raise Exception(f"Cannot multiply MPS by {n}")
+        elif isinstance(n, np.ndarray):
+            raise TypeError("Multiplication of MPS by array is not allowed")
+        else:
+            return NotImplemented
 
     def norm2(self):
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""

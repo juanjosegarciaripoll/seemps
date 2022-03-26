@@ -113,17 +113,51 @@ class TestMPSOperations(StatesFixture):
         C = A + B
         self.assertTrue(isinstance(C, MPSSum))
 
+    def test_adding_mps_with_non_mps_raises_error(self):
+        A = MPS(self.inhomogeneous_state)
+        with self.assertRaises(TypeError):
+            B = A + 2.0
+        with self.assertRaises(TypeError):
+            B = 2.0 + A
+
     def test_subtracting_mps_creates_mps_list(self):
         A = MPS(self.inhomogeneous_state)
         B = MPS(self.inhomogeneous_state)
         C = A - B
         self.assertTrue(isinstance(C, MPSSum))
 
+    def test_subtracting_mps_and_non_mps_raises_error(self):
+        A = MPS(self.inhomogeneous_state)
+        with self.assertRaises(TypeError):
+            B = A + 2.0
+        with self.assertRaises(TypeError):
+            B = 2.0 + A
+
     def test_scaling_mps_creates_new_object(self):
         A = MPS(self.inhomogeneous_state)
         B = 3.0 * A
         self.assertTrue(B is not A)
         self.assertTrue(contain_different_objects(B, A))
+
+    def test_multiplying_mps_by_non_scalar_raises_exception(self):
+        A = MPS(self.inhomogeneous_state)
+        with self.assertRaises(TypeError):
+            B = A * np.array([1.0])
+        with self.assertRaises(TypeError):
+            B = A * A
+
+    def test_scaled_mps_produces_scaled_wavefunction(self):
+        factor = 1.0 + 3.0j
+        A = MPS(self.inhomogeneous_state)
+        self.assertTrue(similar(factor * A.to_vector(), (factor * A).to_vector()))
+        factor = 1.0 + 3.0j
+        A = MPS(self.inhomogeneous_state)
+        self.assertTrue(similar(factor * A.to_vector(), (A * factor).to_vector()))
+
+    def test_scaled_mps_produces_scaled_norm(self):
+        factor = 1.0 + 3.0j
+        A = MPS(self.inhomogeneous_state)
+        self.assertAlmostEqual(abs(factor) * A.norm(), (factor * A).norm())
 
 
 if __name__ == "__main__":
