@@ -3,7 +3,7 @@ from mps.qft import *
 import unittest
 import numpy as np
 import numpy.fft
-from mps.test.tools import *
+from tools import *
 from mps.state import MPS
 import scipy.sparse as sp
 import matplotlib.pyplot as plt

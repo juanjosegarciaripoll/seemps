@@ -1,7 +1,7 @@
 
 import numpy as np
 import unittest
-from mps.test.tools import *
+from tools import *
 from mps.state import CanonicalMPS, MPS
 from mps.truncate import simplify, combine, AntilinearForm
 from mps.expectation import expectation1, expectation2

@@ -1,6 +1,6 @@
 import unittest
 from mps.state import CanonicalMPS
-from mps.test.tools import *
+from tools import *
 from mps.expectation import *
 
 def bit2state(b):

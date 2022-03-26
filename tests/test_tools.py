@@ -1,7 +1,7 @@
 
 import unittest
 from mps.tools import *
-from mps.test.tools import *
+from tools import *
 
 class TestTools(unittest.TestCase):
     

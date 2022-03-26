@@ -1,7 +1,7 @@
 import unittest
 import mps.state
 import mps.tools
-from mps.test.tools import *
+from tools import *
 from mps.tools import σx, σy, σz
 import scipy.sparse as sp
 import scipy.sparse.linalg
@@ -62,7 +62,7 @@ import scipy.sparse as sp
 import scipy.sparse.linalg
 from mps.state import CanonicalMPS
 from mps.tools import *
-from mps.test.tools import *
+from tools import *
 from mps.evolution import *
 from mps.hamiltonians import make_ti_Hamiltonian, ConstantNNHamiltonian
 

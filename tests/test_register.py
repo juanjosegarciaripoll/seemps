@@ -1,6 +1,6 @@
 import unittest
 import numpy as np
-from mps.test.tools import *
+from tools import *
 from mps.state import MPS, CanonicalMPS
 from mps.register import * 
 import scipy.sparse as sp
