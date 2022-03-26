@@ -1,17 +1,18 @@
 import numpy as np
 import scipy.sparse as sp
 from mps.state import MPS
+import mps.state
 
 
 def similar(A, B, **kwdargs):
     if sp.issparse(A):
         A = A.todense()
     elif isinstance(A, MPS):
-        A = A.tovector()
+        A = A.to_vector()
     if sp.issparse(B):
         B = B.todense()
     elif isinstance(B, MPS):
-        B = B.tovector()
+        B = B.to_vector()
     return (A.shape == B.shape) & np.all(np.isclose(A, B, **kwdargs))
 
 
@@ -40,7 +41,16 @@ def approximateIsometry(A, direction, places=7):
     return almostIdentity(C)
 
 
-import mps.state
+def contain_different_objects(A, B):
+    return all(a is not b for a, b in zip(A, B))
+
+
+def contain_same_objects(A, B):
+    return all(a is b for a, b in zip(A, B))
+
+
+def contain_similar_tensors(A, B):
+    return all(similar(a, b) for a, b in zip(A, B))
 
 
 def run_over_random_mps(function, d=2, N=10, D=10, repeats=10):
