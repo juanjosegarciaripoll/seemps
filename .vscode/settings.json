@@ -9,4 +9,5 @@
         "test_*.py"
     ],
     "python.testing.pytestEnabled": false,
+    "editor.formatOnSave": true,
 }
