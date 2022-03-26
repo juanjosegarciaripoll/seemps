@@ -33,7 +33,7 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
         return np.reshape(U[:, :D], (a, D)), np.reshape(s, (D, 1)) * V[:D, :]
 
     Da = 1
-    dimensions = np.array(dimensions, dtype=np.int)
+    dimensions = np.array(dimensions, dtype=int)
     Db = np.prod(dimensions)
     output = [0] * len(dimensions)
     for (i, d) in enumerate(dimensions[:-1]):
