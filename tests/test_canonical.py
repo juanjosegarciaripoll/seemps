@@ -2,10 +2,9 @@ import unittest
 from tools import *
 from mps.state import (
     DEFAULT_TOLERANCE,
-    _update_in_canonical_form,
-    _canonicalize,
     CanonicalMPS,
 )
+from mps.state.canonical_mps import _update_in_canonical_form, _canonicalize
 
 
 class TestCanonicalForm(unittest.TestCase):

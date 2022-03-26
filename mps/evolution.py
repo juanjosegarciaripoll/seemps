@@ -3,7 +3,7 @@ import scipy.linalg
 from numbers import Number
 import mps.state
 import scipy.sparse as sp
-from mps.state import _truncate_vector, DEFAULT_TOLERANCE
+from mps.state import truncate_vector, DEFAULT_TOLERANCE
 
 
 def pairwise_unitaries(H, δt):
@@ -124,5 +124,5 @@ class TEBD_evolution(object):
 
         return self.ψ
 
-    def state():
+    def state(self):
         return self.ψ
