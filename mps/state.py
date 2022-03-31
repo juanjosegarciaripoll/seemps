@@ -195,15 +195,15 @@ class MPS(TensorArray):
         return MPS(vector2mps(ψ, dimensions, **kwdargs))
     
     def __add__(self,φ):
-        """Add an MPS or an MPSList to the MPS.
+        """Add an MPS or an MPSSum to the MPS.
 
         Parameters
         ----------
-        φ    -- MPS or MPSList object.
+        φ    -- MPS or MPSSum object.
 
         Output
         ------
-        mps_list    -- New MPSList.
+        mps_list    -- New MPSSum.
         """
         maxsweeps = min(self.maxsweeps, φ.maxsweeps)
         tolerance = min(self.tolerance, φ.tolerance)
@@ -216,24 +216,24 @@ class MPS(TensorArray):
         if isinstance(φ,MPS):
             new_weights = [1,1]
             new_states = [self,φ]
-        elif isinstance(φ,MPSList):
+        elif isinstance(φ,MPSSum):
             new_weights = [1] + φ.weights
             new_states = [self] + φ.states
-        new_MPSList = MPSList(weights=new_weights,states=new_states,
+        new_MPSSum = MPSSum(weights=new_weights,states=new_states,
                       maxsweeps=maxsweeps,tolerance=tolerance,
                       normalize=self.normalize, max_bond_dimension=max_bond_dimension)
-        return new_MPSList
+        return new_MPSSum
     
     def __sub__(self,φ):
-        """Subtract an MPS or an MPSList from the MPS.
+        """Subtract an MPS or an MPSSum from the MPS.
 
         Parameters
         ----------
-        φ    -- MPS or MPSList object.
+        φ    -- MPS or MPSSum object.
 
         Output
         ------
-        mps_list    -- New MPSList.
+        mps_list    -- New MPSSum.
         """
         maxsweeps = min(self.maxsweeps, φ.maxsweeps)
         tolerance = min(self.tolerance, φ.tolerance)
@@ -246,13 +246,13 @@ class MPS(TensorArray):
         if isinstance(φ,MPS):
             new_weights = [1,-1]
             new_states = [self,φ]
-        elif isinstance(φ,MPSList):
+        elif isinstance(φ,MPSSum):
             new_weights = [1]  + list((-1) * np.asarray(φ.weights))
             new_states = [self] + φ.states
-        new_MPSList = MPSList(weights=new_weights,states=new_states,
+        new_MPSSum = MPSSum(weights=new_weights,states=new_states,
                       maxsweeps=maxsweeps,tolerance=tolerance,
                       normalize=self.normalize, max_bond_dimension=max_bond_dimension)
-        return new_MPSList
+        return new_MPSSum
     
     def __mul__(self,n):
         """Multiply an MPS quantum state by an scalar n (MPS * n)
@@ -390,8 +390,8 @@ def _mps2vector(data):
         Ψ = np.reshape(Ψ, (D, β))
     return Ψ.reshape((Ψ.size,))
 
-class MPSList():
-    """MPSList class.
+class MPSSum():
+    """MPSSum class.
     
     Stores the MPS as a list  for its future combination when an MPO acts on it.
 
@@ -419,15 +419,15 @@ class MPSList():
         self.max_bond_dimension = max_bond_dimension
         
     def __add__(self,φ):
-        """Add an MPS or an MPSList to the MPSList.
+        """Add an MPS or an MPSSum to the MPSSum.
 
         Parameters
         ----------
-        φ    -- MPS or MPSList object.
+        φ    -- MPS or MPSSum object.
 
         Output
         ------
-        mps_list    -- New MPSList.
+        mps_list    -- New MPSSum.
         """
         maxsweeps = min(self.maxsweeps, φ.maxsweeps)
         tolerance = min(self.tolerance, φ.tolerance)
@@ -440,24 +440,24 @@ class MPSList():
         if isinstance(φ,MPS):
             new_weights = self.weights + [1]
             new_states = self.states + [φ]
-        elif isinstance(φ,MPSList):
+        elif isinstance(φ,MPSSum):
             new_weights = self.weights + φ.weights
             new_states = self.states + φ.states
-        new_MPSList = MPSList(weights=new_weights,states=new_states,
+        new_MPSSum = MPSSum(weights=new_weights,states=new_states,
                       maxsweeps=maxsweeps,tolerance=tolerance,
                       normalize=self.normalize, max_bond_dimension=self.max_bond_dimension)
-        return new_MPSList
+        return new_MPSSum
     
     def __sub__(self,φ):
-        """Subtract an MPS or an MPSList from the MPSList.
+        """Subtract an MPS or an MPSSum from the MPSSum.
 
         Parameters
         ----------
-        φ    -- MPS or MPSList object.
+        φ    -- MPS or MPSSum object.
 
         Output
         ------
-        mps_list    -- New MPSList.
+        mps_list    -- New MPSSum.
         """
         maxsweeps = min(self.maxsweeps, φ.maxsweeps)
         tolerance = min(self.tolerance, φ.tolerance)
@@ -470,51 +470,51 @@ class MPSList():
         if isinstance(φ,MPS):
             new_weights = self.weights + [-1]
             new_states = self.states + [φ]
-        elif isinstance(φ,MPSList):
+        elif isinstance(φ,MPSSum):
             new_weights = self.weights + list((-1) * np.asarray(φ.weights))
             new_states = self.states + φ.states
-        new_MPSList = MPSList(weights=new_weights,states=new_states,
+        new_MPSSum = MPSSum(weights=new_weights,states=new_states,
                       maxsweeps=maxsweeps,tolerance=tolerance,
                       normalize=self.normalize, max_bond_dimension=self.max_bond_dimension)
-        return new_MPSList
+        return new_MPSSum
     
     def __mul__(self,n):
-        """Multiply an MPSList quantum state by an scalar n (MPSList * n)
+        """Multiply an MPSSum quantum state by an scalar n (MPSSum * n)
 
         Parameters
         ----------
-        n    -- Scalar to multiply the MPSList by.
+        n    -- Scalar to multiply the MPSSum by.
 
         Output
         ------
         mps    -- New mps.
         """
         if not np.isscalar(n):
-            raise Exception(f'Cannot multiply MPSList by {n}')
+            raise Exception(f'Cannot multiply MPSSum by {n}')
         new_states = [n * mps for mps in self.states]
-        new_MPSList = MPSList(weights=self.weights,states=new_states,
+        new_MPSSum = MPSSum(weights=self.weights,states=new_states,
                           maxsweeps=self.maxsweeps,tolerance=self.tolerance,
                           normalize=self.normalize, max_bond_dimension=self.max_bond_dimension)
-        return new_MPSList
+        return new_MPSSum
     
     def __rmul__(self,n):
-        """Multiply an MPSList quantum state by an scalar n (n * MPSList).
+        """Multiply an MPSSum quantum state by an scalar n (n * MPSSum).
 
         Parameters
         ----------
-        n    -- Scalar to multiply the MPSList by.
+        n    -- Scalar to multiply the MPSSum by.
 
         Output
         ------
         mps    -- New mps.
         """
         if not np.isscalar(n):
-            raise Exception(f'Cannot multiply MPSList by {n}')
+            raise Exception(f'Cannot multiply MPSSum by {n}')
         new_states = [n * mps for mps in self.states]
-        new_MPSList = MPSList(weights=self.weights,states=new_states,
+        new_MPSSum = MPSSum(weights=self.weights,states=new_states,
                           maxsweeps=self.maxsweeps,tolerance=self.tolerance,
                           normalize=self.normalize, max_bond_dimension=self.max_bond_dimension)
-        return new_MPSList   
+        return new_MPSSum   
     
     def toMPS(self, normalize=None):
         if normalize is None:
