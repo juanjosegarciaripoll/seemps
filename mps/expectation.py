@@ -57,7 +57,7 @@ def expectation1(ψ, O, site):
 
 
 def expectation2(ψ, O, Q, i, j=None):
-    """Compute the expectation value <ψ|O_i Q_j|ψ> of an operator O acting on 
+    """Compute the expectation value <ψ|O_i Q_j|ψ> of an operator O acting on
     sites 'i' and 'j', with 'j' defaulting to 'i+1'"""
     if j is None:
         j = i + 1

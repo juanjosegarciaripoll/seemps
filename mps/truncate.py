@@ -109,7 +109,7 @@ def simplify(
 ):
     """Simplify an MPS ψ transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
-    
+
     Arguments:
     ----------
     ψ         -- state to approximate
@@ -117,7 +117,7 @@ def simplify(
     maxsweeps -- maximum number of sweeps to run
     tolerance -- relative tolerance when splitting the tensors
     max_bond_dimension -- maximum bond dimension (defaults to None, which is ignored)
-    
+
     Output
     ------
     φ         -- CanonicalMPS approximation to the state ψ
@@ -218,7 +218,7 @@ def combine(
 ):
     """Simplify an MPS ψ transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
-    
+
     Arguments:
     ----------
     weights   -- N values of α
@@ -228,7 +228,7 @@ def combine(
     maxsweeps -- maximum number of sweeps to run
     tolerance -- relative tolerance when splitting the tensors
     max_bond_dimension -- maximum bond dimension (defaults to None, which is ignored)
-    
+
     Output
     ------
     φ         -- CanonicalMPS approximation to the linear combination state
@@ -298,7 +298,7 @@ def combine(
             break
         direction = -direction
     φ._error = 0.0
-    φ.update_error(base_error ** 2)
+    φ.update_error(base_error**2)
     φ.update_error(err)
     return φ, err
 
@@ -307,7 +307,7 @@ def cgs(A, b, guess=None, maxiter=100, tolerance=DEFAULT_TOLERANCE):
     """Given the MPO `A` and the MPS `b`, estimate another MPS that
     solves the linear system of equations A * ψ = b, using the
     conjugate gradient system.
-    
+
     Parameters
     ----------
     A         -- Linear MPO
@@ -315,7 +315,7 @@ def cgs(A, b, guess=None, maxiter=100, tolerance=DEFAULT_TOLERANCE):
     maxiter   -- Maximum number of iterations
     tolerance -- Truncation tolerance and also error tolerance
     max_bond_dimension -- None (ignore) or maximum bond dimension
-    
+
     Output
     ------
     ψ         -- Approximate solution to A ψ = b

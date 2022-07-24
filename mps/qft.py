@@ -8,12 +8,12 @@ from mps.mpo import MPOList, MPO
 def qft_mpo(N, sign=-1, **kwargs):
     """Create an MPOList object representing a Quantum Fourier Transform
     for a quantum register with `N` qubits.
-    
+
     Parameters
     ----------
     N         -- Number of qubits in a quantum register
     kwargs   -- All other arguments accepted by MPO
-    
+
     Output
     ------
     mpolist   -- An MPOList object that can be applied `@` to an MPS.
@@ -42,7 +42,7 @@ def qft_mpo(N, sign=-1, **kwargs):
     R1 = np.zeros((2, 2, 2, 2))
     R1[1, 1, 1, 1] = 1.0
     jϕ = sign * 1j * π
-    rots = [R0 + R1 * np.exp(jϕ / (2 ** n)) for n in range(1, N)]
+    rots = [R0 + R1 * np.exp(jϕ / (2**n)) for n in range(1, N)]
     #
     return MPOList(
         [
@@ -87,7 +87,7 @@ def qft_wavefunction(Ψ):
 def qft_nd_mpo(sites, N=None, sign=-1, **kwargs):
     """Create an MPOList object representing a Quantum Fourier Transform
     for subset of qubits in a quantum register with `N` qubits.
-    
+
     Parameters
     ----------
     sites     -- Sites on which to apply the QFT, in order of decreasing
@@ -96,7 +96,7 @@ def qft_nd_mpo(sites, N=None, sign=-1, **kwargs):
                  Defaults to `max(sites)+1`.
     sign      -- Sign of the FFT (defaults to -1, direct FFT)
     kwargs   -- All other arguments accepted by `MPO`
-    
+
     Output
     ------
     mpolist   -- An MPOList object that can be applied `@` to an MPS.
@@ -132,7 +132,7 @@ def qft_nd_mpo(sites, N=None, sign=-1, **kwargs):
             if i == 0:
                 l[ndx] = Hop
             else:
-                l[ndx] = R0 + R1 * np.exp(jϕ / (2 ** i))
+                l[ndx] = R0 + R1 * np.exp(jϕ / (2**i))
         for (n, A) in enumerate(l):
             if A is noop:
                 l[n] = small_noop

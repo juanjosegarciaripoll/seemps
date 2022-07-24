@@ -287,4 +287,3 @@ class MPOList(object):
             tolerance=self.tolerance,
             normalize=self.normalize,
         )
-

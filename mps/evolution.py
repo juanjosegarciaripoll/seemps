@@ -20,13 +20,13 @@ def apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE):
     canonical form. Unitaries are applied onto pairs of sites (i,i+1),
     (i+2,i+3), etc. We start at 'i=start' and move in increasing or
     decreasing order of sites depending on 'direction'
-    
+
     Arguments:
     U         -- List of pairwise unitaries
     ψ         -- State in canonical form
     start     -- First site for applying pairwise unitaries
     direction -- Direction of sweep.
-    
+
     Returns:
     ψ         -- MPS in canonical form"""
 
@@ -61,7 +61,7 @@ class TEBD_evolution(object):
     def __init__(self, ψ, H, dt, timesteps=1, order=1, tol=DEFAULT_TOLERANCE):
         """Create a TEBD algorithm to evolve a quantum state ψ with a fixed
         Hamiltonian H.
-        
+
         Arguments:
         ψ         -- Quantum state to be updated. The class keeps a copy.
         H         -- NNHamiltonian for the evolution

@@ -106,13 +106,13 @@ class ConstantNNHamiltonian(NNHamiltonian):
 def make_ti_Hamiltonian(size, intL, intR, local_term=None):
     """Construct a translationally invariant, constant Hamiltonian with open
     boundaries and fixed interactions.
-    
+
     Arguments:
     size        -- Number of sites in the model
     int_left    -- list of L (applied to site ndx) operators
     int_right   -- list of R (applied to site ndx + 1) operators
     local_term  -- operator acting on every site (optional)
-    
+
     Returns:
     H           -- ConstantNNHamiltonian
     """

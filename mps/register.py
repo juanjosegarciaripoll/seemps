@@ -8,13 +8,13 @@ def qubo_mpo(J=None, h=None, **kwdargs):
     """Return the MPO associated to a QUBO operator
          $\sum_i J_{ij} s_i s_j + \sum_i h_i s_i$
     defined by the interaction 'J' and the field 'h'.
-    
+
     Parameters
     ----------
     J        -- Matrix of interactions, or None
     h        -- Magnetic field, or None
     kwdargs  -- Extra arguments for MPO()
-    
+
     Output
     ------
     mpo      -- An object of type MPO
@@ -58,17 +58,17 @@ def qubo_mpo(J=None, h=None, **kwdargs):
 
 
 def qubo_exponential_mpo(J=None, h=None, **kwdargs):
-    """Return the MPO associated to the exponential $\exp(\\beta H)$ of 
+    """Return the MPO associated to the exponential $\exp(\\beta H)$ of
     the QUBO operator
          $H = \sum_i J_{ij} s_i s_j + \sum_i h_i s_i$
     defined by the interaction 'J' and the field 'h'.
-    
+
     Parameters
     ----------
     J        -- Matrix of interactions, or None
     h        -- Magnetic field, or None
     kwdargs  -- Extra arguments for MPO()
-    
+
     Output
     ------
     mpo      -- An object of type MPO or MPOList
@@ -116,14 +116,14 @@ def wavefunction_product(ψ, ξ, conjugate=False, simplify=True, **kwdargs):
     create a new MPS with combined bond dimensions. In other words, act
     with the nonlinear transformation <s|ψξ> = ψ(s)ξ(s)|s> or
     <s|ψ*ξ> = ψ*(s)ξ(s)|s>
-    
+
     Arguments
     ---------
     ψ, ξ      -- Two MPS or CanonicalMPS.
     conjugate -- Conjugate ψ or not.
     simplify  -- Simplify the state afterwards or not.
     kwdargs   -- Arguments to simplify() if simplify is True.
-    
+
     Output
     ------
     mps       -- The MPS product ψξ or ψ*ξ.
@@ -153,7 +153,7 @@ def wavefunction_product(ψ, ξ, conjugate=False, simplify=True, **kwdargs):
 def twoscomplement(L, control=0, sites=None, **kwdargs):
     """Return an MPO that performs a two's complement of the selected qubits
     depending on a 'control' qubit in a register with L qubits.
-    
+
     Arguments
     ---------
     L       -- Real size of register
@@ -161,7 +161,7 @@ def twoscomplement(L, control=0, sites=None, **kwdargs):
                Defaults to the first qubit in 'sites'.
     sites   -- The qubits involved in the MPO. Defaults to range(L).
     kwdargs -- Arguments for MPO.
-    
+
     Returns
     -------
     mpo     -- An MPO object
