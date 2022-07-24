@@ -1,5 +1,4 @@
 import numpy as np
-import mps.state
 
 
 def begin_environment(χ=1):
@@ -15,8 +14,15 @@ def update_left_environment(B, A, rho, operator=None):
     is contracted with the ket."""
     if operator is not None:
         A = np.einsum("ji,aib->ajb", operator, A)
-    rho = np.einsum("li,ijk->ljk", rho, A)
-    return np.einsum("lmn,lmk->nk", B.conj(), rho)
+    if False:
+        rho = np.einsum("li,ijk->ljk", rho, A)
+        return np.einsum("lmn,lmk->nk", B.conj(), rho)
+    else:
+        i, j, k = A.shape
+        l, j, n = B.shape
+        rho = np.dot(rho, A.reshape(i, j * k))
+        rho = np.dot(B.conj().reshape(l * j, n).T, rho.reshape(l * j, k))
+        return rho
 
 
 def update_right_environment(B, A, rho, operator=None):
@@ -25,8 +31,15 @@ def update_right_environment(B, A, rho, operator=None):
     is contracted with the ket."""
     if operator is not None:
         A = np.einsum("ji,aib->ajb", operator, A)
-    rho = np.einsum("ijk,kn->ijn", A, rho)
-    return np.einsum("ijn,ljn->il", rho, B.conj())
+    if False:
+        rho = np.einsum("ijk,kn->ijn", A, rho)
+        return np.einsum("ijn,ljn->il", rho, B.conj())
+    else:
+        # np.einsum("ijk,kn,ljn->il", A, rho, B.conj())
+        i, j, k = A.shape
+        l, j, n = B.shape
+        rho = np.dot(A.reshape(i * j, k), rho)
+        return np.dot(rho.reshape(i, j * n), B.reshape(l, j * n).T.conj())
 
 
 def end_environment(ρ):
@@ -36,7 +49,8 @@ def end_environment(ρ):
 
 def join_environments(ρL, ρR):
     """Join left and right environments to produce a scalar."""
-    return np.einsum("ij,ji", ρL, ρR)
+    # np.einsum("ij,ji", ρL, ρR)
+    return np.trace(np.dot(ρL, ρR))
 
 
 def scprod(ϕ, ψ):
