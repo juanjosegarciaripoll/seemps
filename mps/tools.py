@@ -14,7 +14,7 @@ def take_from_list(O, i):
 DEBUG = 0
 
 
-def log(*args, debug_level=0):
+def log(*args, debug_level=1):
     if DEBUG and (DEBUG is True or DEBUG >= debug_level):
         print(*args)
 
