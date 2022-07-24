@@ -11,8 +11,8 @@ def product(vectors, length=None):
     # it is repeated `length` times to build a product state.
     #
     def to_tensor(v):
-        v = np.array(v)
-        return np.reshape(v, (1, v.size, 1))
+        v = np.asarray(v)
+        return v.reshape(1, v.size, 1)
 
     if length is not None:
         return MPS([to_tensor(vectors)] * length)

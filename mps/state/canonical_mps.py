@@ -8,22 +8,22 @@ from mps import expectation
 
 def _ortho_right(A, tol, normalize):
     α, i, β = A.shape
-    U, s, V = svd(np.reshape(A, (α * i, β)), full_matrices=False)
+    U, s, V = svd(A.reshape(α * i, β), full_matrices=False)
     s, err = truncate_vector(s, tol, None)
     if normalize:
         s /= np.linalg.norm(s)
     D = s.size
-    return np.reshape(U[:, :D], (α, i, D)), np.reshape(s, (D, 1)) * V[:D, :], err
+    return U[:, :D].reshape(α, i, D), s.reshape(D, 1) * V[:D, :], err
 
 
 def _ortho_left(A, tol, normalize):
     α, i, β = A.shape
-    U, s, V = svd(np.reshape(A, (α, i * β)), full_matrices=False)
+    U, s, V = svd(A.reshape(α, i * β), full_matrices=False)
     s, err = truncate_vector(s, tol, None)
     if normalize:
         s /= np.linalg.norm(s)
     D = s.size
-    return np.reshape(V[:D, :], (D, i, β)), U[:, :D] * np.reshape(s, (1, D)), err
+    return V[:D, :].reshape(D, i, β), U[:, :D] * s.reshape(1, D), err
 
 
 def _update_in_canonical_form(Ψ, A, site, direction, tolerance, normalize):
@@ -73,27 +73,27 @@ def _canonicalize(Ψ, center, tolerance, normalize):
 
 def left_orth_2site(AA, tolerance, normalize, max_bond_dimension):
     α, d1, d2, β = AA.shape
-    Ψ = np.reshape(AA, (α * d1, β * d2))
+    Ψ = AA.reshape(α * d1, β * d2)
     U, S, V = svd(Ψ, full_matrices=False)
     S, err = truncate_vector(S, tolerance, max_bond_dimension)
     if normalize:
         S /= np.linalg.norm(S)
     D = S.size
-    U = np.reshape(U[:, :D], (α, d1, D))
-    SV = np.reshape(np.reshape(S, (D, 1)) * V[:D, :], (D, d2, β))
+    U = U[:, :D].reshape(α, d1, D)
+    SV = (S.reshape(D, 1) * V[:D, :]).reshape(D, d2, β)
     return U, SV, err
 
 
 def right_orth_2site(AA, tolerance, normalize, max_bond_dimension):
     α, d1, d2, β = AA.shape
-    Ψ = np.reshape(AA, (α * d1, β * d2))
+    Ψ = AA.reshape(α * d1, β * d2)
     U, S, V = svd(Ψ, full_matrices=False)
     S, err = truncate_vector(S, tolerance, max_bond_dimension)
     if normalize:
         S /= np.linalg.norm(S)
     D = S.size
-    US = np.reshape(U[:, :D] * np.reshape(S, (1, D)), (α, d1, D))
-    V = np.reshape(V[:D, :], (D, d2, β))
+    US = (U[:, :D] * S).reshape(α, d1, D)
+    V = V[:D, :].reshape(D, d2, β)
     return US, V, err
 
 
@@ -177,10 +177,9 @@ class CanonicalMPS(MPS):
             return expectation.expectation1(self, operator, site)
 
     def entanglement_entropyAtCenter(self):
-        d1, d2, d3 = self._data[self.center].shape
-        u, s, v = svd(
-            np.reshape(self._data[self.center], (d1 * d2, d3)), full_matrices=False
-        )
+        A = self._data[self.center]
+        d1, d2, d3 = A.shape
+        u, s, v = svd(A.reshape(d1 * d2, d3), full_matrices=False)
         return -np.sum(2 * s * s * np.log2(s))
 
     def update_canonical(
