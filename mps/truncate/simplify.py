@@ -1,7 +1,7 @@
 import numpy as np
 import mps.state
 from mps.state.truncation import DEFAULT_TOLERANCE
-from mps.tools import log
+from mps.tools import log, mydot
 from mps.expectation import (
     begin_environment,
     update_right_environment,
@@ -70,9 +70,9 @@ class AntilinearForm:
         A = self.ket[i]
         B = self.ket[j]
         R = self.R[j]
-        LA = np.einsum("li,ijk->ljk", L, A)
-        BR = np.einsum("kmn,no->kmo", B, R)
-        return np.einsum("ljk,kmo->ljmo", LA, BR)
+        LA = mydot(L, A)  # np.einsum("li,ijk->ljk", L, A)
+        BR = mydot(B, R)  # np.einsum("kmn,no->kmo", B, R)
+        return mydot(LA, BR)  # np.einsum("ljk,kmo->ljmo", LA, BR)
 
     def update(self, direction):
         #
@@ -134,13 +134,10 @@ def simplify(
     form = AntilinearForm(φ, ψ, center=start)
     norm_ψsqr = scprod(ψ, ψ).real
     err = 1.0
-    log(f"Approximating ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps.")
+    log(f"SIMPLIFY ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps.")
     for sweep in range(maxsweeps):
         if direction > 0:
             for n in range(0, size - 1):
-                log(
-                    f"Updating sites ({n},{n+1}) left-to-right, form.center={form.center}, φ.center={φ.center}"
-                )
                 φ.update_2site(
                     form.tensor2site(direction),
                     n,
@@ -153,9 +150,6 @@ def simplify(
             last = size - 1
         else:
             for n in reversed(range(0, size - 1)):
-                log(
-                    f"Updating sites ({n},{n+1}) right-to-left, form.center={form.center}, φ.center={φ.center}"
-                )
                 φ.update_2site(
                     form.tensor2site(direction),
                     n,
@@ -178,9 +172,9 @@ def simplify(
         scprod_φψ = np.vdot(B, form.tensor1site())
         old_err = err
         err = 2 * abs(1.0 - scprod_φψ.real / np.sqrt(norm_φsqr * norm_ψsqr))
-        log(f"rel.err.={err}, old err.={old_err}, |φ|={norm_φsqr**0.5}")
+        log(f"sweep={sweep}, rel.err.={err}, old err.={old_err}, |φ|={norm_φsqr**0.5}")
         if err < tolerance:
-            log(f"Stopping, as tolerance reached")
+            log("Stopping, as tolerance reached")
             break
         direction = -direction
     φ._error = 0.0
