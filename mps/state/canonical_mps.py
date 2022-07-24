@@ -1,16 +1,14 @@
 import numpy as np
-import scipy.linalg
 from .mps import MPS
+from .svd import svd
 from .truncation import truncate_vector, DEFAULT_TOLERANCE
-from mps import expectation
 from .factories import vector2mps
+from mps import expectation
 
 
 def _ortho_right(A, tol, normalize):
     α, i, β = A.shape
-    U, s, V = scipy.linalg.svd(
-        np.reshape(A, (α * i, β)), full_matrices=False, lapack_driver="gesvd"
-    )
+    U, s, V = svd(np.reshape(A, (α * i, β)), full_matrices=False)
     s, err = truncate_vector(s, tol, None)
     if normalize:
         s /= np.linalg.norm(s)
@@ -20,9 +18,7 @@ def _ortho_right(A, tol, normalize):
 
 def _ortho_left(A, tol, normalize):
     α, i, β = A.shape
-    U, s, V = scipy.linalg.svd(
-        np.reshape(A, (α, i * β)), full_matrices=False, lapack_driver="gesvd"
-    )
+    U, s, V = svd(np.reshape(A, (α, i * β)), full_matrices=False)
     s, err = truncate_vector(s, tol, None)
     if normalize:
         s /= np.linalg.norm(s)
@@ -33,17 +29,17 @@ def _ortho_left(A, tol, normalize):
 def _update_in_canonical_form(Ψ, A, site, direction, tolerance, normalize):
     """Insert a tensor in canonical form into the MPS Ψ at the given site.
     Update the neighboring sites in the process.
-    
+
     Arguments:
     ----------
     Ψ = MPS in CanonicalMPS form
-    A = tensor to be orthonormalized and inserted at "site" of MPS 
-    site = the index of the site with respect to which 
+    A = tensor to be orthonormalized and inserted at "site" of MPS
+    site = the index of the site with respect to which
     orthonormalization is carried out
     direction = if greater (less) than zero right (left) orthonormalization
     is carried out
-    tolerance = truncation tolerance for the singular values 
-    (see truncate_vector in File 1a - MPS class)           
+    tolerance = truncation tolerance for the singular values
+    (see truncate_vector in File 1a - MPS class)
     """
     if direction > 0:
         if site + 1 == Ψ.size:
@@ -78,7 +74,7 @@ def _canonicalize(Ψ, center, tolerance, normalize):
 def left_orth_2site(AA, tolerance, normalize, max_bond_dimension):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α * d1, β * d2))
-    U, S, V = scipy.linalg.svd(Ψ, full_matrices=False, lapack_driver="gesvd")
+    U, S, V = svd(Ψ, full_matrices=False)
     S, err = truncate_vector(S, tolerance, max_bond_dimension)
     if normalize:
         S /= np.linalg.norm(S)
@@ -91,7 +87,7 @@ def left_orth_2site(AA, tolerance, normalize, max_bond_dimension):
 def right_orth_2site(AA, tolerance, normalize, max_bond_dimension):
     α, d1, d2, β = AA.shape
     Ψ = np.reshape(AA, (α * d1, β * d2))
-    U, S, V = scipy.linalg.svd(Ψ, full_matrices=False, lapack_driver="gesvd")
+    U, S, V = svd(Ψ, full_matrices=False)
     S, err = truncate_vector(S, tolerance, max_bond_dimension)
     if normalize:
         S /= np.linalg.norm(S)
@@ -140,6 +136,7 @@ class CanonicalMPS(MPS):
         if normalize:
             A = self[center]
             self[center] = A / np.linalg.norm(A)
+        self.tolerance = tolerance
 
     @classmethod
     def from_vector(
@@ -181,7 +178,9 @@ class CanonicalMPS(MPS):
 
     def entanglement_entropyAtCenter(self):
         d1, d2, d3 = self._data[self.center].shape
-        u, s, v = np.linalg.svd(np.reshape(self._data[self.center], (d1 * d2, d3)))
+        u, s, v = svd(
+            np.reshape(self._data[self.center], (d1 * d2, d3)), full_matrices=False
+        )
         return -np.sum(2 * s * s * np.log2(s))
 
     def update_canonical(
@@ -202,8 +201,8 @@ class CanonicalMPS(MPS):
         normalize=False,
         max_bond_dimension=None,
     ):
-        """Split a two-site tensor into two one-site tensors by 
-        left/right orthonormalization and insert the tensor in 
+        """Split a two-site tensor into two one-site tensors by
+        left/right orthonormalization and insert the tensor in
         canonical form into the MPS Ψ at the given site and the site
         on its left/right. Update the neighboring sites in the process.
 
@@ -211,12 +210,12 @@ class CanonicalMPS(MPS):
         ----------
         Ψ = MPS in CanonicalMPS form
         AA = two-site tensor to be split by orthonormalization
-        site = the index of the site with respect to which 
+        site = the index of the site with respect to which
         orthonormalization is carried out
         direction = if greater (less) than zero right (left) orthonormalization
         is carried out
-        tolerance = truncation tolerance for the singular values 
-        (see truncate_vector in File 1a - MPS class)           
+        tolerance = truncation tolerance for the singular values
+        (see truncate_vector in File 1a - MPS class)
         """
         assert site <= self.center <= site + 1
         if direction < 0:
