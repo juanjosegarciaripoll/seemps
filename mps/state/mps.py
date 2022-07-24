@@ -327,19 +327,15 @@ def _mps2vector(data):
     # 'D' is the dimension of the physical subsystems up to this point and
     # 'β' is the last uncontracted internal index.
     #
-    Ψ = np.ones(
-        (
-            1,
-            1,
-        )
-    )
+    Ψ = np.ones((1, 1))
     D = 1
-    for (i, A) in enumerate(data):
+    for A in data:
         α, d, β = A.shape
-        Ψ = np.einsum("Da,akb->Dkb", Ψ, A)
+        # Ψ = np.einsum("Da,akb->Dkb", Ψ, A)
+        Ψ = np.dot(Ψ, A.reshape(α, d * β))
         D = D * d
-        Ψ = np.reshape(Ψ, (D, β))
-    return Ψ.reshape((Ψ.size,))
+        Ψ = Ψ.reshape(D, β)
+    return Ψ.flatten()
 
 
 class MPSSum:
