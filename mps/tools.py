@@ -1,6 +1,7 @@
+from math import cos, pi, sin
+
 import numpy as np
 import scipy.sparse as sp
-from math import cos, sin, pi
 
 
 def take_from_list(O, i):
@@ -10,11 +11,11 @@ def take_from_list(O, i):
         return O
 
 
-DEBUG = False
+DEBUG = 0
 
 
-def log(*args):
-    if DEBUG:
+def log(*args, debug_level=0):
+    if DEBUG and (DEBUG is True or DEBUG >= debug_level):
         print(*args)
 
 
@@ -49,3 +50,10 @@ def creation(d):
 def annihilation(d):
     """Returns d dimensional bosonic annihilation operator"""
     return np.diag(np.sqrt(np.arange(1, d)), 1).astype(complex)
+
+
+def mydot(a, b):
+    """Contract last index of a with first index of b"""
+    lefta = a.shape[:-1]
+    rightb = b.shape[1:]
+    return np.dot(a, b.reshape(b.shape[0], -1)).reshape(lefta + rightb)
