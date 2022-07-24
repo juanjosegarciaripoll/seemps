@@ -20,7 +20,6 @@ def truncate_vector(S, tolerance, max_bond_dimension):
     error     -- norm-2 error made by the truncation
     """
     if tolerance == 0:
-        # log('--no truncation')
         return S, 0
     # We sum all reduced density matrix eigenvalues, starting from
     # the smallest ones, to avoid rounding errors

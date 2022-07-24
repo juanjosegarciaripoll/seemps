@@ -1,8 +1,8 @@
 import numpy as np
 from .mps import MPS
 from .svd import svd
+from .schmidt import vector2mps
 from .truncation import truncate_vector, DEFAULT_TOLERANCE
-from .factories import vector2mps
 from mps import expectation
 
 

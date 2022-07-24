@@ -2,6 +2,7 @@ import copy
 import numpy as np
 import mps.truncate
 from mps import expectation
+from .schmidt import vector2mps
 from .truncation import DEFAULT_TOLERANCE
 import warnings
 
@@ -109,8 +110,6 @@ class MPS(TensorArray):
 
     @staticmethod
     def from_vector(ψ, dimensions, **kwdargs):
-        from .factories import vector2mps
-
         return MPS(vector2mps(ψ, dimensions, **kwdargs))
 
     def __add__(self, φ):

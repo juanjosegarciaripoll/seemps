@@ -1,55 +1,5 @@
 import numpy as np
 from .mps import MPS
-from .truncation import truncate_vector, DEFAULT_TOLERANCE
-from .svd import svd
-
-
-def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
-    """Construct a list of tensors for an MPS that approximates the state ψ
-    represented as a complex vector in a Hilbert space.
-
-    Parameters
-    ----------
-    ψ         -- wavefunction with \prod_i dimensions[i] elements
-    dimensions -- list of dimensions of the Hilbert spaces that build ψ
-    tolerance -- truncation criterion for dropping Schmidt numbers
-    normalize -- boolean to determine if the MPS is normalized
-    """
-
-    def SchmidtSplit(ψ, tolerance):
-        a, b = ψ.shape
-        U, s, V = svd(
-            ψ,
-            full_matrices=False,
-            check_finite=False,
-            overwrite_a=True,
-            lapack_driver="gesdd",
-        )
-        s, err = truncate_vector(s, tolerance, None)
-        D = s.size
-        return np.reshape(U[:, :D], (a, D)), np.reshape(s, (D, 1)) * V[:D, :]
-
-    Da = 1
-    dimensions = np.array(dimensions, dtype=int)
-    Db = np.prod(dimensions)
-    output = [0] * len(dimensions)
-    for (i, d) in enumerate(dimensions[:-1]):
-        # We split a new subsystem and group the left bond dimension
-        # and the physical index into a large index
-        ψ = np.reshape(ψ, (Da * d, int(Db / d)))
-        #
-        # We then split the state using the Schmidt decomposition. This
-        # produces a tensor for the site we are looking at and leaves
-        # us with a (hopefully) smaller state for the rest
-        A, ψ = SchmidtSplit(ψ, tolerance)
-        output[i] = np.reshape(A, (Da, d, A.shape[1]))
-        Da, Db = ψ.shape
-
-    output[-1] = np.reshape(ψ, (Da, Db, 1))
-    if normalize == True:
-        output[-1] /= np.linalg.norm(ψ)
-
-    return output
 
 
 def product(vectors, length=None):
