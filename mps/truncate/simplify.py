@@ -134,7 +134,9 @@ def simplify(
     form = AntilinearForm(φ, ψ, center=start)
     norm_ψsqr = scprod(ψ, ψ).real
     err = 1.0
-    log(f"SIMPLIFY ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps.")
+    log(
+        f"SIMPLIFY ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps, with tolerance {tolerance}."
+    )
     for sweep in range(maxsweeps):
         if direction > 0:
             for n in range(0, size - 1):
@@ -173,7 +175,7 @@ def simplify(
         old_err = err
         err = 2 * abs(1.0 - scprod_φψ.real / np.sqrt(norm_φsqr * norm_ψsqr))
         log(f"sweep={sweep}, rel.err.={err}, old err.={old_err}, |φ|={norm_φsqr**0.5}")
-        if err < tolerance:
+        if err < tolerance or err > old_err:
             log("Stopping, as tolerance reached")
             break
         direction = -direction
