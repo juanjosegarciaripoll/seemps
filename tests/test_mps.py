@@ -4,7 +4,7 @@ from sre_parse import State
 import unittest
 import numpy as np
 from mps.state import TensorArray, MPS
-from mps.state.mps import MPSList
+from mps.state.mps import MPSSum
 from tools import *
 
 
@@ -115,13 +115,13 @@ class TestMPSOperations(StatesFixture):
         A = MPS(self.inhomogeneous_state)
         B = MPS(self.inhomogeneous_state)
         C = A + B
-        self.assertTrue(isinstance(C, MPSList))
+        self.assertTrue(isinstance(C, MPSSum))
 
     def test_subtracting_mps_creates_mps_list(self):
         A = MPS(self.inhomogeneous_state)
         B = MPS(self.inhomogeneous_state)
         C = A - B
-        self.assertTrue(isinstance(C, MPSList))
+        self.assertTrue(isinstance(C, MPSSum))
 
     def test_scaling_mps_creates_new_object(self):
         A = MPS(self.inhomogeneous_state)

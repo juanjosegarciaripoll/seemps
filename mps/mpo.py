@@ -1,6 +1,6 @@
 import numpy as np
 import copy
-from mps.state import MPS, MPSList, TensorArray, DEFAULT_TOLERANCE
+from mps.state import MPS, MPSSum, TensorArray, DEFAULT_TOLERANCE
 from mps.truncate import simplify
 from mps.tools import log
 
@@ -99,7 +99,7 @@ class MPO(TensorArray):
     def apply(self, b):
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
-        if isinstance(b, MPSList):
+        if isinstance(b, MPSSum):
             b = b.toMPS()
         if isinstance(b, MPS):
             assert self.size == b.size
@@ -244,7 +244,7 @@ class MPOList(object):
     def apply(self, b):
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
-        if isinstance(b, MPSList):
+        if isinstance(b, MPSSum):
             b = b.toMPS()
         for mpo in self.mpos:
             # log(f'Total error before applying MPOList {b.error()}')

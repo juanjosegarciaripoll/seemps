@@ -37,11 +37,11 @@ class TestExpectation(unittest.TestCase):
         #
         # Test the norm on our sample states
         for nbits in range(1, 8):
-            self.assertAlmostEqual(mps.state.GHZ(nbits).norm2(), 1.0, places=10)
-            self.assertAlmostEqual(mps.state.W(nbits).norm2(), 1.0, places=10)
+            self.assertAlmostEqual(mps.state.GHZ(nbits).norm_squared(), 1.0, places=10)
+            self.assertAlmostEqual(mps.state.W(nbits).norm_squared(), 1.0, places=10)
             if nbits > 1:
-                self.assertAlmostEqual(mps.state.AKLT(nbits).norm2(), 1.0, places=10)
-                self.assertAlmostEqual(mps.state.graph(nbits).norm2(), 1.0, places=10)
+                self.assertAlmostEqual(mps.state.AKLT(nbits).norm_squared(), 1.0, places=10)
+                self.assertAlmostEqual(mps.state.graph(nbits).norm_squared(), 1.0, places=10)
 
     def test_norm_random(self):
         # Test that the norm works on random states
@@ -50,7 +50,7 @@ class TestExpectation(unittest.TestCase):
                 # We create a random MPS
                 ψmps = mps.state.random(2, nbits, 2)
                 ψwave = ψmps.to_vector()
-                self.assertAlmostEqual(ψmps.norm2(), np.vdot(ψwave, ψwave))
+                self.assertAlmostEqual(ψmps.norm_squared(), np.vdot(ψwave, ψwave))
 
     def test_expected1_standard(self):
         O = np.array([[0, 0], [0, 1]])
@@ -69,7 +69,7 @@ class TestExpectation(unittest.TestCase):
                 for i in range(ϕ.size):
                     expected1_ok(CanonicalMPS(ϕ, center=i), canonical=False)
             else:
-                nrm2 = ϕ.norm2()
+                nrm2 = ϕ.norm_squared()
                 for n in range(ϕ.size):
                     ψ = ϕ.copy()
                     ψ[n] = np.einsum("ij,kjl->kil", O1, ψ[n])
@@ -120,7 +120,7 @@ class TestExpectation(unittest.TestCase):
             if canonical:
                 for i in range(ϕ.size):
                     CanonicalMPS(ϕ, center=i)
-            nrm2 = ϕ.norm2()
+            nrm2 = ϕ.norm_squared()
             for n in range(1, ϕ.size):
                 ψ = ϕ.copy()
                 ψ[n - 1] = np.einsum("ij,kjl->kil", O1, ψ[n - 1])

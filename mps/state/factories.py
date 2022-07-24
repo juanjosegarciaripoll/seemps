@@ -1,7 +1,7 @@
 import numpy as np
-import scipy.linalg
-from .truncation import truncate_vector, DEFAULT_TOLERANCE
 from .mps import MPS
+from .truncation import truncate_vector, DEFAULT_TOLERANCE
+from .svd import svd
 
 
 def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
@@ -18,7 +18,7 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
 
     def SchmidtSplit(ψ, tolerance):
         a, b = ψ.shape
-        U, s, V = scipy.linalg.svd(
+        U, s, V = svd(
             ψ,
             full_matrices=False,
             check_finite=False,
@@ -146,7 +146,7 @@ def graph(n, mps=True):
     AA = np.swapaxes(AA, 0, 1)
     data = [AA] * n
     data[0] = np.dot(np.array([[[1, 0], [0, 1]]]), H)
-    data[-1] = np.swapaxes(np.array([[[1, 0], [0, 1]]]), 0, 2) / np.sqrt(2 ** n)
+    data[-1] = np.swapaxes(np.array([[[1, 0], [0, 1]]]), 0, 2) / np.sqrt(2**n)
     return MPS(data)
 
 
@@ -198,6 +198,5 @@ def gaussian(n, x0, w0, k0, mps=True):
     # in vector form
     #
     xx = np.arange(n, dtype=complex)
-    coefs = np.exp(-((xx - x0) ** 2) / w0 ** 2 + 1j * k0 * xx, dtype=complex)
+    coefs = np.exp(-((xx - x0) ** 2) / w0**2 + 1j * k0 * xx, dtype=complex)
     return wavepacket(coefs / np.linalg.norm(coefs))
-

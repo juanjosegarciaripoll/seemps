@@ -77,12 +77,12 @@ class TestCanonicalForm(unittest.TestCase):
                 #
                 # The norm is correct
                 #
-                self.assertAlmostEqual(ξ.norm2() / Ψ.norm2(), 1.0)
+                self.assertAlmostEqual(ξ.norm_squared() / Ψ.norm_squared(), 1.0)
                 #
                 # Local observables give the same
                 #
                 O = np.array([[0, 0], [0, 1]])
-                nrm2 = ξ.norm2()
+                nrm2 = ξ.norm_squared()
                 self.assertAlmostEqual(
                     ξ.expectation1(O) / nrm2, Ψ.expectation1(O, center) / nrm2
                 )
@@ -120,9 +120,9 @@ class TestCanonicalForm(unittest.TestCase):
             for center in range(Ψ.size):
                 ξ1 = CanonicalMPS(Ψ, center=center, normalize=False)
                 ξ2 = CanonicalMPS(Ψ, center=center, normalize=True)
-                self.assertAlmostEqual(ξ2.norm2(), 1.0)
+                self.assertAlmostEqual(ξ2.norm_squared(), 1.0)
                 self.assertTrue(
-                    similar(ξ1.to_vector() / np.sqrt(ξ1.norm2()), ξ2.to_vector())
+                    similar(ξ1.to_vector() / np.sqrt(ξ1.norm_squared()), ξ2.to_vector())
                 )
 
         run_over_random_mps(ok)
