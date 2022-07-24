@@ -32,6 +32,7 @@ def cgs(A, b, guess=None, maxiter=100, tolerance=DEFAULT_TOLERANCE):
         )
     p = r
     ρ = scprod(r, r).real
+    log(f"CGS algorithm for {maxiter} iterations")
     for i in range(maxiter):
         Ap = A.apply(p)
         α = ρ / scprod(p, Ap).real
