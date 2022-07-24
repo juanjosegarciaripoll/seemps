@@ -7,13 +7,13 @@ def truncate_vector(S, tolerance, max_bond_dimension):
     """Given a vector of Schmidt numbers `S`, a `tolerance` and a maximum
     bond `max_bond_dimension`, determine where to truncate the vector and return
     the absolute error in norm-2 made by that truncation.
-    
+
     Parameters
     ----------
     S         -- non-negative Schmidt numbers in decreasing order.
     tolerance -- absolute error allowed by the truncation
     max_bond_dimension -- maximum bond dimension (or None)
-    
+
     Output
     ------
     S         -- new, truncated vector of Schmidt numbers
