@@ -27,5 +27,7 @@ Version: 0.0
 
 Authors:
 
-* Burçin Danaci (Istanbul Technical University)
 * Juan José García Ripoll (Institute of Fundamental Physics)
+* Paula García Molina (Institute of Fundmental Physics)
+* Burçin Danaci (Istanbul Technical University)
+
