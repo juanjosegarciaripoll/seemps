@@ -1,7 +1,7 @@
-from ..expectation import scprod
-from ..state.truncation import DEFAULT_TOLERANCE
-from ..truncate.combine import combine
-from ..tools import log
+from .expectation import scprod
+from .state.truncation import DEFAULT_TOLERANCE
+from .truncate.combine import combine
+from .tools import log
 
 
 def cgs(A, b, guess=None, maxiter=100, tolerance=DEFAULT_TOLERANCE):
