@@ -17,7 +17,7 @@ class TestExpectation(unittest.TestCase):
         # Test that scprod() can be used to project onto basis states
         for nbits in range(1, 8):
             # We create a random MPS
-            ψmps = mps.state.random(2, nbits, 2)
+            ψmps = seemps.state.random(2, nbits, 2)
             ψwave = ψmps.to_vector()
 
             # We then create the basis of all states with well defined
@@ -30,21 +30,23 @@ class TestExpectation(unittest.TestCase):
             # scalar product is the projection onto the state
             for (n, bits) in enumerate(conf):
                 proj = ψwave[n]
-                ϕmps = mps.state.product(map(bit2state, bits[-nbits:]))
+                ϕmps = seemps.state.product(map(bit2state, bits[-nbits:]))
                 self.assertEqual(proj, scprod(ϕmps, ψmps))
 
     def test_norm_standard(self):
         #
         # Test the norm on our sample states
         for nbits in range(1, 8):
-            self.assertAlmostEqual(mps.state.GHZ(nbits).norm_squared(), 1.0, places=10)
-            self.assertAlmostEqual(mps.state.W(nbits).norm_squared(), 1.0, places=10)
+            self.assertAlmostEqual(
+                seemps.state.GHZ(nbits).norm_squared(), 1.0, places=10
+            )
+            self.assertAlmostEqual(seemps.state.W(nbits).norm_squared(), 1.0, places=10)
             if nbits > 1:
                 self.assertAlmostEqual(
-                    mps.state.AKLT(nbits).norm_squared(), 1.0, places=10
+                    seemps.state.AKLT(nbits).norm_squared(), 1.0, places=10
                 )
                 self.assertAlmostEqual(
-                    mps.state.graph(nbits).norm_squared(), 1.0, places=10
+                    seemps.state.graph(nbits).norm_squared(), 1.0, places=10
                 )
 
     def test_norm_random(self):
@@ -52,15 +54,15 @@ class TestExpectation(unittest.TestCase):
         for nbits in range(1, 8):
             for _ in range(10):
                 # We create a random MPS
-                ψmps = mps.state.random(2, nbits, 2)
+                ψmps = seemps.state.random(2, nbits, 2)
                 ψwave = ψmps.to_vector()
                 self.assertAlmostEqual(ψmps.norm_squared(), np.vdot(ψwave, ψwave))
 
     def test_expected1_standard(self):
         O = np.array([[0, 0], [0, 1]])
         for nbits in range(1, 8):
-            ψGHZ = mps.state.GHZ(nbits)
-            ψW = mps.state.W(nbits)
+            ψGHZ = seemps.state.GHZ(nbits)
+            ψW = seemps.state.W(nbits)
             for i in range(nbits):
                 self.assertAlmostEqual(ψGHZ.expectation1(O, i), 0.5)
                 self.assertAlmostEqual(ψW.expectation1(O, i), 1 / nbits)
@@ -99,7 +101,7 @@ class TestExpectation(unittest.TestCase):
             for _ in range(10):
                 # We create a random MPS
                 ψwave = random_wavefunction(nbits)
-                ψmps = mps.state.wavepacket(ψwave)
+                ψmps = seemps.state.wavepacket(ψwave)
                 ni = all_expectation1(ψmps, O)
                 for i in range(nbits):
                     si = expectation1(ψmps, O, i)
@@ -111,7 +113,7 @@ class TestExpectation(unittest.TestCase):
     def test_expected2_GHZ(self):
         σz = np.array([[1, 0], [0, -1]])
         for nbits in range(2, 8):
-            ψGHZ = mps.state.GHZ(nbits)
+            ψGHZ = seemps.state.GHZ(nbits)
             for i in range(nbits - 1):
                 self.assertAlmostEqual(expectation2(ψGHZ, σz, σz, i), 1)
                 self.assertAlmostEqual(ψGHZ.expectation2(σz, σz, i), 1)
@@ -129,7 +131,7 @@ class TestExpectation(unittest.TestCase):
                 ψ = ϕ.copy()
                 ψ[n - 1] = np.einsum("ij,kjl->kil", O1, ψ[n - 1])
                 ψ[n] = np.einsum("ij,kjl->kil", O2, ψ[n])
-                desired = mps.expectation.scprod(ϕ, ψ)
+                desired = seemps.expectation.scprod(ϕ, ψ)
                 self.assertAlmostEqual(
                     desired / nrm2, expectation2(ϕ, O1, O2, n - 1) / nrm2
                 )

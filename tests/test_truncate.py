@@ -35,7 +35,7 @@ class TestLinearForm(unittest.TestCase):
                 # Take an MPS Φ, construct a new state ψ = O1*ϕ with a local
                 # operator on the 'n-th' site
                 #
-                ψ = mps.state.MPS(ϕ)
+                ψ = seemps.state.MPS(ϕ)
                 ψ[n] = np.einsum("ij,ajb->aib", O, ψ[n])
                 #
                 # and make sure that the AntilinearForm provides the right tensor to
@@ -66,7 +66,7 @@ class TestLinearForm(unittest.TestCase):
                 # Take an MPS Φ, construct a new state ψ = O1*ϕ with a local
                 # operator on the 'n-th' site
                 #
-                ψ = mps.state.MPS(ϕ)
+                ψ = seemps.state.MPS(ϕ)
                 ψ[n] = np.einsum("ij,ajb->aib", O1, ψ[n])
                 ψ[n + 1] = np.einsum("ij,ajb->aib", O2, ψ[n + 1])
                 #
