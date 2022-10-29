@@ -10,4 +10,7 @@
     ],
     "python.testing.pytestEnabled": false,
     "editor.formatOnSave": true,
+    "python.autoComplete.extraPaths": [
+        "${workspaceFolder}"
+    ],
 }
