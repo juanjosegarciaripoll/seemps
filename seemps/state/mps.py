@@ -1,6 +1,5 @@
 import copy
 import numpy as np
-from .. import truncate
 from .. import expectation
 from .schmidt import vector2mps
 from .truncation import DEFAULT_TOLERANCE
@@ -491,9 +490,11 @@ class MPSSum:
         raise Exception(f"Cannot multiply MPSSum by {n}")
 
     def toMPS(self, normalize=None):
+        from ..truncate.combine import combine
+
         if normalize is None:
             normalize = self.normalize
-        ψ, _ = truncate.combine(
+        ψ, _ = combine(
             self.weights,
             self.states,
             maxsweeps=self.maxsweeps,

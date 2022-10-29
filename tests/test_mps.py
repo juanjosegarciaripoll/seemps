@@ -1,10 +1,6 @@
-from ctypes.wintypes import PSIZE
-from random import betavariate
-from sre_parse import State
 import unittest
 import numpy as np
-from seemps.state import TensorArray, MPS
-from seemps.state.mps import MPSSum
+from seemps.state import TensorArray, MPS, MPSSum
 from tools import *
 
 

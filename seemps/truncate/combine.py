@@ -1,5 +1,6 @@
 import numpy as np
-from ..state import MPS, CanonicalMPS
+from ..state.mps import MPS
+from ..state.canonical_mps import CanonicalMPS
 from ..expectation import scprod
 from ..state.truncation import DEFAULT_TOLERANCE
 from ..tools import log
