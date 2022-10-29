@@ -5,8 +5,6 @@ import numpy as np
 import numpy.fft
 from tools import *
 from seemps.state import MPS
-import scipy.sparse as sp
-import matplotlib.pyplot as plt
 
 
 class TestQFT(unittest.TestCase):
