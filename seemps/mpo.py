@@ -90,7 +90,7 @@ class MPO(TensorArray):
         D = 1  # Total physical dimension so far
         out = np.array([[[1.0]]])
         for A in self._data:
-            a, i, j, b = A.shape
+            _, i, _, b = A.shape
             out = np.einsum("lma,aijb->limjb", out, A)
             D *= i
             out = out.reshape(D, D, b)

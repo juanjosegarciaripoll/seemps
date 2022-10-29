@@ -1,6 +1,5 @@
 import numpy as np
 import scipy.linalg
-import scipy.sparse as sp
 from . import state
 from .state import DEFAULT_TOLERANCE
 
@@ -97,8 +96,7 @@ class TEBD_evolution(object):
 
         if timesteps is None:
             timesteps = self.timesteps
-        for i in range(self.timesteps):
-            # print(i)
+        for _ in range(self.timesteps):
             if self.order == 1:
                 # print("Sweep in direction {} and at starting site {}".format(self.direction, self.start))
                 self.start, self.direction = apply_pairwise_unitaries(

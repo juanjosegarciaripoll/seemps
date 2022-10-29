@@ -59,7 +59,6 @@ class AntilinearForm:
         # Return the tensor that represents the LinearForm using 'center'
         # and 'center+/-1'
         #
-        center = self.center
         if direction > 0:
             i = self.center
             j = i + 1

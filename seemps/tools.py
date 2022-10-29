@@ -1,7 +1,5 @@
-from math import cos, pi, sin
-
+from math import cos, sin
 import numpy as np
-import scipy.sparse as sp
 
 
 def take_from_list(O, i):
@@ -23,7 +21,7 @@ def random_isometry(N, M=None):
     if M is None:
         M = N
     U = np.random.rand(N, M)
-    U, s, V = np.linalg.svd(U, full_matrices=False)
+    U, _, V = np.linalg.svd(U, full_matrices=False)
     if M <= N:
         return U
     else:

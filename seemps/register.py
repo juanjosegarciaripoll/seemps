@@ -6,7 +6,7 @@ from . import truncate
 
 def qubo_mpo(J=None, h=None, **kwdargs):
     """Return the MPO associated to a QUBO operator
-         $\sum_i J_{ij} s_i s_j + \sum_i h_i s_i$
+         $\\sum_i J_{ij} s_i s_j + \\sum_i h_i s_i$
     defined by the interaction 'J' and the field 'h'.
 
     Parameters
@@ -57,16 +57,17 @@ def qubo_mpo(J=None, h=None, **kwdargs):
     return MPO(data, **kwdargs)
 
 
-def qubo_exponential_mpo(J=None, h=None, **kwdargs):
-    """Return the MPO associated to the exponential $\exp(\\beta H)$ of
+def qubo_exponential_mpo(J=None, h=None, beta=-1.0, **kwdargs):
+    """Return the MPO associated to the exponential $\\exp(\\beta H)$ of
     the QUBO operator
-         $H = \sum_i J_{ij} s_i s_j + \sum_i h_i s_i$
+         $H = \\sum_i J_{ij} s_i s_j + \\sum_i h_i s_i$
     defined by the interaction 'J' and the field 'h'.
 
     Parameters
     ----------
     J        -- Matrix of interactions, or None
     h        -- Magnetic field, or None
+    beta     -- Factor, defaults to -1.0
     kwdargs  -- Extra arguments for MPO()
 
     Output
@@ -82,7 +83,7 @@ def qubo_exponential_mpo(J=None, h=None, **kwdargs):
         data = []
         for (i, hi) in enumerate(h):
             A = np.zeros((1, 2, 2, 1))
-            A[0, 1, 1, 1] = np.exp(hi)
+            A[0, 1, 1, 1] = np.exp(beta * hi)
             A[0, 0, 0, 0] = 1.0
             data.append(A)
         return MPO(data, **kwdargs)
@@ -91,17 +92,16 @@ def qubo_exponential_mpo(J=None, h=None, **kwdargs):
             J = J + np.diag(h)
         J = (J + J.T) / 2
         L = len(J)
-        id2 = np.eye(2)
         noop = np.eye(2).reshape(1, 2, 2, 1)
         out = []
         for i in range(L):
             data = [noop] * i
             A = np.zeros((1, 2, 2, 2))
-            A[0, 1, 1, 1] = np.exp(β * J[i, i])
+            A[0, 1, 1, 1] = np.exp(beta * J[i, i])
             A[0, 0, 0, 0] = 1.0
             for j in range(i + 1, L):
                 A = np.zeros((2, 2, 2, 2))
-                A[1, 1, 1, 1] = np.exp(β * J[i, j])
+                A[1, 1, 1, 1] = np.exp(beta * J[i, j])
                 A[1, 0, 0, 1] = 1.0
                 A[0, 0, 0, 0] = 1.0
                 A[0, 1, 1, 0] = 1.0

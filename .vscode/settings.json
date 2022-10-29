@@ -16,4 +16,9 @@
     "python.analysis.extraPaths": [
         "${workspaceFolder}"
     ],
+    "python.analysis.diagnosticSeverityOverrides": {
+        "reportUnusedImport": "warning",
+        "reportUnusedClass": "warning",
+        "reportUnusedVariable": "warning"
+    }
 }

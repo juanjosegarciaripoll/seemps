@@ -107,7 +107,6 @@ def all_expectation1(ψ, O, tol=0):
     """Return all expectation values of operator O acting on ψ. If O is a list
     of operators, a different one is used for each site."""
 
-    Oenv = []
     ρ = begin_environment()
     allρR = [ρ] * ψ.size
     for i in range(ψ.size - 1, 0, -1):
@@ -127,9 +126,9 @@ def all_expectation1(ψ, O, tol=0):
 
 
 def product_expectation(ψ, operator_list):
-    rho = begin_environment(ρ)
+    rho = begin_environment()
 
     for i in range(ψ.size):
         rho = update_left_environment(ψ[i].conj(), ψ[i], rho, operator=operator_list[i])
 
-    return close_environment(ρ)
+    return end_environment(rho)

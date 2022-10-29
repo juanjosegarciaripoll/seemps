@@ -403,7 +403,7 @@ class MPSSum:
             maxsweeps=maxsweeps,
             tolerance=tolerance,
             normalize=self.normalize,
-            max_bond_dimension=self.max_bond_dimension,
+            max_bond_dimension=max_bond_dimension,
         )
         return new_MPSSum
 
@@ -438,7 +438,7 @@ class MPSSum:
             maxsweeps=maxsweeps,
             tolerance=tolerance,
             normalize=self.normalize,
-            max_bond_dimension=self.max_bond_dimension,
+            max_bond_dimension=max_bond_dimension,
         )
         return new_MPSSum
 

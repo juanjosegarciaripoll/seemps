@@ -55,8 +55,8 @@ class ConstantNNHamiltonian(NNHamiltonian):
         #
         super(ConstantNNHamiltonian, self).__init__(size)
         self.constant = True
-        self.int_left = [[] for i in range(size - 1)]
-        self.int_right = [[] for i in range(size - 1)]
+        self.int_left = [[] for _ in range(size - 1)]
+        self.int_right = [[] for _ in range(size - 1)]
         self.interactions = [0j] * (size - 1)
         if isinstance(dimension, Number):
             dimension = [dimension] * size

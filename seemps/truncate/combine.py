@@ -1,5 +1,5 @@
 import numpy as np
-from .. import state
+from ..state import MPS, CanonicalMPS
 from ..expectation import scprod
 from ..state.truncation import DEFAULT_TOLERANCE
 from ..tools import log
@@ -19,8 +19,8 @@ def multi_norm_squared(α, ψ):
 def guess_combine_state(weights, states):
     guess = []
     weighted_states = []
-    for i, state in enumerate(states):
-        weighted_states.append(weights[i] * state)
+    for i, psi in enumerate(states):
+        weighted_states.append(weights[i] * psi)
     for site in range(states[0].size):
         DL_max = 0
         DR_max = 0
@@ -34,10 +34,10 @@ def guess_combine_state(weights, states):
                 DR_max = DR
         guess.append(np.zeros((DL_max, i, DR_max), dtype=type(z)))
     for site in range(states[0].size):
-        for j, state in enumerate(weighted_states):
-            DL, i, DR = state[site].shape
-            guess[site][:DL, :, :DR] += state[site]
-    return state.MPS(
+        for psi in weighted_states:
+            DL, i, DR = psi[site].shape
+            guess[site][:DL, :, :DR] += psi[site]
+    return MPS(
         guess,
         maxsweeps=states[0].maxsweeps,
         tolerance=states[0].tolerance,
@@ -74,21 +74,20 @@ def combine(
     φ         -- CanonicalMPS approximation to the linear combination state
     error     -- error made in the approximation
     """
-    start = 0 if direction > 0 else size - 1
     if guess is None:
         guess = guess_combine_state(weights, states)
     base_error = sum(
         np.sqrt(np.abs(α)) * np.sqrt(ψ.error()) for α, ψ in zip(weights, states)
     )
-    φ = state.CanonicalMPS(guess, center=start, tolerance=tolerance)
+    start = 0 if direction > 0 else guess.size - 1
+    φ = CanonicalMPS(guess, center=start, tolerance=tolerance)
     err = norm_ψsqr = multi_norm_squared(weights, states)
     if norm_ψsqr < tolerance:
-        return state.MPS([np.zeros((1, P.shape[1], 1)) for P in φ]), 0
+        return MPS([np.zeros((1, P.shape[1], 1)) for P in φ]), 0
     log(
         f"COMBINE ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps.\nWeights: {weights}"
     )
 
-    L = len(states)
     size = φ.size
     forms = [AntilinearForm(φ, ψ, center=start) for ψ in states]
     for sweep in range(maxsweeps):
@@ -128,7 +127,7 @@ def combine(
         err = 2 * abs(1.0 - scprod_φψ.real / np.sqrt(norm_φsqr * norm_ψsqr))
         log(f"sweep={sweep}, rel.err.={err}, old err.={old_err}, |φ|={norm_φsqr**0.5}")
         if err < tolerance or err > old_err:
-            log(f"Stopping, as tolerance reached")
+            log("Stopping, as tolerance reached")
             break
         direction = -direction
     φ._error = 0.0

@@ -1,4 +1,3 @@
-import math
 import numpy as np
 from numpy import pi as π
 from .state import MPS
@@ -80,7 +79,6 @@ def qft_flip(Ψmps):
 
 
 def qft_wavefunction(Ψ):
-    N = int(round(math.log2(Ψ.size)))
     return np.fft.fft(Ψ) / np.sqrt(Ψ.size)
 
 
@@ -122,7 +120,7 @@ def qft_nd_mpo(sites, N=None, sign=-1, **kwargs):
     R1 = np.zeros((2, 2, 2, 2))
     R1[1, 1, 1, 1] = 1.0
     jϕ = sign * 1j * π
-    #
+
     # Place the Hadamard and rotations according to the instructions
     # in 'sites'. The first index is the control qubit, the other ones
     # are the following qubits in order of decreasing significance.
@@ -150,7 +148,6 @@ def qft_nd_mpo(sites, N=None, sign=-1, **kwargs):
                 break
         return MPO(l, **kwargs)
 
-    #
     return MPOList([make_layer(sites[i:]) for i in range(len(sites))], **kwargs)
 
 

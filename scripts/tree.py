@@ -1,4 +1,3 @@
-from logging import root
 import sys
 import types
 from typing import Any, Optional

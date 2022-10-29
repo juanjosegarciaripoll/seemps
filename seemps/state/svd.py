@@ -43,7 +43,7 @@ def svd(
             lapack_driver=lapack_driver,
         )
     except scipy.linalg.LinAlgError:
-        if lapack_driver == "gesdd" and check_finite == False:
+        if lapack_driver == "gesdd" and check_finite is False:
             try:
                 U, s, Vh = scipy.linalg.svd(
                     a,
