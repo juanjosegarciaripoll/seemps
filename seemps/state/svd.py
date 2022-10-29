@@ -1,5 +1,5 @@
-import numpy as np
 import scipy.linalg
+
 
 def svd(
     a, full_matrices=True, check_finite=False, overwrite_a=False, lapack_driver="gesdd"

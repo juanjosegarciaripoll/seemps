@@ -1,7 +1,7 @@
 import numpy as np
-from mps.mpo import MPO
-from mps.state import MPS, CanonicalMPS
-import mps.truncate
+from .state import MPS, CanonicalMPS
+from .mpo import MPOList, MPO
+from . import truncate
 
 
 def qubo_mpo(J=None, h=None, **kwdargs):
@@ -146,7 +146,7 @@ def wavefunction_product(ψ, ξ, conjugate=False, simplify=True, **kwdargs):
     out = MPS([combine(A, B) for A, B in zip(ψ, ξ)])
     if simplify:
         out = CanonicalMPS(out, center=0, **kwdargs)
-        out, _, _ = mps.truncate.simplify(out, **kwdargs)
+        out, _, _ = truncate.simplify(out, **kwdargs)
     return out
 
 

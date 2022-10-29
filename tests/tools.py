@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.sparse as sp
-from mps.state import MPS
-import mps.state
+from seemps.state import MPS
+import seemps.state
 
 
 def similar(A, B, **kwdargs):
@@ -56,4 +56,4 @@ def contain_similar_tensors(A, B):
 def run_over_random_mps(function, d=2, N=10, D=10, repeats=10):
     for nqubits in range(1, N + 1):
         for _ in range(repeats):
-            function(mps.state.random(d, N, D))
+            function(seemps.state.random(d, N, D))

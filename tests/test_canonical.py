@@ -1,10 +1,10 @@
 import unittest
 from tools import *
-from mps.state import (
+from seemps.state import (
     DEFAULT_TOLERANCE,
     CanonicalMPS,
 )
-from mps.state.canonical_mps import _update_in_canonical_form, _canonicalize
+from seemps.state.canonical_mps import _update_in_canonical_form, _canonicalize
 
 
 class TestCanonicalForm(unittest.TestCase):

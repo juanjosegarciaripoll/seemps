@@ -1,7 +1,0 @@
-[project]
-name = "SeeMPS"
-version = "1.0"
-dependencies = [
-    "numpy",
-    "scipy"
-]

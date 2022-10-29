@@ -1,7 +1,7 @@
-from mps.expectation import scprod
-from mps.state.truncation import DEFAULT_TOLERANCE
-from mps.truncate.combine import combine, multi_norm_squared
-from mps.tools import log
+from ..expectation import scprod
+from ..state.truncation import DEFAULT_TOLERANCE
+from ..truncate.combine import combine, multi_norm_squared
+from ..tools import log
 
 
 def cgs(A, b, guess=None, maxiter=100, tolerance=DEFAULT_TOLERANCE):

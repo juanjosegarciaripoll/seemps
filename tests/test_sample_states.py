@@ -1,7 +1,7 @@
 import numpy as np
 import unittest
-from mps.tools import *
-from mps.state import *
+from seemps.tools import *
+from seemps.state import *
 
 
 class TestSampleStates(unittest.TestCase):
@@ -65,7 +65,7 @@ class TestSampleStates(unittest.TestCase):
         for i in range(1, 2):
             Ψ = GHZ(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 2 ** i)
+            self.assertEqual(Ψ.dimension(), 2**i)
 
     def test_W(self):
         W1 = np.array([0, 1.0])
@@ -83,16 +83,16 @@ class TestSampleStates(unittest.TestCase):
         for i in range(1, 2):
             Ψ = W(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 2 ** i)
+            self.assertEqual(Ψ.dimension(), 2**i)
 
     def test_AKLT(self):
-        AKLT2 = np.zeros(3 ** 2)
+        AKLT2 = np.zeros(3**2)
         AKLT2[1] = 1
         AKLT2[3] = -1
         AKLT2 = AKLT2 / np.sqrt(2)
         self.assertTrue(np.array_equal(AKLT(2).to_vector(), AKLT2))
 
-        AKLT3 = np.zeros(3 ** 3)
+        AKLT3 = np.zeros(3**3)
         AKLT3[4] = 1
         AKLT3[6] = -1
         AKLT3[10] = -1
@@ -103,14 +103,14 @@ class TestSampleStates(unittest.TestCase):
         for i in range(2, 5):
             Ψ = AKLT(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 3 ** i)
+            self.assertEqual(Ψ.dimension(), 3**i)
 
     def test_graph(self):
-        GR = np.ones(2 ** 2) / np.sqrt(2 ** 2)
+        GR = np.ones(2**2) / np.sqrt(2**2)
         GR[-1] = -GR[-1]
         self.assertTrue(np.array_equal(graph(2).to_vector(), GR))
 
-        GR = np.ones(2 ** 3) / np.sqrt(2 ** 3)
+        GR = np.ones(2**3) / np.sqrt(2**3)
         GR[3] = -GR[3]
         GR[-2] = -GR[-2]
         self.assertTrue(np.array_equal(graph(3).to_vector(), GR))
@@ -118,4 +118,4 @@ class TestSampleStates(unittest.TestCase):
         for i in range(1, 2):
             Ψ = W(i)
             self.assertEqual(Ψ.size, i)
-            self.assertEqual(Ψ.dimension(), 2 ** i)
+            self.assertEqual(Ψ.dimension(), 2**i)

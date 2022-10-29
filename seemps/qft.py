@@ -1,8 +1,8 @@
 import math
 import numpy as np
 from numpy import pi as π
-from mps.state import MPS
-from mps.mpo import MPO, MPOList
+from .state import MPS
+from .mpo import MPO, MPOList
 
 
 def qft_mpo(N, sign=-1, **kwargs):

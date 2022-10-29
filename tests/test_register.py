@@ -1,8 +1,8 @@
 import unittest
 import numpy as np
 from tools import *
-from mps.state import MPS, CanonicalMPS
-from mps.register import *
+from seemps.state import MPS, CanonicalMPS
+from seemps.register import *
 import scipy.sparse as sp
 
 
@@ -13,7 +13,7 @@ class TestAlgebraic(unittest.TestCase):
 
     @classmethod
     def projector(self, i, L):
-        return sp.kron(sp.eye(2 ** i), sp.kron(self.P1, sp.eye(2 ** (L - i - 1))))
+        return sp.kron(sp.eye(2**i), sp.kron(self.P1, sp.eye(2 ** (L - i - 1))))
 
     @classmethod
     def linear_operator(self, h):
@@ -47,13 +47,13 @@ class TestAlgebraic(unittest.TestCase):
     def test_product(self):
         np.random.seed(1034)
         for N in range(1, 10):
-            ψ = np.random.rand(2 ** N, 2) - 0.5
+            ψ = np.random.rand(2**N, 2) - 0.5
             ψ = ψ[:, 0] + 1j * ψ[:, 1]
             ψ /= np.linalg.norm(ψ)
             ψmps = MPS.from_vector(ψ, [2] * N)
             ψ = ψmps.to_vector()
 
-            ξ = np.random.rand(2 ** N, 2) - 0.5
+            ξ = np.random.rand(2**N, 2) - 0.5
             ξ = ξ[:, 0] + 1j * ξ[:, 1]
             ξ /= np.linalg.norm(ξ)
             ξmps = MPS.from_vector(ξ, [2] * N)

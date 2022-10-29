@@ -1,10 +1,10 @@
-from mps.qft import *
+from seemps.qft import *
 
 import unittest
 import numpy as np
 import numpy.fft
 from tools import *
-from mps.state import MPS
+from seemps.state import MPS
 import scipy.sparse as sp
 import matplotlib.pyplot as plt
 
@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 class TestQFT(unittest.TestCase):
     @staticmethod
     def gaussian_mps(N):
-        x = np.linspace(-4, 4, 2 ** N + 1)[:-1]
-        ψ = np.exp(-(x ** 2) / 2.0)
+        x = np.linspace(-4, 4, 2**N + 1)[:-1]
+        ψ = np.exp(-(x**2) / 2.0)
         ψ /= np.linalg.norm(ψ)
         return MPS.from_vector(ψ, [2] * N), ψ
 

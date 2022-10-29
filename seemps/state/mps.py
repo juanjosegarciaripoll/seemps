@@ -1,7 +1,7 @@
 import copy
 import numpy as np
-import mps.truncate
-from mps import expectation
+from .. import truncate
+from .. import expectation
 from .schmidt import vector2mps
 from .truncation import DEFAULT_TOLERANCE
 import warnings
@@ -493,7 +493,7 @@ class MPSSum:
     def toMPS(self, normalize=None):
         if normalize is None:
             normalize = self.normalize
-        ψ, _ = mps.truncate.combine(
+        ψ, _ = truncate.combine(
             self.weights,
             self.states,
             maxsweeps=self.maxsweeps,

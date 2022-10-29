@@ -1,8 +1,8 @@
 import numpy as np
-import mps.state
-from mps.state.truncation import DEFAULT_TOLERANCE
-from mps.tools import log, mydot
-from mps.expectation import (
+from .. import state
+from ..state.truncation import DEFAULT_TOLERANCE
+from ..tools import log, mydot
+from ..expectation import (
     begin_environment,
     update_right_environment,
     update_left_environment,
@@ -125,9 +125,7 @@ def simplify(
     start = 0 if direction > 0 else size - 1
 
     base_error = ψ.error()
-    φ = mps.state.CanonicalMPS(
-        ψ, center=start, tolerance=tolerance, normalize=normalize
-    )
+    φ = state.CanonicalMPS(ψ, center=start, tolerance=tolerance, normalize=normalize)
     if max_bond_dimension == 0 and tolerance <= 0:
         return φ
 

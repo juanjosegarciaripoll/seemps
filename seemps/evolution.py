@@ -1,9 +1,8 @@
 import numpy as np
 import scipy.linalg
-from numbers import Number
-import mps.state
 import scipy.sparse as sp
-from mps.state import DEFAULT_TOLERANCE
+from . import state
+from .state import DEFAULT_TOLERANCE
 
 
 def pairwise_unitaries(H, δt):
@@ -78,8 +77,8 @@ class TEBD_evolution(object):
         self.Udt = pairwise_unitaries(H, dt)
         if order == 2:
             self.Udt2 = pairwise_unitaries(H, dt / 2)
-        if not isinstance(ψ, mps.state.CanonicalMPS):
-            ψ = mps.state.CanonicalMPS(ψ, center=0)
+        if not isinstance(ψ, state.CanonicalMPS):
+            ψ = state.CanonicalMPS(ψ, center=0)
         else:
             ψ = ψ.copy()
         self.ψ = ψ

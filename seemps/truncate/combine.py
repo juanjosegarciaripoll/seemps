@@ -1,10 +1,8 @@
 import numpy as np
-import math
-import mps
-import mps.state
-from mps.expectation import scprod
-from mps.state.truncation import DEFAULT_TOLERANCE
-from mps.tools import log
+from .. import state
+from ..expectation import scprod
+from ..state.truncation import DEFAULT_TOLERANCE
+from ..tools import log
 from .simplify import AntilinearForm
 
 
@@ -39,7 +37,7 @@ def guess_combine_state(weights, states):
         for j, state in enumerate(weighted_states):
             DL, i, DR = state[site].shape
             guess[site][:DL, :, :DR] += state[site]
-    return mps.state.MPS(
+    return state.MPS(
         guess,
         maxsweeps=states[0].maxsweeps,
         tolerance=states[0].tolerance,
@@ -82,10 +80,10 @@ def combine(
     base_error = sum(
         np.sqrt(np.abs(α)) * np.sqrt(ψ.error()) for α, ψ in zip(weights, states)
     )
-    φ = mps.state.CanonicalMPS(guess, center=start, tolerance=tolerance)
+    φ = state.CanonicalMPS(guess, center=start, tolerance=tolerance)
     err = norm_ψsqr = multi_norm_squared(weights, states)
     if norm_ψsqr < tolerance:
-        return mps.state.MPS([np.zeros((1, P.shape[1], 1)) for P in φ]), 0
+        return state.MPS([np.zeros((1, P.shape[1], 1)) for P in φ]), 0
     log(
         f"COMBINE ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps.\nWeights: {weights}"
     )

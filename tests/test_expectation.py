@@ -1,7 +1,7 @@
 import unittest
-from mps.state import CanonicalMPS
+from seemps.state import CanonicalMPS
 from tools import *
-from mps.expectation import *
+from seemps.expectation import *
 
 
 def bit2state(b):
@@ -22,8 +22,8 @@ class TestExpectation(unittest.TestCase):
 
             # We then create the basis of all states with well defined
             # values of the qubits
-            conf = np.arange(0, 2 ** nbits, dtype=np.uint8)
-            conf = np.reshape(conf, (2 ** nbits, 1))
+            conf = np.arange(0, 2**nbits, dtype=np.uint8)
+            conf = np.reshape(conf, (2**nbits, 1))
             conf = np.unpackbits(conf, axis=1)
 
             # Finally, we loop over the basis states, verifying that the
@@ -40,8 +40,12 @@ class TestExpectation(unittest.TestCase):
             self.assertAlmostEqual(mps.state.GHZ(nbits).norm_squared(), 1.0, places=10)
             self.assertAlmostEqual(mps.state.W(nbits).norm_squared(), 1.0, places=10)
             if nbits > 1:
-                self.assertAlmostEqual(mps.state.AKLT(nbits).norm_squared(), 1.0, places=10)
-                self.assertAlmostEqual(mps.state.graph(nbits).norm_squared(), 1.0, places=10)
+                self.assertAlmostEqual(
+                    mps.state.AKLT(nbits).norm_squared(), 1.0, places=10
+                )
+                self.assertAlmostEqual(
+                    mps.state.graph(nbits).norm_squared(), 1.0, places=10
+                )
 
     def test_norm_random(self):
         # Test that the norm works on random states

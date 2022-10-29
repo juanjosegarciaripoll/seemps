@@ -3,7 +3,7 @@ from .mps import MPS
 from .svd import svd
 from .schmidt import vector2mps
 from .truncation import truncate_vector, DEFAULT_TOLERANCE
-from mps import expectation
+from .. import expectation
 
 
 def _ortho_right(A, tol, normalize):

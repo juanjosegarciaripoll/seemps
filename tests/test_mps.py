@@ -3,8 +3,8 @@ from random import betavariate
 from sre_parse import State
 import unittest
 import numpy as np
-from mps.state import TensorArray, MPS
-from mps.state.mps import MPSSum
+from seemps.state import TensorArray, MPS
+from seemps.state.mps import MPSSum
 from tools import *
 
 
@@ -15,7 +15,7 @@ class StatesFixture(unittest.TestCase):
             np.reshape([3.0, 5.0], (1, 2, 1)),
             np.reshape([7.0, 11.0], (1, 2, 1)),
         ]
-        self.product_state_dimension = 2 ** 3
+        self.product_state_dimension = 2**3
         self.product_state_wavefunction = np.kron(
             [1.0, 2.0], np.kron([3.0, 5.0], [7.0, 11.0])
         )

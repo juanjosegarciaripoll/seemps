@@ -1,8 +1,8 @@
 import numpy as np
 import copy
-from mps.state import MPS, MPSSum, TensorArray, DEFAULT_TOLERANCE
-from mps.truncate import simplify
-from mps.tools import log
+from .state import MPS, MPSSum, TensorArray, DEFAULT_TOLERANCE
+from .truncate import simplify
+from .tools import log
 
 
 def mpo_multiply_tensor(A, B):
