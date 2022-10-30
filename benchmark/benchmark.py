@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Callable, Optional, Tuple, List
 import json
 import time
@@ -15,8 +15,8 @@ class BenchmarkItem:
     """
 
     name: str
-    sizes: list[int]
-    times: list[float]
+    sizes: List[int]
+    times: List[float]
 
     def tojson(self):
         return {
@@ -26,7 +26,7 @@ class BenchmarkItem:
         }
 
     @classmethod
-    def fromjson(self, data):
+    def fromjson(cls, data):
         return BenchmarkItem(
             name=data["name"], sizes=data["sizes"], times=data["times"]
         )
@@ -54,10 +54,11 @@ class BenchmarkItem:
         return t
 
     @classmethod
-    def autorange(self, function: Callable, limit: float = 0.2):
+    def autorange(cls, function: Callable, limit: float = 0.2):
         number: int = 1
-        for attempt in range(10):
-            time_taken = self.timeit(function, number)
+        time_taken: float = 0.0
+        for _ in range(10):
+            time_taken = cls.timeit(function, number)
             # print(f"time_taken = {time_taken} vs limit = {limit}")
             if time_taken >= limit:
                 break
@@ -70,14 +71,17 @@ class BenchmarkItem:
         name: str,
         function: Callable,
         setup: Optional[Callable[[int], tuple]] = None,
-        sizes: list[int] = None,
+        sizes: Optional[List[int]] = None,
         limit: float = 0.2,
     ):
         if sizes == None:
             sizes = [2**i for i in range(1, 7)]
         times = []
         for s in sizes:
-            args = setup(s)
+            if setup is None:
+                args = []
+            else:
+                args = setup(s)
             timing = BenchmarkItem.autorange(lambda: function(*args), limit)
             times.append(timing)
             print(f"Executing item {name} at size {s} took {timing:5g} seconds")
@@ -87,24 +91,29 @@ class BenchmarkItem:
 @dataclass
 class BenchmarkGroup:
     name: str
-    items: list[BenchmarkItem]
+    items: List[BenchmarkItem]
 
     @staticmethod
-    def run(name: str, items: list[Tuple[str, Callable, Callable]]) -> "BenchmarkGroup":
+    def run(name: str, items: List[Tuple[str, Callable, Callable]]) -> "BenchmarkGroup":
         print("-" * 50)
         print(f"Executing group {name}")
         return BenchmarkGroup(
             name=name, items=[BenchmarkItem.run(*item) for item in items]
         )
 
-    def find_item(self, name: str, error: bool = False):
+    def maybe_find_item(
+        self, name: str, error: bool = False
+    ) -> Optional[BenchmarkItem]:
         for it in self.items:
             if it.name == name:
                 return it
-        message = f"Item {name} missing from group {self.name}"
-        if error:
-            raise Exception(message)
         return None
+
+    def find_item(self, name: str) -> BenchmarkItem:
+        item = self.maybe_find_item(name)
+        if item is None:
+            raise Exception(f"Item {name} missing from group {self.name}")
+        return item
 
     def tojson(self):
         return {
@@ -113,7 +122,7 @@ class BenchmarkGroup:
         }
 
     @classmethod
-    def fromjson(self, data):
+    def fromjson(cls, data):
         name = data["name"]
         items = [BenchmarkItem.fromjson(item) for item in data["items"]]
         return BenchmarkGroup(name=name, items=items)
@@ -122,7 +131,7 @@ class BenchmarkGroup:
 @dataclass
 class BenchmarkSet:
     name: str
-    groups: list[BenchmarkGroup]
+    groups: List[BenchmarkGroup]
     environment: str
 
     def write(self, filename: Optional[str] = None):
@@ -138,14 +147,17 @@ class BenchmarkSet:
             "groups": [item.tojson() for item in self.groups],
         }
 
-    def find_group(self, name: str, error: bool = False):
+    def maybe_find_group(self, name: str) -> Optional[BenchmarkGroup]:
         for g in self.groups:
             if g.name == name:
                 return g
-        message = f"Group {name} missing from benchmark {self.name}"
-        if error:
-            raise Exception(message)
         return None
+
+    def find_group(self, name: str) -> BenchmarkGroup:
+        group = self.maybe_find_group(name)
+        if group is None:
+            raise Exception(f"Group {name} missing from benchmark {self.name}")
+        return group
 
     @classmethod
     def fromjson(cls, data) -> "BenchmarkSet":
@@ -175,21 +187,21 @@ class BenchmarkSet:
 @dataclass
 class BenchmarkItemAggregate:
 
-    columns: list[str]
-    sizes: list[int]
-    times: np.ndarray = np.zeros((0, 0))
+    columns: List[str]
+    sizes: List[int]
+    times: np.ndarray = field(default_factory=lambda: np.zeros((0, 0)))
 
-    def __init__(self, benchmarks: list[BenchmarkSet], group_name: str, item_name: str):
+    def __init__(self, benchmarks: List[BenchmarkSet], group_name: str, item_name: str):
         if not benchmarks:
             return
         items = []
         valid = []
         for set in benchmarks:
             item = None
-            group = set.find_group(group_name, None)
-            if group:
-                item = group.find_item(item_name, None)
-            if item:
+            group = set.maybe_find_group(group_name)
+            if group is not None:
+                item = group.maybe_find_item(item_name)
+            if item is not None:
                 items.append(item)
                 valid.append(set)
             else:
@@ -207,7 +219,8 @@ class BenchmarkItemAggregate:
         if group_name == "RTensor" and item_name == "plus":
             for set in benchmarks:
                 print(set.name)
-                item = set.find_group(group_name).find_item(item_name)
+                group = set.find_group(group_name)
+                item = group.find_item(item_name)
                 print(item.times)
             print(self.columns)
             print(self.times)
