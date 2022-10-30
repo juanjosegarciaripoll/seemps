@@ -455,16 +455,14 @@ class MPSSum:
         mps    -- New mps.
         """
         if np.isscalar(n):
-            new_states = [n * mps for mps in self.states]
-            new_MPSSum = MPSSum(
-                weights=self.weights,
-                states=new_states,
+            return MPSSum(
+                weights=[n * w for w in self.weights],
+                states=self.states,
                 maxsweeps=self.maxsweeps,
                 tolerance=self.tolerance,
                 normalize=self.normalize,
                 max_bond_dimension=self.max_bond_dimension,
             )
-            return new_MPSSum
         raise Exception(f"Cannot multiply MPSSum by {n}")
 
     def __rmul__(self, n):
@@ -479,16 +477,14 @@ class MPSSum:
         mps    -- New mps.
         """
         if np.isscalar(n):
-            new_states = [n * mps for mps in self.states]
-            new_MPSSum = MPSSum(
-                weights=self.weights,
-                states=new_states,
+            return MPSSum(
+                weights=[n * w for w in self.weights],
+                states=self.states,
                 maxsweeps=self.maxsweeps,
                 tolerance=self.tolerance,
                 normalize=self.normalize,
                 max_bond_dimension=self.max_bond_dimension,
             )
-            return new_MPSSum
         raise Exception(f"Cannot multiply MPSSum by {n}")
 
     def toMPS(self, normalize=None):
