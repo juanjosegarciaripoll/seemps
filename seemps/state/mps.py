@@ -47,6 +47,9 @@ class TensorArray(object):
         #
         return type(self)(self._data)
 
+    def __iter__(self):
+        return self._data.__iter__()
+
     def __len__(self):
         return self.size
 

@@ -56,8 +56,8 @@ def join_environments(ρL, ρR):
 def scprod(ϕ, ψ):
     """Compute the scalar product between matrix product states <ϕ|ψ>."""
     ρ = begin_environment()
-    for i in range(ψ.size):
-        ρ = update_left_environment(ϕ[i], ψ[i], ρ)
+    for ϕi, ψi in zip(ϕ, ψ):
+        ρ = update_left_environment(ϕi, ψi, ρ)
     return end_environment(ρ)
 
 
