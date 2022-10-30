@@ -1,9 +1,9 @@
 import unittest
 import numpy as np
-from tools import *
-from seemps.state import MPS, CanonicalMPS
-from seemps.register import *
 import scipy.sparse as sp
+from seemps.state import MPS
+from seemps.register import *
+from .tools import *
 
 
 class TestAlgebraic(unittest.TestCase):

@@ -1,7 +1,7 @@
 import unittest
 from seemps.state import CanonicalMPS
-from tools import *
 from seemps.expectation import *
+from .tools import *
 
 
 def bit2state(b):

@@ -14,3 +14,6 @@ dependencies = [
 
 [project.urls]
 "Homepage" = "https://github.com/juanjosegarciaripoll/seemps"
+
+[tool.pytest.ini_options]
+addopts="-n 4"

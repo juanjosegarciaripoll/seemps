@@ -1,35 +1,11 @@
 import unittest
 import numpy as np
 from seemps.state import TensorArray, MPS, MPSSum
-from tools import *
+from .tools import *
+from .fixture_mps_states import MPSStatesFixture
 
 
-class StatesFixture(unittest.TestCase):
-    def setUp(self):
-        self.product_state = [
-            np.reshape([1.0, 2.0], (1, 2, 1)),
-            np.reshape([3.0, 5.0], (1, 2, 1)),
-            np.reshape([7.0, 11.0], (1, 2, 1)),
-        ]
-        self.product_state_dimension = 2**3
-        self.product_state_wavefunction = np.kron(
-            [1.0, 2.0], np.kron([3.0, 5.0], [7.0, 11.0])
-        )
-
-        self.inhomogeneous_state = [
-            np.reshape([1.0, 2.0], (1, 2, 1)),
-            np.reshape([3.0, 5.0, -1.0], (1, 3, 1)),
-            np.reshape([7.0, -5.0, -9.0, 11.0], (1, 4, 1)),
-        ]
-        self.inhomogeneous_state_dimension = 2 * 3 * 4
-        self.inhomogeneous_state_wavefunction = np.kron(
-            [1.0, 2.0], np.kron([3.0, 5.0, -1.0], [7.0, -5.0, -9.0, 11.0])
-        )
-
-        self.other_tensor = np.reshape([13, 15], (1, 2, 1))
-
-
-class TestTensorArray(StatesFixture):
+class TestTensorArray(MPSStatesFixture):
     def test_initial_data_is_copied(self):
         data = self.product_state.copy()
         A = TensorArray(data)
@@ -47,7 +23,7 @@ class TestTensorArray(StatesFixture):
         self.assertTrue(contain_same_objects(A, self.product_state))
 
 
-class TestMPS(StatesFixture):
+class TestMPS(MPSStatesFixture):
     def test_initial_data_is_copied(self):
         data = self.product_state.copy()
         A = MPS(data)
@@ -84,7 +60,7 @@ class TestMPS(StatesFixture):
         self.assertTrue(similar(A.to_vector(), self.inhomogeneous_state_wavefunction))
 
 
-class TestMPSOperations(StatesFixture):
+class TestMPSOperations(MPSStatesFixture):
     def test_norm2_is_deprecated(self):
         with self.assertWarns(DeprecationWarning):
             MPS(self.inhomogeneous_state).norm2()

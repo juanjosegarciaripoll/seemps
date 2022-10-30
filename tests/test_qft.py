@@ -3,8 +3,8 @@ from seemps.qft import *
 import unittest
 import numpy as np
 import numpy.fft
-from tools import *
 from seemps.state import MPS
+from .tools import *
 
 
 class TestQFT(unittest.TestCase):

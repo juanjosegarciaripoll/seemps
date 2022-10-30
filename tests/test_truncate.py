@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from tools import *
+from .tools import *
 from seemps.state import CanonicalMPS, MPS
 from seemps.truncate import simplify, combine, AntilinearForm
 from seemps.expectation import expectation1, expectation2

@@ -1,5 +1,5 @@
 import unittest
-from tools import *
+from .tools import *
 from seemps.state import (
     DEFAULT_TOLERANCE,
     CanonicalMPS,

@@ -1,6 +1,6 @@
 {
     "python.formatting.provider": "black",
-    "python.testing.unittestEnabled": true,
+    "python.testing.unittestEnabled": false,
     "python.testing.unittestArgs": [
         "-v",
         "-s",
@@ -8,7 +8,7 @@
         "-p",
         "test_*.py"
     ],
-    "python.testing.pytestEnabled": false,
+    "python.testing.pytestEnabled": true,
     "editor.formatOnSave": true,
     "python.autoComplete.extraPaths": [
         "${workspaceFolder}"
@@ -20,5 +20,8 @@
         "reportUnusedImport": "warning",
         "reportUnusedClass": "warning",
         "reportUnusedVariable": "warning"
-    }
+    },
+    "python.testing.pytestArgs": [
+        "-n4"
+    ]
 }

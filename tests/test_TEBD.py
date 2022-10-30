@@ -1,73 +1,10 @@
 import unittest
-import seemps.state
-import seemps.tools
-from tools import *
-from seemps.tools import σx, σy, σz
 import scipy.sparse as sp
-import scipy.sparse.linalg
-
-i2 = sp.eye(2)
-
-
-class TestHamiltonians(unittest.TestCase):
-    def test_nn_construct(self):
-        H2 = ConstantNNHamiltonian(2, 2)
-        H2.add_local_term(0, σx)
-        M2 = H2.interaction_term(0)
-        A2 = sp.kron(σx, i2)
-        self.assertTrue(similar(M2, A2))
-
-        H2 = ConstantNNHamiltonian(2, 2)
-        H2.add_local_term(1, σy)
-        M2 = H2.interaction_term(0)
-        A2 = sp.kron(i2, σy)
-        self.assertTrue(similar(M2, A2))
-
-        H3 = ConstantNNHamiltonian(3, 2)
-        H3.add_local_term(1, σy)
-        M3 = H3.interaction_term(0)
-        A3 = sp.kron(i2, 0.5 * σy)
-        self.assertTrue(similar(M3, A3))
-        M3 = H3.interaction_term(1)
-        A3 = sp.kron(0.5 * σy, i2)
-        self.assertTrue(similar(M3, A3))
-
-    def test_sparse_matrix(self):
-        H2 = ConstantNNHamiltonian(2, 2)
-        H2.add_interaction_term(0, σz, σz)
-        M2 = H2.tomatrix()
-        A2 = sp.kron(σz, σz)
-        self.assertTrue(similar(M2, A2))
-
-        H2 = ConstantNNHamiltonian(2, 2)
-        H2.add_local_term(0, 3.5 * σx)
-        M2 = H2.tomatrix()
-        A2 = sp.kron(3.5 * σx, i2)
-        self.assertTrue(similar(M2, A2))
-
-        H2 = ConstantNNHamiltonian(2, 2)
-        H2.add_local_term(1, -2.5 * σy)
-        M2 = H2.tomatrix()
-        A2 = sp.kron(i2, -2.5 * σy)
-        self.assertTrue(similar(M2, A2))
-
-        H2 = ConstantNNHamiltonian(2, 2)
-        H2.add_local_term(0, 3.5 * σx)
-        H2.add_local_term(1, -2.5 * σy)
-        H2.add_interaction_term(0, σz, σz)
-        M2 = H2.tomatrix()
-        A2 = sp.kron(i2, -2.5 * σy) + sp.kron(σz, σz) + sp.kron(3.5 * σx, i2)
-        self.assertTrue(similar(M2, A2))
-
-
-import unittest
-import scipy.sparse as sp
-import scipy.sparse.linalg
 from seemps.state import CanonicalMPS
 from seemps.tools import *
-from tools import *
+from .tools import *
 from seemps.evolution import *
-from seemps.hamiltonians import make_ti_Hamiltonian, ConstantNNHamiltonian
+from seemps.hamiltonians import make_ti_Hamiltonian
 
 
 def random_wavefunction(n):
