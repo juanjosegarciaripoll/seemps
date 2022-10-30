@@ -43,3 +43,9 @@ class TestMPSSum(MPSStatesFixture):
         D = B - C
         self.assertEqual(D.weights, [0.5, -1])
         self.assertEqual(D.states, [A, C])
+
+    def test_mpssum_to_vector(self):
+        A = MPS(self.product_state.copy())
+        B = MPS(self.product_state.copy())
+        C = MPSSum(weights=[0.5, -1.0], states=[A, B])
+        self.assertTrue(np.all((0.5 * A.to_vector() - B.to_vector()) == C.to_vector()))

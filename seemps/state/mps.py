@@ -487,6 +487,11 @@ class MPSSum:
             )
         raise Exception(f"Cannot multiply MPSSum by {n}")
 
+    def to_vector(self):
+        """Return one-dimensional complex vector of dimension() elements, with
+        the complete wavefunction that is encoded in the MPS."""
+        return sum(wa * A.to_vector() for wa, A in zip(self.weights, self.states))
+
     def toMPS(self, normalize=None):
         from ..truncate.combine import combine
 
