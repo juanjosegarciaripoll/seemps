@@ -125,7 +125,7 @@ class MPS(TensorArray):
         if isinstance(φ, MPS):
             new_weights = [1, 1]
             new_states = [self, φ]
-        elif isinstance(φ, MPSList):
+        elif isinstance(φ, MPSSum):
             new_weights = [1] + list((1) * np.asarray(φ.weights))
             new_states = [self] + φ.states
         else:
@@ -136,7 +136,7 @@ class MPS(TensorArray):
             max_bond_dimension = self.max_bond_dimension
         else:
             max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
-        new_MPSSum = MPSum(
+        return MPSSum(
             weights=new_weights,
             states=new_states,
             maxsweeps=min(self.maxsweeps, φ.maxsweeps),
@@ -144,7 +144,6 @@ class MPS(TensorArray):
             normalize=self.normalize,
             max_bond_dimension=max_bond_dimension,
         )
-        return new_MPSSum
 
     def __sub__(self, φ):
         """Subtract an MPS or an MPSSum from the MPS.
@@ -171,7 +170,7 @@ class MPS(TensorArray):
             max_bond_dimension = self.max_bond_dimension
         else:
             max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
-        new_MPSSum = MPSSum(
+        return MPSSum(
             weights=new_weights,
             states=new_states,
             maxsweeps=min(self.maxsweeps, φ.maxsweeps),
@@ -179,7 +178,6 @@ class MPS(TensorArray):
             normalize=self.normalize,
             max_bond_dimension=max_bond_dimension,
         )
-        return new_MPSSum
 
     def __mul__(self, n):
         """Multiply an MPS quantum state by a scalar n (MPS * n)
@@ -402,7 +400,7 @@ class MPSSum:
         elif isinstance(φ, MPSSum):
             new_weights = self.weights + φ.weights
             new_states = self.states + φ.states
-        new_MPSSum = MPSSum(
+        return MPSSum(
             weights=new_weights,
             states=new_states,
             maxsweeps=maxsweeps,
@@ -410,7 +408,6 @@ class MPSSum:
             normalize=self.normalize,
             max_bond_dimension=max_bond_dimension,
         )
-        return new_MPSSum
 
     def __sub__(self, φ):
         """Subtract an MPS or an MPSSum from the MPSSum.
@@ -437,7 +434,7 @@ class MPSSum:
         elif isinstance(φ, MPSSum):
             new_weights = self.weights + list((-1) * np.asarray(φ.weights))
             new_states = self.states + φ.states
-        new_MPSSum = MPSSum(
+        return MPSSum(
             weights=new_weights,
             states=new_states,
             maxsweeps=maxsweeps,
@@ -445,7 +442,6 @@ class MPSSum:
             normalize=self.normalize,
             max_bond_dimension=max_bond_dimension,
         )
-        return new_MPSSum
 
     def __mul__(self, n):
         """Multiply an MPSSum quantum state by an scalar n (MPSSum * n)
