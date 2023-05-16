@@ -8,12 +8,14 @@ def begin_environment(χ=1):
     return np.eye(χ, dtype=np.float64)
 
 
-def update_left_environment(B, A, rho, operator=None):
+def apply_operator(operator, A):
+    return np.einsum("ji,aib->ajb", operator, A)
+
+
+def update_left_environment(B, A, rho):
     """Extend the left environment with two new tensors, 'B' and 'A' coming
     from the bra and ket of a scalar product. If an operator is provided, it
     is contracted with the ket."""
-    if operator is not None:
-        A = np.einsum("ji,aib->ajb", operator, A)
     if False:
         rho = np.einsum("li,ijk->ljk", rho, A)
         return np.einsum("lmn,lmk->nk", B.conj(), rho)
@@ -25,12 +27,10 @@ def update_left_environment(B, A, rho, operator=None):
         return rho
 
 
-def update_right_environment(B, A, rho, operator=None):
+def update_right_environment(B, A, rho):
     """Extend the left environment with two new tensors, 'B' and 'A' coming
     from the bra and ket of a scalar product. If an operator is provided, it
     is contracted with the ket."""
-    if operator is not None:
-        A = np.einsum("ji,aib->ajb", operator, A)
     if False:
         rho = np.einsum("ijk,kn->ijn", A, rho)
         return np.einsum("ijn,ljn->il", rho, B.conj())
@@ -65,7 +65,7 @@ def expectation1(ψ, O, site):
     """Compute the expectation value <ψ|O|ψ> of an operator O acting on 'site'"""
     ρL = ψ.left_environment(site)
     A = ψ[site]
-    OL = update_left_environment(A, A, ρL, operator=O)
+    OL = update_left_environment(A, apply_operator(O, A), ρL)
     ρR = ψ.right_environment(site)
     return join_environments(OL, ρR)
 
@@ -81,13 +81,12 @@ def expectation2(ψ, O, Q, i, j=None):
         i, j = j, i
     OQL = ψ.left_environment(i)
     for ndx in range(i, j + 1):
-        A = ψ[ndx]
+        opA = A = ψ[ndx]
         if ndx == i:
-            OQL = update_left_environment(A, A, OQL, operator=O)
+            opA = apply_operator(O, A)
         elif ndx == j:
-            OQL = update_left_environment(A, A, OQL, operator=Q)
-        else:
-            OQL = update_left_environment(A, A, OQL)
+            opA = apply_operator(Q, A)
+        OQL = update_left_environment(A, opA, OQL)
     return join_environments(OQL, ψ.right_environment(j))
 
 
@@ -119,7 +118,7 @@ def all_expectation1(ψ, O, tol=0):
     for i in range(ψ.size):
         A = ψ[i]
         ρR = allρR[i]
-        OρL = update_left_environment(A, A, ρL, operator=get_operator(O, i))
+        OρL = update_left_environment(A, apply_operator(get_operator(O, i), A), ρL)
         output[i] = join_environments(OρL, ρR)
         ρL = update_left_environment(A, A, ρL)
     return np.array(output)
@@ -128,7 +127,7 @@ def all_expectation1(ψ, O, tol=0):
 def product_expectation(ψ, operator_list):
     rho = begin_environment()
 
-    for i in range(ψ.size):
-        rho = update_left_environment(ψ[i].conj(), ψ[i], rho, operator=operator_list[i])
+    for ψi, opi in zip(ψ, operator_list):
+        rho = update_left_environment(ψi, apply_operator(opi, ψi), rho)
 
     return end_environment(rho)
