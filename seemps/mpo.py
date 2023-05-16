@@ -1,7 +1,7 @@
 import numpy as np
 import copy
 from .state import MPS, MPSSum, TensorArray, DEFAULT_TOLERANCE
-from .truncate import simplify
+from .truncate import simplify, combine
 from .tools import log
 
 
@@ -46,6 +46,52 @@ class MPO(TensorArray):
         self.normalize = normalize
         self.max_bond_dimension = max_bond_dimension
         self.simplify = simplify
+
+    def __add__(self, A):
+        """Add an MPO, MPOList or MPOSum to the MPO.
+
+        Parameters
+        ----------
+        A    -- MPO, MPOList or MPOSum object.
+
+        Output
+        ------
+        mpo_sum    -- New MPOSum.
+        """
+        if isinstance(A, MPO):
+            new_weights = [1, 1]
+            new_mpos = [self, A]
+        elif isinstance(A, MPOList):
+            new_weights = [1, 1]
+            new_mpos = [self, A]
+        elif isinstance(A, MPOSum):
+            new_weights = [1] + A.weights
+            new_mpos = [self] + A.mpos
+        new_MPOSum = MPOSum(mpos=new_mpos, weights=new_weights)
+        return new_MPOSum
+
+    def __sub__(self, A):
+        """Add an MPO or an MPOSum to the MPO.
+
+        Parameters
+        ----------
+        A    -- MPO or MPOSum object.
+
+        Output
+        ------
+        mpo_sum    -- New MPOSum.
+        """
+        if isinstance(A, MPO):
+            new_weights = [1, -1]
+            new_mpos = [self, A]
+        elif isinstance(A, MPOList):
+            new_weights = [1, -1]
+            new_mpos = [self, A]
+        elif isinstance(A, MPOSum):
+            new_weights = [1] + list((-1) * np.asarray(A.weights))
+            new_mpos = [self] + A.mpos
+        new_MPOSum = MPOSum(mpos=new_mpos, weights=new_weights)
+        return new_MPOSum
 
     def __mul__(self, n):
         """Multiply an MPO quantum state by an scalar n (MPO * n)
@@ -165,6 +211,8 @@ class MPO(TensorArray):
             simplify=self.simplify,
             tolerance=self.tolerance,
             normalize=self.normalize,
+            maxsweeps=self.maxsweeps,
+            max_bond_dimension=self.max_bond_dimension,
         )
 
 
@@ -188,7 +236,7 @@ class MPOList(object):
         self,
         mpos,
         simplify=False,
-        maxsweeps=4,
+        maxsweeps=16,
         tolerance=DEFAULT_TOLERANCE,
         normalize=False,
         max_bond_dimension=None,
@@ -199,6 +247,52 @@ class MPOList(object):
         self.normalize = normalize
         self.max_bond_dimension = max_bond_dimension
         self.simplify = simplify
+
+    def __add__(self, A):
+        """Add an MPO, MPOList or MPOSum to the MPO.
+
+        Parameters
+        ----------
+        A    -- MPO, MPOList or MPOSum object.
+
+        Output
+        ------
+        mpo_sum    -- New MPOSum.
+        """
+        if isinstance(A, MPO):
+            new_weights = [1, 1]
+            new_mpos = [self, A]
+        elif isinstance(A, MPOList):
+            new_weights = [1, 1]
+            new_mpos = [self, A]
+        elif isinstance(A, MPOSum):
+            new_weights = [1] + A.weights
+            new_mpos = [self] + A.mpos
+        new_MPOSum = MPOSum(mpos=new_mpos, weights=new_weights)
+        return new_MPOSum
+
+    def __sub__(self, A):
+        """Add an MPO or an MPOSum to the MPO.
+
+        Parameters
+        ----------
+        A    -- MPO or MPOSum object.
+
+        Output
+        ------
+        mpo_sum    -- New MPOSum.
+        """
+        if isinstance(A, MPO):
+            new_weights = [1, -1]
+            new_mpos = [self, A]
+        elif isinstance(A, MPOList):
+            new_weights = [1, -1]
+            new_mpos = [self, A]
+        elif isinstance(A, MPOSum):
+            new_weights = [1] + list((-1) * np.asarray(A.weights))
+            new_mpos = [self] + A.mpos
+        new_MPOSum = MPOSum(mpos=new_mpos, weights=new_weights)
+        return new_MPOSum
 
     def __mul__(self, n):
         """Multiply an MPOList quantum state by an scalar n (MPOList * n).
@@ -213,8 +307,12 @@ class MPOList(object):
         """
         if not np.isscalar(n):
             raise Exception(f"Cannot multiply MPOList by {n}")
-        mpo_mult = copy.deepcopy(self)
-        mpo_mult.mpos[0]._data[0] = n * mpo_mult.mpos[0]._data[0]
+        if isinstance(self.mpos[0], MPOSum):
+            mpo_mult = copy.deepcopy(self)
+            mpo_mult.mpos[0] = n * mpo_mult.mpos[0]
+        else:
+            mpo_mult = copy.deepcopy(self)
+            mpo_mult.mpos[0]._data[0] = n * mpo_mult.mpos[0]._data[0]
         return mpo_mult
 
     def __rmul__(self, n):
@@ -230,8 +328,12 @@ class MPOList(object):
         """
         if not np.isscalar(n):
             raise Exception(f"Cannot multiply MPOList by {n}")
-        mpo_mult = copy.deepcopy(self)
-        mpo_mult.mpos[0]._data[0] = n * mpo_mult.mpos[0]._data[0]
+        if isinstance(self.mpos[0], MPOSum):
+            mpo_mult = copy.deepcopy(self)
+            mpo_mult.mpos[0] = n * mpo_mult.mpos[0]
+        else:
+            mpo_mult = copy.deepcopy(self)
+            mpo_mult.mpos[0]._data[0] = n * mpo_mult.mpos[0]._data[0]
         return mpo_mult
 
     def tomatrix(self):
@@ -286,4 +388,204 @@ class MPOList(object):
             simplify=self.simplify,
             tolerance=self.tolerance,
             normalize=self.normalize,
+            maxsweeps=self.maxsweeps,
+            max_bond_dimension=self.max_bond_dimension,
+        )
+
+
+class MPOSum(object):
+    """MPO (Matrix Product Operator) sum.
+
+    This a sum of MPOs acting on an MPS.
+
+    Parameters
+    ----------
+    mpos  -- A list of the MPOs.
+    weights    -- A list of the scalars multiplying each MPO.
+    simplify  -- Use the simplification algorithm after applying the MPO
+                 Defaults to False.
+    maxsweeps, tolerance, normalize, max_bond_dimension -- arguments used by
+                 the simplification routine, if simplify is True.
+    """
+
+    __array_priority__ = 10000
+
+    def __init__(
+        self,
+        mpos,
+        weights=None,
+        simplify=False,
+        maxsweeps=16,
+        tolerance=DEFAULT_TOLERANCE,
+        normalize=False,
+        max_bond_dimension=None,
+    ):
+        self.mpos = mpos
+        if weights is None:
+            weights = list(np.ones(len(self.mpos)))
+        self.weights = weights
+        self.maxsweeps = maxsweeps
+        self.tolerance = tolerance
+        self.normalize = normalize
+        self.max_bond_dimension = max_bond_dimension
+        self.simplify = simplify
+
+    def __add__(self, A):
+        """Add an MPO or an MPOSum from the MPOSum.
+
+        Parameters
+        ----------
+        A    -- MPO or MPOSum object.
+
+        Output
+        ------
+        mpo_sum    -- New MPOSum.
+        """
+        if isinstance(A, MPO):
+            new_weights = self.weights + [1]
+            new_mpos = self.mpos + [A]
+        elif isinstance(A, MPOList):
+            new_weights = self.weights + [1]
+            new_mpos = self.mpos + [A]
+        elif isinstance(A, MPOSum):
+            new_weights = self.weights + A.weights
+            new_mpos = self.mpos + A.mpos
+        new_MPOSum = MPOSum(mpos=new_mpos, weights=new_weights)
+        return new_MPOSum
+
+    def __sub__(self, A):
+        """Subtract an MPO, MPOList or MPOSum from the MPOSum.
+
+        Parameters
+        ----------
+        A    -- MPO, MPOList or MPOSum object.
+
+        Output
+        ------
+        mpo_sum    -- New MPOSum.
+        """
+        if isinstance(A, MPO):
+            new_weights = self.weights + [-1]
+            new_mpos = self.mpos + [A]
+        elif isinstance(A, MPOList):
+            new_weights = self.weights + [-1]
+            new_mpos = self.mpos + [A]
+        elif isinstance(A, MPOSum):
+            new_weights = self.weights + list((-1) * np.asarray(A.weights))
+            new_mpos = self.mpos + A.mpos
+        new_MPOSum = MPOSum(mpos=new_mpos, weights=new_weights)
+        return new_MPOSum
+
+    def __mul__(self, n):
+        """Multiply an MPOSum quantum state by an scalar n (MPOSum * n)
+
+        Parameters
+        ----------
+        n    -- Scalar to multiply the MPOSum by.
+
+        Output
+        ------
+        mps    -- New mps.
+        """
+        if not np.isscalar(n):
+            raise Exception(f"Cannot multiply MPOSum by {n}")
+        new_weights = [n * weight for weight in self.weights]
+        new_MPOSum = MPOSum(
+            mpos=self.mpos,
+            weights=new_weights,
+            maxsweeps=self.maxsweeps,
+            tolerance=self.tolerance,
+            normalize=self.normalize,
+            max_bond_dimension=self.max_bond_dimension,
+        )
+        return new_MPOSum
+
+    def __rmul__(self, n):
+        """Multiply an MPOSum quantum state by an scalar n (n * MPOSum).
+
+        Parameters
+        ----------
+        n    -- Scalar to multiply the MPOSum by.
+
+        Output
+        ------
+        mps    -- New mps.
+        """
+        if not np.isscalar(n):
+            raise Exception(f"Cannot multiply MPOSum by {n}")
+        new_weights = [n * weight for weight in self.weights]
+        new_MPOSum = MPOSum(
+            mpos=self.mpos,
+            weights=new_weights,
+            maxsweeps=self.maxsweeps,
+            tolerance=self.tolerance,
+            normalize=self.normalize,
+            max_bond_dimension=self.max_bond_dimension,
+        )
+        return new_MPOSum
+
+    def tomatrix(self):
+        """Return the matrix representation of this MPO."""
+        A = self.weights[0] * self.mpos[0].tomatrix()
+        for i, mpo in enumerate(self.mpos[1:]):
+            A = A + self.weights[i + 1] * mpo.tomatrix()
+        return A
+
+    def apply(self, b):
+        """Implement multiplication A @ b between an MPOSum 'A' and
+        a Matrix Product State 'b'."""
+        if isinstance(b, MPSSum):
+            b = b.toMPS()
+        states = []
+        for mpo in self.mpos:
+            state = mpo.apply(b)
+            err = 0.0
+            if self.simplify and not mpo.simplify:
+                state, err, _ = simplify(
+                    state,
+                    maxsweeps=self.maxsweeps,
+                    tolerance=self.tolerance,
+                    normalize=self.normalize,
+                    max_bond_dimension=self.max_bond_dimension,
+                )
+            states.append(state)
+            log(f"Total error after applying MPOList {b.error()}, incremented by {err}")
+        state, _ = combine(
+            self.weights,
+            states,
+            maxsweeps=self.maxsweeps,
+            tolerance=self.tolerance,
+            normalize=self.normalize,
+            max_bond_dimension=self.max_bond_dimension,
+        )
+        return state
+
+    def __matmul__(self, b):
+        """Implement multiplication A @ b between an MPOSum 'A' and
+        a Matrix Product State 'b'."""
+        return self.apply(b)
+
+    def extend(self, L, sites=None, dimensions=2):
+        """Enlarge an MPOSum so that it acts on a larger Hilbert space with 'L' sites.
+
+        Parameters
+        ----------
+        L          -- The new size
+        dimensions -- If it is an integer, it is the dimension of the new sites.
+                      If it is a list, it is the dimension of all sites.
+        sites      -- Where to place the tensors of the original MPO.
+
+        Output
+        ------
+        mpo        -- A new MPOSum.
+        """
+        data = [mpo.extend(L, sites=sites, dimensions=dimensions) for mpo in self.mpos]
+        return MPOSum(
+            mpos=data,
+            weights=self.weights,
+            simplify=self.simplify,
+            tolerance=self.tolerance,
+            normalize=self.normalize,
+            maxsweeps=self.maxsweeps,
+            max_bond_dimension=self.max_bond_dimension,
         )
