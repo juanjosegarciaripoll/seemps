@@ -125,12 +125,13 @@ def simplify(
 
     base_error = ψ.error()
     φ = state.CanonicalMPS(ψ, center=start, tolerance=tolerance, normalize=normalize)
+    φ.maxsweeps = maxsweeps
+    φ.max_bond_dimension = max_bond_dimension
     if max_bond_dimension == 0 and tolerance <= 0:
         return φ
 
     form = AntilinearForm(φ, ψ, center=start)
     norm_ψsqr = scprod(ψ, ψ).real
-    err = 1.0
     log(
         f"SIMPLIFY ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps, with tolerance {tolerance}."
     )
@@ -169,10 +170,9 @@ def simplify(
             φ[last] = B = B / norm_φsqr
             norm_φsqr = 1.0
         scprod_φψ = np.vdot(B, form.tensor1site())
-        old_err = err
         err = 2 * abs(1.0 - scprod_φψ.real / np.sqrt(norm_φsqr * norm_ψsqr))
-        log(f"sweep={sweep}, rel.err.={err}, old err.={old_err}, |φ|={norm_φsqr**0.5}")
-        if err < tolerance or err > old_err:
+        log(f"sweep={sweep}, rel.err.={err}, |φ|={norm_φsqr**0.5}")
+        if err < tolerance:
             log("Stopping, as tolerance reached")
             break
         direction = -direction
