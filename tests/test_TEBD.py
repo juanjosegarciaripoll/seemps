@@ -1,5 +1,6 @@
 import unittest
 import scipy.sparse as sp
+from scipy.sparse.linalg import expm_multiply
 from seemps.state import CanonicalMPS
 from seemps.tools import *
 from .tools import *
@@ -45,7 +46,7 @@ class TestTEBD_sweep(unittest.TestCase):
         ψwave = random_wavefunction(N)
         print(seemps.state.wavepacket(ψwave).to_vector())
         HMat = self.hopping_model_Trotter_matrix(N, tt, ω)
-        ψwave_final = sp.linalg.expm_multiply(+1j * dt * HMat, ψwave)
+        ψwave_final = expm_multiply(+1j * dt * HMat, ψwave)
         print(seemps.state.wavepacket(ψwave_final).to_vector())
         print(HMat.todense())
         #
@@ -85,7 +86,7 @@ class TestTEBD_sweep(unittest.TestCase):
         ψwave = np.exp(-((xx - x0) ** 2) / w0**2 + 1j * k0 * xx)
         ψwave = ψwave / np.linalg.norm(ψwave)
         Hmat = self.hopping_model_matrix(N, t, ω)
-        ψwave_final = sp.linalg.expm_multiply(-1j * dt * Nt * Hmat, ψwave)
+        ψwave_final = expm_multiply(-1j * dt * Nt * Hmat, ψwave)
         #
         # Trotter solution
         ψmps = CanonicalMPS(seemps.state.wavepacket(ψwave))
@@ -120,7 +121,7 @@ class TestTEBD_sweep(unittest.TestCase):
         ψwave = np.exp(-((xx - x0) ** 2) / w0**2 + 1j * k0 * xx)
         ψwave = ψwave / np.linalg.norm(ψwave)
         Hmat = self.hopping_model_matrix(N, t, ω)
-        ψwave_final = sp.linalg.expm_multiply(-1j * dt * Nt * Hmat, ψwave)
+        ψwave_final = expm_multiply(-1j * dt * Nt * Hmat, ψwave)
         #
         # Trotter evolution
         H = self.hopping_model(N, t, ω)
