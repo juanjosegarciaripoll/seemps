@@ -45,8 +45,7 @@ def write_mps(parent: Union[h5py.File, h5py.Group], name: str, M: MPS) -> None:
     g = parent.create_group(name)
     g.attrs["type"] = "MPS"
     g.attrs["version"] = 1
-    N = len(M)
-    g.create_dataset("length", shape=1, data=N)
+    g.create_dataset("length", data=len(M))
     for i, A in enumerate(M):
         g.create_dataset(f"MPS[{i}]", shape=A.shape, data=A)
 
