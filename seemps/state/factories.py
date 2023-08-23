@@ -127,14 +127,16 @@ def AKLT(n, mps=True):
     return MPS(data)
 
 
-def random(d, N, D=1):
+def random(d, N, D=1, truncate=True):
     """Create a random state with 'N' elements of dimension 'd' and bond
     dimension 'D'."""
     mps = [1] * N
     DR = 1
+    if N > 60:
+        truncate = False
     for i in range(N):
         DL = DR
-        if N > 60 and i != N - 1:
+        if not truncate and i != N - 1:
             DR = D
         else:
             DR = np.min([DR * d, D, d ** (N - i - 1)])
