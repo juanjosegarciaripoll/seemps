@@ -300,11 +300,11 @@ class MPS(TensorArray):
             assert len(sites) == self.size
 
         data = [None] * L
-        for (ndx, A) in zip(sites, self):
+        for ndx, A in zip(sites, self):
             data[ndx] = A
             dimensions[ndx] = A.shape[1]
         D = 1
-        for (i, A) in enumerate(data):
+        for i, A in enumerate(data):
             if A is None:
                 d = dimensions[i]
                 A = np.zeros((D, d, D))

@@ -9,3 +9,4 @@ from .test_truncate import *
 from .test_mpssum import *
 from .test_TEBD import *
 from .test_qft import *
+from .test_hdf5 import *

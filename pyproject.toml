@@ -1,19 +1,14 @@
 [build-system]
-requires = [
-    "setuptools"
-]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "SeeMPS"
 version = "1.0"
-dependencies = [
-    "numpy",
-    "scipy"
-]
+dependencies = ["numpy", "scipy", "h5py"]
 
 [project.urls]
 "Homepage" = "https://github.com/juanjosegarciaripoll/seemps"
 
 [tool.pytest.ini_options]
-testpaths=["tests"]
+testpaths = ["tests"]

@@ -2,6 +2,7 @@ import numpy as np
 import scipy.sparse as sp
 from seemps.state import MPS
 import seemps.state
+import unittest
 
 
 def similar(A, B, **kwdargs):
@@ -57,3 +58,9 @@ def run_over_random_mps(function, d=2, N=10, D=10, repeats=10):
     for nqubits in range(1, N + 1):
         for _ in range(repeats):
             function(seemps.state.random(d, N, D))
+
+
+class MPSTestCase(unittest.TestCase):
+    def assertSimilar(self, a, b):
+        if not similar(a, b):
+            raise AssertionError("Different objects:\na = {a}\nb = {b}")
