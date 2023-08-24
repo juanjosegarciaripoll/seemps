@@ -56,7 +56,7 @@ def read_mps(parent: Union[h5py.File, h5py.Group], name: str) -> MPS:
         N = g["length"][()]
         # rlim = g["rlim"][()]
         # llim = g["llim"][()]
-        v = [g[f"MPS{i}"][()] for i in range(N)]
+        v = [g[f"MPS[{i}]"][()] for i in range(N)]
     else:
         raise Exception(f"Unable to read MPS from HDF5 group {parent}")
     return MPS(v)
