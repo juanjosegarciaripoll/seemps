@@ -321,7 +321,7 @@ class MPS(TensorArray):
         )
 
 
-def _mps2vector(data):
+def _mps2vector(data: list[np.ndarray]) -> np.ndarray:
     #
     # Input:
     #  - data: list of tensors for the MPS (unchecked)
@@ -332,15 +332,14 @@ def _mps2vector(data):
     # 'D' is the dimension of the physical subsystems up to this point and
     # 'β' is the last uncontracted internal index.
     #
-    Ψ = np.ones((1, 1))
+    Ψ = [1.0]
     D = 1
     for A in data:
         α, d, β = A.shape
         # Ψ = np.einsum("Da,akb->Dkb", Ψ, A)
-        Ψ = np.dot(Ψ, A.reshape(α, d * β))
-        D = D * d
-        Ψ = Ψ.reshape(D, β)
-    return Ψ.flatten()
+        D *= d
+        Ψ = np.dot(Ψ, A.reshape(α, d * β)).reshape(D, β)
+    return Ψ.reshape(-1)
 
 
 class MPSSum:
