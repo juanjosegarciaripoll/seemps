@@ -11,7 +11,7 @@ class TestSampleStates(unittest.TestCase):
         c = np.array([3.0, 5.0])
 
         # Test a product state MPS of size 3
-        state1 = product(a, length=3)
+        state1 = product_state(a, length=3)
         tensor1 = np.reshape(a, (1, 2, 1))
         #
         # Test whether the MPS has the right size and dimension
@@ -30,7 +30,7 @@ class TestSampleStates(unittest.TestCase):
 
         # Test a product state with different physical dimensions on
         # even and odd sites.
-        state2 = product([a, b, c])
+        state2 = product_state([a, b, c])
         tensor2a = np.reshape(a, (1, 2, 1))
         tensor2b = np.reshape(b, (1, 3, 1))
         tensor2c = np.reshape(c, (1, 2, 1))

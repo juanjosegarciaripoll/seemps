@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.linalg
 from . import state
-from .state import DEFAULT_TOLERANCE
+from .state import TruncationStrategy, DEFAULT_TRUNCATION
 
 
 def pairwise_unitaries(H, δt):
@@ -13,7 +13,7 @@ def pairwise_unitaries(H, δt):
     ]
 
 
-def apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE):
+def apply_pairwise_unitaries(U, ψ, start, direction, truncation: TruncationStrategy):
     """Apply the list of pairwise unitaries U onto an MPS state ψ in
     canonical form. Unitaries are applied onto pairs of sites (i,i+1),
     (i+2,i+3), etc. We start at 'i=start' and move in increasing or
@@ -35,9 +35,9 @@ def apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE):
         for j in range(start, ψ.size - 1, +2):
             # print('Updating sites ({}, {}), center={}, direction={}'.format(j, j+1, ψ.center, direction))
             AA = np.einsum("ijk,klm,nrjl -> inrm", ψ[j], ψ[j + 1], U[j])
-            ψ.update_2site(AA, j, +1, tolerance=tol)
+            ψ.update_2site(AA, j, +1, truncation)
             if j < newstart:
-                ψ.update_canonical(ψ[j + 1], +1, tolerance=tol)
+                ψ.update_canonical(ψ[j + 1], +1, truncation)
             # print("New center= {}, new direction = {}".format(ψ.center, direction))
         return newstart, -1
     else:
@@ -45,9 +45,9 @@ def apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE):
         for j in range(start, -1, -2):
             # print('Updating sites ({}, {}), center={}, direction={}'.format(j, j+1, ψ.center, direction))
             AA = np.einsum("ijk,klm,nrjl -> inrm", ψ[j], ψ[j + 1], U[j])
-            ψ.update_2site(AA, j, -1, tolerance=tol)
+            ψ.update_2site(AA, j, -1, truncation)
             if j > 0:
-                ψ.update_canonical(ψ[j], -1, tolerance=tol)
+                ψ.update_canonical(ψ[j], -1, truncation)
             # print("New center= {}, new direction = {}".format(ψ.center, direction))
         return newstart, +1
 
@@ -56,7 +56,15 @@ class TEBD_evolution(object):
     """TEBD_evolution is a class that continuously updates a quantum state ψ
     evolving it with a Hamiltonian H over intervals of time dt."""
 
-    def __init__(self, ψ, H, dt, timesteps=1, order=1, tol=DEFAULT_TOLERANCE):
+    def __init__(
+        self,
+        ψ,
+        H,
+        dt,
+        timesteps=1,
+        order=1,
+        truncation: TruncationStrategy = DEFAULT_TRUNCATION,
+    ):
         """Create a TEBD algorithm to evolve a quantum state ψ with a fixed
         Hamiltonian H.
 
@@ -72,7 +80,7 @@ class TEBD_evolution(object):
         self.dt = float(dt)
         self.timesteps = timesteps
         self.order = order
-        self.tolerance = tol
+        self.truncation = truncation
         self.Udt = pairwise_unitaries(H, dt)
         if order == 2:
             self.Udt2 = pairwise_unitaries(H, dt / 2)
@@ -100,21 +108,21 @@ class TEBD_evolution(object):
             if self.order == 1:
                 # print("Sweep in direction {} and at starting site {}".format(self.direction, self.start))
                 self.start, self.direction = apply_pairwise_unitaries(
-                    self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance
+                    self.Udt, self.ψ, self.start, self.direction, self.truncation
                 )
                 # print("Sweep in direction {} and at starting site {}".format(self.direction, self.start))
                 self.start, self.direction = apply_pairwise_unitaries(
-                    self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance
+                    self.Udt, self.ψ, self.start, self.direction, self.truncation
                 )
             else:
                 self.start, self.direction = apply_pairwise_unitaries(
-                    self.Udt2, self.ψ, self.start, self.direction, tol=self.tolerance
+                    self.Udt2, self.ψ, self.start, self.direction, self.truncation
                 )
                 self.start, self.direction = apply_pairwise_unitaries(
-                    self.Udt, self.ψ, self.start, self.direction, tol=self.tolerance
+                    self.Udt, self.ψ, self.start, self.direction, self.truncation
                 )
                 self.start, self.direction = apply_pairwise_unitaries(
-                    self.Udt2, self.ψ, self.start, self.direction, tol=self.tolerance
+                    self.Udt2, self.ψ, self.start, self.direction, self.truncation
                 )
 
             # print("New direction = {} and new starting site = {}".format(self.direction, self.start))

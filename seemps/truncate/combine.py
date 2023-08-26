@@ -2,7 +2,7 @@ import numpy as np
 from ..state.mps import MPS
 from ..state.canonical_mps import CanonicalMPS
 from ..expectation import scprod
-from ..state.truncation import DEFAULT_TOLERANCE
+from ..state import DEFAULT_TRUNCATION, TruncationStrategy, DEFAULT_TOLERANCE
 from ..tools import log
 from .simplify import AntilinearForm
 
@@ -53,9 +53,9 @@ def combine(
     guess=None,
     maxsweeps=4,
     direction=+1,
-    tolerance=DEFAULT_TOLERANCE,
-    normalize=True,
-    max_bond_dimension=None,
+    tolerance: float = DEFAULT_TOLERANCE,
+    max_bond_dimension: int = None,
+    normalize: bool = True,
 ):
     """Simplify an MPS ψ transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
@@ -81,7 +81,7 @@ def combine(
         np.sqrt(np.abs(α)) * np.sqrt(ψ.error()) for α, ψ in zip(weights, states)
     )
     start = 0 if direction > 0 else guess.size - 1
-    φ = CanonicalMPS(guess, center=start, tolerance=tolerance)
+    φ = CanonicalMPS(guess, center=start, tolerance=tolerance, normalize=normalize)
     err = norm_ψsqr = multi_norm_squared(weights, states)
     if norm_ψsqr < tolerance:
         return MPS([np.zeros((1, P.shape[1], 1)) for P in φ]), 0
@@ -91,15 +91,19 @@ def combine(
 
     size = φ.size
     forms = [AntilinearForm(φ, ψ, center=start) for ψ in states]
+    truncation = TruncationStrategy(
+        method=TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
+        tolerance=tolerance,
+        max_bond_dimension=max_bond_dimension,
+        normalize=normalize,
+    )
     for sweep in range(maxsweeps):
         if direction > 0:
             for n in range(0, size - 1):
                 tensor = sum(
                     α * f.tensor2site(direction) for α, f in zip(weights, forms)
                 )
-                φ.update_2site(
-                    tensor, n, direction, tolerance, normalize, max_bond_dimension
-                )
+                φ.update_2site(tensor, n, direction, truncation)
                 for f in forms:
                     f.update(direction)
         else:
@@ -107,9 +111,7 @@ def combine(
                 tensor = sum(
                     α * f.tensor2site(direction) for α, f in zip(weights, forms)
                 )
-                φ.update_2site(
-                    tensor, n, direction, tolerance, normalize, max_bond_dimension
-                )
+                φ.update_2site(tensor, n, direction, truncation)
                 for f in forms:
                     f.update(direction)
             last = 0

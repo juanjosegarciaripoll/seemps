@@ -30,7 +30,7 @@ class TestExpectation(unittest.TestCase):
             # scalar product is the projection onto the state
             for n, bits in enumerate(conf):
                 proj = ψwave[n]
-                ϕmps = seemps.state.product(map(bit2state, bits[-nbits:]))
+                ϕmps = seemps.state.product_state(map(bit2state, bits[-nbits:]))
                 self.assertEqual(proj, scprod(ϕmps, ψmps))
 
     def test_norm_standard(self):

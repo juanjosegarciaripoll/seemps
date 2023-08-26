@@ -1,8 +1,11 @@
+from typing import Optional, Union
 import numpy as np
 from .mps import MPS
 
 
-def product(vectors, length=None):
+def product_state(
+    vectors: Union[np.ndarray, list[np.ndarray]], length: Optional[int] = None
+) -> MPS:
     #
     # If `length` is `None`, `vectors` will be a list of complex vectors
     # representing the elements of the product state.
@@ -20,7 +23,7 @@ def product(vectors, length=None):
         return MPS([to_tensor(v) for v in vectors])
 
 
-def GHZ(n):
+def GHZ(n: int) -> MPS:
     """Return a GHZ state with `n` qubits in MPS form."""
     a = np.zeros((2, 2, 2))
     b = a.copy()
@@ -34,7 +37,7 @@ def GHZ(n):
     return MPS(data)
 
 
-def W(n):
+def W(n: int) -> MPS:
     """Return a W with one excitation over `n` qubits."""
     a = np.zeros((2, 2, 2))
     a[0, 0, 0] = 1.0
@@ -46,7 +49,7 @@ def W(n):
     return MPS(data)
 
 
-def wavepacket(ψ):
+def wavepacket(ψ: np.ndarray) -> MPS:
     #
     # Create an MPS for a spin 1/2 system with the given amplitude
     # of the excited state on each site. In other words, we create
@@ -81,7 +84,7 @@ def wavepacket(ψ):
     return MPS(data)
 
 
-def graph(n, mps=True):
+def graph(n: int) -> MPS:
     """Create a one-dimensional graph state of `n` qubits."""
     # Choose entangled pair state as : |00>+|11>
     # Apply Hadamard H on the left virtual spins (which are the right spins of the entangled bond pairs)
@@ -104,7 +107,7 @@ def graph(n, mps=True):
 # free virtual spins at both ends are taken to be zero
 
 
-def AKLT(n, mps=True):
+def AKLT(n: int) -> MPS:
     """Return an AKL state with `n` spin-1 particles."""
     assert n > 1
     # Choose entangled pair state as : |00>+|11>
@@ -127,7 +130,7 @@ def AKLT(n, mps=True):
     return MPS(data)
 
 
-def random(d, N, D=1, truncate=True):
+def random(d: int, N: int, D: int = 1, truncate: bool = True) -> MPS:
     """Create a random state with 'N' elements of dimension 'd' and bond
     dimension 'D'."""
     mps = [1] * N
@@ -144,11 +147,11 @@ def random(d, N, D=1, truncate=True):
     return MPS(mps)
 
 
-def gaussian(n, x0, w0, k0, mps=True):
+def gaussian(n: int, x0: float, w0: float, k0: float) -> MPS:
     #
     # Return a W state with `n` components in MPS form or
     # in vector form
     #
-    xx = np.arange(n, dtype=complex)
-    coefs = np.exp(-((xx - x0) ** 2) / w0**2 + 1j * k0 * xx, dtype=complex)
+    xx = np.arange(n)
+    coefs = np.exp(-((xx - x0) ** 2) / w0**2 + 1j * k0 * xx)
     return wavepacket(coefs / np.linalg.norm(coefs))

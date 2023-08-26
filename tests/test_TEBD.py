@@ -1,7 +1,7 @@
 import unittest
 import scipy.sparse as sp
 from scipy.sparse.linalg import expm_multiply
-from seemps.state import CanonicalMPS
+from seemps.state import CanonicalMPS, DEFAULT_TRUNCATION
 from seemps.tools import *
 from .tools import *
 from seemps.evolution import *
@@ -56,7 +56,7 @@ class TestTEBD_sweep(unittest.TestCase):
         ψ = CanonicalMPS(seemps.state.wavepacket(ψwave))
         start = 0
         direction = 1
-        apply_pairwise_unitaries(U, ψ, start, direction, tol=DEFAULT_TOLERANCE)
+        apply_pairwise_unitaries(U, ψ, start, direction, truncation=DEFAULT_TRUNCATION)
         print(ψ.to_vector())
         print(np.abs(seemps.state.wavepacket(ψwave_final).to_vector() - ψ.to_vector()))
 
@@ -92,7 +92,7 @@ class TestTEBD_sweep(unittest.TestCase):
         ψmps = CanonicalMPS(seemps.state.wavepacket(ψwave))
         H = self.hopping_model(N, t, ω)
         ψmps = TEBD_evolution(
-            ψmps, H, dt, timesteps=Nt, order=1, tol=DEFAULT_TOLERANCE
+            ψmps, H, dt, timesteps=Nt, order=1, truncation=DEFAULT_TRUNCATION
         ).evolve()
 
         self.assertTrue(
@@ -127,7 +127,7 @@ class TestTEBD_sweep(unittest.TestCase):
         H = self.hopping_model(N, t, ω)
         ψmps = CanonicalMPS(seemps.state.wavepacket(ψwave))
         ψmps = TEBD_evolution(
-            ψmps, H, dt, timesteps=Nt, order=2, tol=DEFAULT_TOLERANCE
+            ψmps, H, dt, timesteps=Nt, order=2, truncation=DEFAULT_TRUNCATION
         ).evolve()
         self.assertTrue(
             similar(

@@ -33,7 +33,7 @@ cdef class TruncationStrategy:
         self.normalize = normalize
 
     def set_normalization(self, normalize: bool) -> TruncationStrategy:
-        return TruncationStrategy(self.tolerance, self.max_bond_dimension, normalize)
+        return TruncationStrategy(self.method, self.tolerance, self.max_bond_dimension, normalize)
 
     def get_tolerance(self) -> float:
         return self.tolerance
@@ -44,10 +44,12 @@ cdef class TruncationStrategy:
     def get_normalize_flag(self) -> bool:
         return self.normalize
 
-DEFAULT_TOLERANCE = TruncationStrategy(method = TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
-                                       tolerance = np.finfo(np.float64).eps,
-                                       max_bond_dimension = np.iinfo(int).max,
-                                       normalize = False)
+DEFAULT_TOLERANCE = np.finfo(np.float64).eps
+
+DEFAULT_TRUNCATION = TruncationStrategy(method = TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
+                                        tolerance = np.finfo(np.float64).eps,
+                                        max_bond_dimension = np.iinfo(int).max,
+                                        normalize = False)
 
 NO_TRUNCATION = TruncationStrategy(method = TruncationStrategy.DO_NOT_TRUNCATE)
 

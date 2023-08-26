@@ -2,7 +2,7 @@ import copy
 import numpy as np
 from .. import expectation
 from .schmidt import vector2mps
-from .truncation import DEFAULT_TOLERANCE
+from .core import DEFAULT_TOLERANCE
 import warnings
 
 
@@ -103,7 +103,7 @@ class MPS(TensorArray):
 
     def dimension(self):
         """Return the total size of the Hilbert space in which this MPS lives."""
-        return np.product([a.shape[1] for a in self._data])
+        return np.prod([a.shape[1] for a in self._data])
 
     def to_vector(self):
         """Return one-dimensional complex vector of dimension() elements, with

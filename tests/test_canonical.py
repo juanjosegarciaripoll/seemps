@@ -1,7 +1,7 @@
 import unittest
 from .tools import *
 from seemps.state import (
-    DEFAULT_TOLERANCE,
+    DEFAULT_TRUNCATION,
     CanonicalMPS,
 )
 from seemps.state.canonical_mps import _update_in_canonical_form, _canonicalize
@@ -14,17 +14,14 @@ class TestCanonicalForm(unittest.TestCase):
         # is an approximate isometry.
         #
         def ok(Ψ, normalization=False):
+            strategy = DEFAULT_TRUNCATION.set_normalization(normalization)
             for i in range(Ψ.size - 1):
                 ξ = Ψ.copy()
-                _update_in_canonical_form(
-                    ξ, ξ[i], i, +1, DEFAULT_TOLERANCE, normalization
-                )
+                _update_in_canonical_form(ξ, ξ[i], i, +1, strategy)
                 self.assertTrue(approximateIsometry(ξ[i], +1))
             for i in range(1, Ψ.size):
                 ξ = Ψ.copy()
-                _update_in_canonical_form(
-                    ξ, ξ[i], i, -1, DEFAULT_TOLERANCE, normalization
-                )
+                _update_in_canonical_form(ξ, ξ[i], i, -1, strategy)
                 self.assertTrue(approximateIsometry(ξ[i], -1))
 
         run_over_random_mps(ok)
@@ -36,10 +33,10 @@ class TestCanonicalForm(unittest.TestCase):
         # that is in canonical form and represents the same state, up to
         # a reasonable tolerance.
         #
-        def ok(Ψ, normalization=False):
+        def ok(Ψ):
             for center in range(Ψ.size):
                 ξ = Ψ.copy()
-                _canonicalize(ξ, center, DEFAULT_TOLERANCE, normalization)
+                _canonicalize(ξ, center, DEFAULT_TRUNCATION)
                 #
                 # All sites to the left and to the right are isometries
                 #

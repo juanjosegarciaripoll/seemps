@@ -1,6 +1,6 @@
 import numpy as np
 from .. import state
-from ..state.truncation import DEFAULT_TOLERANCE
+from ..state import DEFAULT_TOLERANCE, DEFAULT_TRUNCATION, TruncationStrategy
 from ..tools import log, mydot
 from ..expectation import (
     begin_environment,
@@ -134,29 +134,21 @@ def simplify(
     log(
         f"SIMPLIFY ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps, with tolerance {tolerance}."
     )
+    truncation = TruncationStrategy(
+        method=TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
+        tolerance=tolerance,
+        max_bond_dimension=max_bond_dimension,
+        normalize=normalize,
+    )
     for sweep in range(maxsweeps):
         if direction > 0:
             for n in range(0, size - 1):
-                φ.update_2site(
-                    form.tensor2site(direction),
-                    n,
-                    direction,
-                    tolerance,
-                    normalize,
-                    max_bond_dimension,
-                )
+                φ.update_2site(form.tensor2site(direction), n, direction, truncation)
                 form.update(direction)
             last = size - 1
         else:
             for n in reversed(range(0, size - 1)):
-                φ.update_2site(
-                    form.tensor2site(direction),
-                    n,
-                    direction,
-                    tolerance,
-                    normalize,
-                    max_bond_dimension,
-                )
+                φ.update_2site(form.tensor2site(direction), n, direction, truncation)
                 form.update(direction)
             last = 0
         #

@@ -1,11 +1,11 @@
 import numpy as np
 from .mps import MPS
 from . import schmidt
-from .truncation import DEFAULT_TOLERANCE
+from .core import TruncationStrategy, DEFAULT_TOLERANCE, DEFAULT_TRUNCATION
 from .. import expectation
 
 
-def _update_in_canonical_form(Ψ, A, site, direction, tolerance, normalize):
+def _update_in_canonical_form(Ψ, A, site, direction, truncation: TruncationStrategy):
     """Insert a tensor in canonical form into the MPS Ψ at the given site.
     Update the neighboring sites in the process.
 
@@ -25,7 +25,7 @@ def _update_in_canonical_form(Ψ, A, site, direction, tolerance, normalize):
             Ψ[site] = A
             err = 0.0
         else:
-            Ψ[site], sV, err = schmidt.ortho_right(A, tolerance, normalize)
+            Ψ[site], sV, err = schmidt.ortho_right(A, truncation)
             site += 1
             Ψ[site] = np.einsum("ab,bic->aic", sV, Ψ[site])
     else:
@@ -33,19 +33,19 @@ def _update_in_canonical_form(Ψ, A, site, direction, tolerance, normalize):
             Ψ[site] = A
             err = 0.0
         else:
-            Ψ[site], Us, err = schmidt.ortho_left(A, tolerance, normalize)
+            Ψ[site], Us, err = schmidt.ortho_left(A, truncation)
             site -= 1
             Ψ[site] = np.einsum("aib,bc->aic", Ψ[site], Us)
     return site, err
 
 
-def _canonicalize(Ψ, center, tolerance, normalize):
+def _canonicalize(Ψ, center, truncation):
     err = 0.0
     for i in range(0, center):
-        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, +1, tolerance, normalize)
+        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, +1, truncation)
         err += errk
     for i in range(Ψ.size - 1, center, -1):
-        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, -1, tolerance, normalize)
+        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, -1, truncation)
         err += errk
     return err
 
@@ -76,6 +76,11 @@ class CanonicalMPS(MPS):
         self, data, center=None, error=0, normalize=False, tolerance=DEFAULT_TOLERANCE
     ):
         super(CanonicalMPS, self).__init__(data, error=error)
+        truncation = TruncationStrategy(
+            method=TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
+            tolerance=tolerance,
+            normalize=normalize,
+        )
         if isinstance(data, CanonicalMPS):
             self.center = data.center
             self._error = data._error
@@ -85,7 +90,7 @@ class CanonicalMPS(MPS):
             self.center = center = self._interpret_center(
                 0 if center is None else center
             )
-            self.update_error(_canonicalize(self, center, tolerance, normalize))
+            self.update_error(_canonicalize(self, center, truncation))
         if normalize:
             A = self[center]
             self[center] = A / np.linalg.norm(A)
@@ -141,24 +146,14 @@ class CanonicalMPS(MPS):
         )
         return -np.sum(2 * s * s * np.log2(s))
 
-    def update_canonical(
-        self, A, direction, tolerance=DEFAULT_TOLERANCE, normalize=False
-    ):
+    def update_canonical(self, A, direction, truncation: TruncationStrategy):
         self.center, err = _update_in_canonical_form(
-            self, A, self.center, direction, tolerance, normalize
+            self, A, self.center, direction, truncation
         )
         self.update_error(err)
         return err
 
-    def update_2site(
-        self,
-        AA,
-        site,
-        direction,
-        tolerance=DEFAULT_TOLERANCE,
-        normalize=False,
-        max_bond_dimension=None,
-    ):
+    def update_2site(self, AA, site, direction, truncation: TruncationStrategy):
         """Split a two-site tensor into two one-site tensors by
         left/right orthonormalization and insert the tensor in
         canonical form into the MPS Ψ at the given site and the site
@@ -178,12 +173,12 @@ class CanonicalMPS(MPS):
         assert site <= self.center <= site + 1
         if direction < 0:
             self._data[site], self._data[site + 1], err = schmidt.right_orth_2site(
-                AA, tolerance, normalize, max_bond_dimension
+                AA, truncation
             )
             self.center = site
         else:
             self._data[site], self._data[site + 1], err = schmidt.left_orth_2site(
-                AA, tolerance, normalize, max_bond_dimension
+                AA, truncation
             )
             self.center = site + 1
         self.update_error(err)
@@ -201,15 +196,22 @@ class CanonicalMPS(MPS):
             return center
         raise IndexError()
 
-    def recenter(self, center, tolerance=DEFAULT_TOLERANCE, normalize=False):
+    def recenter(
+        self, center, tolerance: float = DEFAULT_TOLERANCE, normalize: bool = False
+    ):
         """Update destructively the state to be in canonical form with respect
         to a different site."""
         center = self._interpret_center(center)
         old = self.center
+        truncation = TruncationStrategy(
+            method=TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
+            tolerance=tolerance,
+            normalize=normalize,
+        )
         if center != old:
             dr = +1 if center > old else -1
             for i in range(old, center, dr):
-                self.update_canonical(self._data[i], dr, tolerance, normalize)
+                self.update_canonical(self._data[i], dr, truncation)
         return self
 
     def __copy__(self):

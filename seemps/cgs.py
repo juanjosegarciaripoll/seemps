@@ -1,5 +1,5 @@
 from .expectation import scprod
-from .state.truncation import DEFAULT_TOLERANCE
+from .state import DEFAULT_TOLERANCE
 from .truncate.combine import combine
 from .tools import log
 

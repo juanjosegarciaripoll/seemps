@@ -1,7 +1,6 @@
 import numpy as np
-from .truncation import truncate_vector, DEFAULT_TOLERANCE
 from . import core
-from .core import TruncationStrategy
+from .core import TruncationStrategy, truncate_vector, DEFAULT_TRUNCATION
 from scipy.linalg import svd
 
 #
@@ -25,7 +24,7 @@ def _schmidt_split(ψ, strategy, overwrite):
     return U[:, :D], s.reshape(D, 1) * V[:D, :]
 
 
-def ortho_right(A, tol, normalize):
+def ortho_right(A, strategy: TruncationStrategy):
     α, i, β = A.shape
     U, s, V = svd(
         A.reshape(α * i, β),
@@ -33,14 +32,12 @@ def ortho_right(A, tol, normalize):
         check_finite=False,
         lapack_driver=SVD_LAPACK_DRIVER,
     )
-    s, err = truncate_vector(s, tol, None)
-    if normalize:
-        s /= np.linalg.norm(s)
+    s, err = truncate_vector(s, strategy)
     D = s.size
     return U[:, :D].reshape(α, i, D), s.reshape(D, 1) * V[:D, :], err
 
 
-def ortho_left(A, tol, normalize):
+def ortho_left(A, strategy: TruncationStrategy):
     α, i, β = A.shape
     U, s, V = svd(
         A.reshape(α, i * β),
@@ -48,35 +45,29 @@ def ortho_left(A, tol, normalize):
         check_finite=False,
         lapack_driver=SVD_LAPACK_DRIVER,
     )
-    s, err = truncate_vector(s, tol, None)
-    if normalize:
-        s /= np.linalg.norm(s)
+    s, err = truncate_vector(s, strategy)
     D = s.size
     return V[:D, :].reshape(D, i, β), U[:, :D] * s.reshape(1, D), err
 
 
-def left_orth_2site(AA, tolerance, normalize, max_bond_dimension):
+def left_orth_2site(AA, strategy: TruncationStrategy):
     α, d1, d2, β = AA.shape
     Ψ = AA.reshape(α * d1, β * d2)
     U, S, V = svd(
         Ψ, full_matrices=False, check_finite=False, lapack_driver=SVD_LAPACK_DRIVER
     )
-    S, err = truncate_vector(S, tolerance, max_bond_dimension)
-    if normalize:
-        S /= np.linalg.norm(S)
+    S, err = core.truncate_vector(S, strategy)
     D = S.size
     U = U[:, :D].reshape(α, d1, D)
     SV = (S.reshape(D, 1) * V[:D, :]).reshape(D, d2, β)
     return U, SV, err
 
 
-def right_orth_2site(AA, tolerance, normalize, max_bond_dimension):
+def right_orth_2site(AA, strategy: TruncationStrategy):
     α, d1, d2, β = AA.shape
     Ψ = AA.reshape(α * d1, β * d2)
     U, S, V = svd(Ψ, full_matrices=False, lapack_driver=SVD_LAPACK_DRIVER)
-    S, err = truncate_vector(S, tolerance, max_bond_dimension)
-    if normalize:
-        S /= np.linalg.norm(S)
+    S, err = truncate_vector(S, strategy)
     D = S.size
     US = (U[:, :D] * S).reshape(α, d1, D)
     V = V[:D, :].reshape(D, d2, β)
@@ -85,9 +76,9 @@ def right_orth_2site(AA, tolerance, normalize, max_bond_dimension):
 
 def vector2mps(
     ψ,
-    dimensions,
-    strategy: TruncationStrategy = core.DEFAULT_TOLERANCE,
-    normalize=True,
+    dimensions: list[int],
+    strategy: TruncationStrategy = DEFAULT_TRUNCATION,
+    normalize: bool = True,
 ):
     """Construct a list of tensors for an MPS that approximates the state ψ
     represented as a complex vector in a Hilbert space.
