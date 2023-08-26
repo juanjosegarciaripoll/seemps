@@ -1,6 +1,7 @@
 import numpy as np
 from .truncation import truncate_vector, DEFAULT_TOLERANCE
 from . import core
+from .core import TruncationStrategy
 from scipy.linalg import svd
 
 #
@@ -82,7 +83,12 @@ def right_orth_2site(AA, tolerance, normalize, max_bond_dimension):
     return US, V, err
 
 
-def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
+def vector2mps(
+    ψ,
+    dimensions,
+    strategy: TruncationStrategy = core.DEFAULT_TOLERANCE,
+    normalize=True,
+):
     """Construct a list of tensors for an MPS that approximates the state ψ
     represented as a complex vector in a Hilbert space.
 
@@ -98,7 +104,6 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
         raise Exception("Wrong dimensions specified when converting a vector to MPS")
     output = [0] * len(dimensions)
     Da = 1
-    strategy = core.TruncationStrategy(tolerance=tolerance, normalize=False)
     for i, d in enumerate(dimensions[:-1]):
         # We split a new subsystem and group the left bond dimension
         # and the physical index into a large index.
