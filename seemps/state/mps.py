@@ -333,12 +333,10 @@ def _mps2vector(data: list[np.ndarray]) -> np.ndarray:
     # 'β' is the last uncontracted internal index.
     #
     Ψ = [1.0]
-    D = 1
     for A in data:
         α, d, β = A.shape
         # Ψ = np.einsum("Da,akb->Dkb", Ψ, A)
-        D *= d
-        Ψ = np.dot(Ψ, A.reshape(α, d * β)).reshape(D, β)
+        Ψ = np.dot(Ψ, A.reshape(α, d * β)).reshape(-1, β)
     return Ψ.reshape(-1)
 
 
