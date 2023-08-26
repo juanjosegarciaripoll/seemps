@@ -1,7 +1,7 @@
 import numpy as np
 from . import core
 from .core import TruncationStrategy, truncate_vector, DEFAULT_TRUNCATION
-from scipy.linalg import svd
+from scipy.linalg import svd  # type: ignore
 
 #
 # Type of LAPACK driver used for solving singular value decompositions.

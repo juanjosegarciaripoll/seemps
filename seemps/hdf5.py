@@ -1,5 +1,5 @@
 from typing import Union, Any
-import h5py
+import h5py  # type: ignore
 from .state import MPS
 
 
@@ -31,7 +31,7 @@ def read_full_hdf5_as_paths(filename: str) -> dict[str, Any]:
 def _read_hdf5_item(item: Union[h5py.File, h5py.Group, h5py.Dataset]) -> dict:
     if isinstance(item, h5py.Dataset):
         return item[()]
-    output = {key: _read_hdf5_item(subitem) for key, subitem in item.items()}
+    output: dict = {key: _read_hdf5_item(subitem) for key, subitem in item.items()}
     output["_attrs"] = list(item.attrs.items())
     return output
 

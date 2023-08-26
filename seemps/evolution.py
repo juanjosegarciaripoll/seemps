@@ -1,5 +1,5 @@
 import numpy as np
-import scipy.linalg
+import scipy.linalg  # type: ignore
 from . import state
 from .state import TruncationStrategy, DEFAULT_TRUNCATION
 

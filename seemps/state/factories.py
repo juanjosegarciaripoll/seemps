@@ -1,5 +1,6 @@
 from typing import Optional, Union
 import numpy as np
+import numpy.typing as npt
 from .mps import MPS
 
 
@@ -49,7 +50,7 @@ def W(n: int) -> MPS:
     return MPS(data)
 
 
-def wavepacket(ψ: np.ndarray) -> MPS:
+def wavepacket(state: npt.ArrayLike) -> MPS:
     #
     # Create an MPS for a spin 1/2 system with the given amplitude
     # of the excited state on each site. In other words, we create
@@ -72,8 +73,8 @@ def wavepacket(ψ: np.ndarray) -> MPS:
     # and the last site only has A(i,s,1) (at least one spin has
     # been excited)
     #
-    ψ = np.array(ψ)
-    data = [0] * ψ.size
+    ψ = np.array(state)
+    data = [ψ] * ψ.size
     for n in range(0, ψ.size):
         B = np.zeros((2, 2, 2), dtype=ψ.dtype)
         B[0, 0, 0] = B[1, 0, 1] = 1.0
@@ -133,7 +134,7 @@ def AKLT(n: int) -> MPS:
 def random(d: int, N: int, D: int = 1, truncate: bool = True) -> MPS:
     """Create a random state with 'N' elements of dimension 'd' and bond
     dimension 'D'."""
-    mps = [1] * N
+    mps: list[np.ndarray] = [np.ndarray(())] * N
     DR = 1
     if N > 60:
         truncate = False

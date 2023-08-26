@@ -1,4 +1,5 @@
 import copy
+import math
 import numpy as np
 from .. import expectation
 from .schmidt import vector2mps
@@ -17,6 +18,9 @@ class TensorArray(object):
     Attributes:
     size = number of tensors in the array
     """
+
+    _data: list[np.ndarray]
+    size: int
 
     def __init__(self, data):
         """Create a new TensorArray from a list of tensors. `data` is an
@@ -101,14 +105,14 @@ class MPS(TensorArray):
         self.normalize = normalize
         self.max_bond_dimension = max_bond_dimension
 
-    def dimension(self):
+    def dimension(self) -> int:
         """Return the total size of the Hilbert space in which this MPS lives."""
-        return np.prod([a.shape[1] for a in self._data])
+        return math.prod([a.shape[1] for a in self._data])
 
-    def to_vector(self):
+    def to_vector(self) -> np.ndarray:
         """Return one-dimensional complex vector of dimension() elements, with
         the complete wavefunction that is encoded in the MPS."""
-        return _mps2vector(self)
+        return _mps2vector(self._data)
 
     @staticmethod
     def from_vector(ψ, dimensions, **kwdargs):
@@ -332,11 +336,11 @@ def _mps2vector(data: list[np.ndarray]) -> np.ndarray:
     # 'D' is the dimension of the physical subsystems up to this point and
     # 'β' is the last uncontracted internal index.
     #
-    Ψ = [1.0]
-    for A in data:
+    Ψ: np.ndarray = np.ones(1)
+    for A in reversed(data):
         α, d, β = A.shape
         # Ψ = np.einsum("Da,akb->Dkb", Ψ, A)
-        Ψ = np.dot(Ψ, A.reshape(α, d * β)).reshape(-1, β)
+        Ψ = np.dot(A.reshape(α * d, β), Ψ).reshape(α, -1)
     return Ψ.reshape(-1)
 
 

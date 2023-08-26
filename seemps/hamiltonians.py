@@ -1,6 +1,6 @@
 import numpy as np
 from numbers import Number
-import scipy.sparse as sp
+import scipy.sparse as sp  # type: ignore
 
 
 class NNHamiltonian(object):

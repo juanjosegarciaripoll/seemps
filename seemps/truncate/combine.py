@@ -1,3 +1,4 @@
+from typing import Optional
 import numpy as np
 from ..state.mps import MPS
 from ..state.canonical_mps import CanonicalMPS
@@ -54,7 +55,7 @@ def combine(
     maxsweeps=4,
     direction=+1,
     tolerance: float = DEFAULT_TOLERANCE,
-    max_bond_dimension: int = None,
+    max_bond_dimension: Optional[int] = None,
     normalize: bool = True,
 ):
     """Simplify an MPS ψ transforming it into another one with a smaller bond
