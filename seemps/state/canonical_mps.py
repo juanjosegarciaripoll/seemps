@@ -1,29 +1,8 @@
 import numpy as np
 from .mps import MPS
-from .svd import svd
-from .schmidt import vector2mps
-from .truncation import truncate_vector, DEFAULT_TOLERANCE
+from . import schmidt
+from .truncation import DEFAULT_TOLERANCE
 from .. import expectation
-
-
-def _ortho_right(A, tol, normalize):
-    α, i, β = A.shape
-    U, s, V = svd(A.reshape(α * i, β), full_matrices=False)
-    s, err = truncate_vector(s, tol, None)
-    if normalize:
-        s /= np.linalg.norm(s)
-    D = s.size
-    return U[:, :D].reshape(α, i, D), s.reshape(D, 1) * V[:D, :], err
-
-
-def _ortho_left(A, tol, normalize):
-    α, i, β = A.shape
-    U, s, V = svd(A.reshape(α, i * β), full_matrices=False)
-    s, err = truncate_vector(s, tol, None)
-    if normalize:
-        s /= np.linalg.norm(s)
-    D = s.size
-    return V[:D, :].reshape(D, i, β), U[:, :D] * s.reshape(1, D), err
 
 
 def _update_in_canonical_form(Ψ, A, site, direction, tolerance, normalize):
@@ -46,7 +25,7 @@ def _update_in_canonical_form(Ψ, A, site, direction, tolerance, normalize):
             Ψ[site] = A
             err = 0.0
         else:
-            Ψ[site], sV, err = _ortho_right(A, tolerance, normalize)
+            Ψ[site], sV, err = schmidt.ortho_right(A, tolerance, normalize)
             site += 1
             Ψ[site] = np.einsum("ab,bic->aic", sV, Ψ[site])
     else:
@@ -54,7 +33,7 @@ def _update_in_canonical_form(Ψ, A, site, direction, tolerance, normalize):
             Ψ[site] = A
             err = 0.0
         else:
-            Ψ[site], Us, err = _ortho_left(A, tolerance, normalize)
+            Ψ[site], Us, err = schmidt.ortho_left(A, tolerance, normalize)
             site -= 1
             Ψ[site] = np.einsum("aib,bc->aic", Ψ[site], Us)
     return site, err
@@ -69,32 +48,6 @@ def _canonicalize(Ψ, center, tolerance, normalize):
         center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, -1, tolerance, normalize)
         err += errk
     return err
-
-
-def left_orth_2site(AA, tolerance, normalize, max_bond_dimension):
-    α, d1, d2, β = AA.shape
-    Ψ = AA.reshape(α * d1, β * d2)
-    U, S, V = svd(Ψ, full_matrices=False)
-    S, err = truncate_vector(S, tolerance, max_bond_dimension)
-    if normalize:
-        S /= np.linalg.norm(S)
-    D = S.size
-    U = U[:, :D].reshape(α, d1, D)
-    SV = (S.reshape(D, 1) * V[:D, :]).reshape(D, d2, β)
-    return U, SV, err
-
-
-def right_orth_2site(AA, tolerance, normalize, max_bond_dimension):
-    α, d1, d2, β = AA.shape
-    Ψ = AA.reshape(α * d1, β * d2)
-    U, S, V = svd(Ψ, full_matrices=False)
-    S, err = truncate_vector(S, tolerance, max_bond_dimension)
-    if normalize:
-        S /= np.linalg.norm(S)
-    D = S.size
-    US = (U[:, :D] * S).reshape(α, d1, D)
-    V = V[:D, :].reshape(D, d2, β)
-    return US, V, err
 
 
 class CanonicalMPS(MPS):
@@ -143,7 +96,7 @@ class CanonicalMPS(MPS):
         ψ, dimensions, center=0, normalize=False, tolerance=DEFAULT_TOLERANCE
     ):
         return CanonicalMPS(
-            vector2mps(ψ, dimensions, tolerance),
+            schmidt.vector2mps(ψ, dimensions, tolerance),
             center=center,
             normalize=normalize,
             tolerance=tolerance,
@@ -179,7 +132,11 @@ class CanonicalMPS(MPS):
     def entanglement_entropyAtCenter(self):
         A = self._data[self.center]
         d1, d2, d3 = A.shape
-        u, s, v = svd(A.reshape(d1 * d2, d3), full_matrices=False)
+        _, s, _ = schmidt.svd(
+            A.reshape(d1 * d2, d3),
+            full_matrices=False,
+            lapack_driver=schmidt.SVD_LAPACK_DRIVER,
+        )
         return -np.sum(2 * s * s * np.log2(s))
 
     def update_canonical(
@@ -218,12 +175,12 @@ class CanonicalMPS(MPS):
         """
         assert site <= self.center <= site + 1
         if direction < 0:
-            self._data[site], self._data[site + 1], err = right_orth_2site(
+            self._data[site], self._data[site + 1], err = schmidt.right_orth_2site(
                 AA, tolerance, normalize, max_bond_dimension
             )
             self.center = site
         else:
-            self._data[site], self._data[site + 1], err = left_orth_2site(
+            self._data[site], self._data[site + 1], err = schmidt.left_orth_2site(
                 AA, tolerance, normalize, max_bond_dimension
             )
             self.center = site + 1
