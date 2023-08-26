@@ -12,7 +12,11 @@ SVD_LAPACK_DRIVER = "gesdd"
 
 def _schmidt_split(ψ, tolerance, overwrite):
     U, s, V = svd(
-        ψ, full_matrices=False, overwrite_a=overwrite, lapack_driver=SVD_LAPACK_DRIVER
+        ψ,
+        full_matrices=False,
+        overwrite_a=overwrite,
+        check_finite=False,
+        lapack_driver=SVD_LAPACK_DRIVER,
     )
     s, _ = truncate_vector(s, tolerance, None)
     D = s.size
@@ -22,7 +26,10 @@ def _schmidt_split(ψ, tolerance, overwrite):
 def ortho_right(A, tol, normalize):
     α, i, β = A.shape
     U, s, V = svd(
-        A.reshape(α * i, β), full_matrices=False, lapack_driver=SVD_LAPACK_DRIVER
+        A.reshape(α * i, β),
+        full_matrices=False,
+        check_finite=False,
+        lapack_driver=SVD_LAPACK_DRIVER,
     )
     s, err = truncate_vector(s, tol, None)
     if normalize:
@@ -34,7 +41,10 @@ def ortho_right(A, tol, normalize):
 def ortho_left(A, tol, normalize):
     α, i, β = A.shape
     U, s, V = svd(
-        A.reshape(α, i * β), full_matrices=False, lapack_driver=SVD_LAPACK_DRIVER
+        A.reshape(α, i * β),
+        full_matrices=False,
+        check_finite=False,
+        lapack_driver=SVD_LAPACK_DRIVER,
     )
     s, err = truncate_vector(s, tol, None)
     if normalize:
@@ -46,7 +56,9 @@ def ortho_left(A, tol, normalize):
 def left_orth_2site(AA, tolerance, normalize, max_bond_dimension):
     α, d1, d2, β = AA.shape
     Ψ = AA.reshape(α * d1, β * d2)
-    U, S, V = svd(Ψ, full_matrices=False, lapack_driver=SVD_LAPACK_DRIVER)
+    U, S, V = svd(
+        Ψ, full_matrices=False, check_finite=False, lapack_driver=SVD_LAPACK_DRIVER
+    )
     S, err = truncate_vector(S, tolerance, max_bond_dimension)
     if normalize:
         S /= np.linalg.norm(S)

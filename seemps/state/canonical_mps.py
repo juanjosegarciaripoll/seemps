@@ -132,9 +132,11 @@ class CanonicalMPS(MPS):
     def entanglement_entropyAtCenter(self):
         A = self._data[self.center]
         d1, d2, d3 = A.shape
-        _, s, _ = schmidt.svd(
+        s = schmidt.svd(
             A.reshape(d1 * d2, d3),
             full_matrices=False,
+            compute_uv=False,
+            check_finite=False,
             lapack_driver=schmidt.SVD_LAPACK_DRIVER,
         )
         return -np.sum(2 * s * s * np.log2(s))
