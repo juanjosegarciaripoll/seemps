@@ -1,5 +1,6 @@
 import numpy as np
 from .truncation import truncate_vector, DEFAULT_TOLERANCE
+from . import core
 from scipy.linalg import svd
 
 #
@@ -10,7 +11,7 @@ from scipy.linalg import svd
 SVD_LAPACK_DRIVER = "gesdd"
 
 
-def _schmidt_split(ψ, tolerance, overwrite):
+def _schmidt_split(ψ, strategy, overwrite):
     U, s, V = svd(
         ψ,
         full_matrices=False,
@@ -18,7 +19,7 @@ def _schmidt_split(ψ, tolerance, overwrite):
         check_finite=False,
         lapack_driver=SVD_LAPACK_DRIVER,
     )
-    s, _ = truncate_vector(s, tolerance, None)
+    s, _ = core.truncate_vector(s, strategy)
     D = s.size
     return U[:, :D], s.reshape(D, 1) * V[:D, :]
 
@@ -97,13 +98,14 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
         raise Exception("Wrong dimensions specified when converting a vector to MPS")
     output = [0] * len(dimensions)
     Da = 1
+    strategy = core.TruncationStrategy(tolerance=tolerance, normalize=False)
     for i, d in enumerate(dimensions[:-1]):
         # We split a new subsystem and group the left bond dimension
         # and the physical index into a large index.
         # We then split the state using the Schmidt decomposition. This
         # produces a tensor for the site we are looking at and leaves
         # us with a (hopefully) smaller state for the rest
-        A, ψ = _schmidt_split(ψ.reshape(Da * d, -1), tolerance, overwrite=(i > 0))
+        A, ψ = _schmidt_split(ψ.reshape(Da * d, -1), strategy, overwrite=(i > 0))
         output[i] = A.reshape(Da, d, -1)
         Da = ψ.shape[0]
 

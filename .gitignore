@@ -109,3 +109,4 @@ ipynb_output_filter
 
 #
 benchmark*.json
+*.cpp
