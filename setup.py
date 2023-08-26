@@ -25,6 +25,7 @@ if not debug_library:
         "initializedcheck": False,  # We take care of initializing cdef classes and memory views
         "overflowcheck": False,
         "cpp_locals": True,
+        "binding": False,
     }
     if sys.platform == "linux":
         # We assume GCC or other compilers with compatible command line
