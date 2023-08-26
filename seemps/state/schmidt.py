@@ -29,7 +29,7 @@ def vector2mps(ψ, dimensions, tolerance=DEFAULT_TOLERANCE, normalize=True):
     if Db != ψ.size:
         raise Exception("Wrong dimensions specified when converting a vector to MPS")
     output = [0] * len(dimensions)
-    for (i, d) in enumerate(dimensions[:-1]):
+    for i, d in enumerate(dimensions[:-1]):
         # We split a new subsystem and group the left bond dimension
         # and the physical index into a large index
         ψ = ψ.reshape(Da * d, int(Db / d))

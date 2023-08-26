@@ -150,10 +150,10 @@ class MPO(TensorArray):
             assert len(sites) == self.size
 
         data = [None] * L
-        for (ndx, A) in zip(sites, self):
+        for ndx, A in zip(sites, self):
             data[ndx] = A
         D = 1
-        for (i, A) in enumerate(data):
+        for i, A in enumerate(data):
             if A is None:
                 d = dimensions[i]
                 A = np.eye(D).reshape(D, 1, 1, D) * np.eye(d).reshape(1, d, d, 1)

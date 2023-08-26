@@ -7,7 +7,6 @@ from .tools import *
 
 
 class TestAlgebraic(unittest.TestCase):
-
     P1 = sp.diags([0.0, 1.0], 0)
     i2 = sp.eye(2, dtype=np.float64)
 

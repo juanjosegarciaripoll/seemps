@@ -10,7 +10,7 @@ from .simplify import AntilinearForm
 def multi_norm_squared(α, ψ):
     """Compute the norm-squared of the vector sum(α[i]*ψ[i])"""
     c = 0.0
-    for (i, αi) in enumerate(α):
+    for i, αi in enumerate(α):
         for j in range(i):
             c += 2 * (αi.conjugate() * α[j] * scprod(ψ[i], ψ[j])).real
         c += np.abs(αi) ** 2 * scprod(ψ[i], ψ[i]).real

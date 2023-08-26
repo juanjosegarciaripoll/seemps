@@ -126,12 +126,12 @@ def qft_nd_mpo(sites, N=None, sign=-1, **kwargs):
     # are the following qubits in order of decreasing significance.
     def make_layer(sites):
         l = [noop] * N
-        for (i, ndx) in enumerate(sites):
+        for i, ndx in enumerate(sites):
             if i == 0:
                 l[ndx] = Hop
             else:
                 l[ndx] = R0 + R1 * np.exp(jϕ / (2**i))
-        for (n, A) in enumerate(l):
+        for n, A in enumerate(l):
             if A is noop:
                 l[n] = small_noop
             else:

@@ -27,7 +27,7 @@ def qubo_mpo(J=None, h=None, **kwdargs):
         #
         data = []
         id2 = np.eye(2)
-        for (i, hi) in enumerate(h):
+        for i, hi in enumerate(h):
             A = np.zeros((2, 2, 2, 2), dtype=hi.dtype)
             A[0, 1, 1, 1] = hi
             A[1, :, :, 1] = id2
@@ -81,7 +81,7 @@ def qubo_exponential_mpo(J=None, h=None, beta=-1.0, **kwdargs):
             raise Exception("In QUBO_MPO, must provide either J or h")
         #
         data = []
-        for (i, hi) in enumerate(h):
+        for i, hi in enumerate(h):
             A = np.zeros((1, 2, 2, 1))
             A[0, 1, 1, 1] = np.exp(beta * hi)
             A[0, 0, 0, 0] = 1.0
@@ -136,7 +136,7 @@ def wavefunction_product(ψ, ξ, conjugate=False, simplify=True, **kwdargs):
         if conjugate:
             A = A.conj()
         D = np.array(
-            [np.outer(A[:, i, :].flatten(), B[:, i, :].flatten()) for i in range(d)]
+            [np.outer(A[:, i, :].reshape(-1), B[:, i, :].reshape(-1)) for i in range(d)]
         )
         D = np.einsum("iabce->acibe", np.array(D).reshape(d, a, b, c, e)).reshape(
             a * c, d, b * e

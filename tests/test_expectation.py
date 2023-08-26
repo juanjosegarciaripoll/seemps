@@ -28,7 +28,7 @@ class TestExpectation(unittest.TestCase):
 
             # Finally, we loop over the basis states, verifying that the
             # scalar product is the projection onto the state
-            for (n, bits) in enumerate(conf):
+            for n, bits in enumerate(conf):
                 proj = ψwave[n]
                 ϕmps = seemps.state.product(map(bit2state, bits[-nbits:]))
                 self.assertEqual(proj, scprod(ϕmps, ψmps))
