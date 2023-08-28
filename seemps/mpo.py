@@ -4,7 +4,7 @@ import numpy as np
 import copy
 from .state import MPS, MPSSum, TensorArray, DEFAULT_STRATEGY, Strategy, Weight
 from . import truncate
-from .tools import log
+from .tools import log, InvalidOperation
 
 
 def mpo_multiply_tensor(A, B):
@@ -54,7 +54,7 @@ class MPO(TensorArray):
             mpo_mult = copy.deepcopy(self)
             mpo_mult._data[0] = n * mpo_mult._data[0]
             return mpo_mult
-        return NotImplemented
+        raise InvalidOperation("*", self, n)
 
     def __rmul__(self, n: Weight) -> "MPO":
         """Multiply an MPO quantum state by an scalar n (n * MPO).
@@ -71,7 +71,7 @@ class MPO(TensorArray):
             mpo_mult = copy.deepcopy(self)
             mpo_mult._data[0] = n * mpo_mult._data[0]
             return mpo_mult
-        return NotImplemented
+        raise InvalidOperation("*", n, self)
 
     def dimensions(self) -> list[int]:
         """Return the local dimensions of the MPO."""
@@ -128,7 +128,9 @@ class MPO(TensorArray):
     def __matmul__(self, b: Union[MPS, MPSSum]) -> MPS:
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
-        return self.apply(b)
+        if isinstance(b, (MPS, MPSSum)):
+            return self.apply(b)
+        raise InvalidOperation("@", self, b)
 
     # TODO: We have to change the signature and working of this function, so that
     # 'sites' only contains the locations of the _new_ sites, and 'L' is no longer
@@ -167,7 +169,7 @@ class MPO(TensorArray):
             final_dimensions[ndx] = A.shape[2]
         D = 1
         for i, A in enumerate(data):
-            if A.size == 0:
+            if A.ndim == 0:
                 d = final_dimensions[i]
                 A = np.eye(D).reshape(D, 1, 1, D) * np.eye(d).reshape(1, d, d, 1)
                 data[i] = A
@@ -212,7 +214,7 @@ class MPOList(object):
         """
         if isinstance(n, (float, complex)):
             return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
-        return NotImplemented
+        raise InvalidOperation("*", self, n)
 
     def __rmul__(self, n: Number) -> "MPOList":
         """Multiply an MPOList quantum state by an scalar n (n * MPOList).
@@ -227,7 +229,7 @@ class MPOList(object):
         """
         if isinstance(n, (float, complex)):
             return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
-        return NotImplemented
+        raise InvalidOperation("*", n, self)
 
     def tomatrix(self) -> np.ndarray:
         """Return the matrix representation of this MPO."""
@@ -271,7 +273,9 @@ class MPOList(object):
     def __matmul__(self, b: Union[MPS, MPSSum]) -> MPS:
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
-        return self.apply(b)
+        if isinstance(b, (MPS, MPSSum)):
+            return self.apply(b)
+        raise InvalidOperation("@", self, b)
 
     def extend(
         self, L: int, sites: Optional[list[int]] = None, dimensions: int = 2

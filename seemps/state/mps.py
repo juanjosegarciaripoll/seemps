@@ -4,6 +4,7 @@ from numbers import Number
 from typing import Iterable, Optional, Union
 import numpy as np
 from .. import expectation
+from ..tools import InvalidOperation
 from .schmidt import vector2mps
 from .core import DEFAULT_STRATEGY, Strategy
 import warnings
@@ -129,7 +130,7 @@ class MPS(TensorArray):
             return MPSSum([1, 1], [self, φ], self.strategy)
         if isinstance(φ, MPSSum):
             return MPSSum([1] + φ.weights, [self] + φ.states, self.strategy)
-        return NotImplemented
+        raise InvalidOperation("+", self, φ)
 
     def __sub__(self, φ: Union["MPS", "MPSSum"]) -> "MPSSum":
         """Subtract an MPS or an MPSSum from the MPS.
@@ -150,7 +151,7 @@ class MPS(TensorArray):
                 [self] + φ.states,
                 self.strategy,
             )
-        return NotImplemented
+        raise InvalidOperation("-", self, φ)
 
     def __mul__(self, n: Weight) -> "MPS":
         """Multiply an MPS quantum state by a scalar n (MPS * n)
@@ -168,7 +169,7 @@ class MPS(TensorArray):
             mps_mult._data[0] = n * mps_mult._data[0]
             mps_mult._error = np.abs(n) ** 2 * mps_mult._error
             return mps_mult
-        return NotImplemented
+        raise InvalidOperation("*", self, n)
 
     def __rmul__(self, n: Weight) -> "MPS":
         """Multiply an MPS quantum state by a scalar n (n * MPS).
@@ -186,7 +187,7 @@ class MPS(TensorArray):
             mps_mult._data[0] = n * mps_mult._data[0]
             mps_mult._error = np.abs(n) ** 2 * mps_mult._error
             return mps_mult
-        return NotImplemented
+        raise InvalidOperation("*", n, self)
 
     def norm2(self) -> float:
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
@@ -278,7 +279,7 @@ class MPS(TensorArray):
             final_dimensions[ndx] = A.shape[1]
         D = 1
         for i, A in enumerate(data):
-            if A.size == 0:
+            if A.ndim == 0:
                 d = final_dimensions[i]
                 A = np.zeros((D, d, D))
                 A[:, 0, :] = np.eye(D)
@@ -363,7 +364,7 @@ class MPSSum:
                 self.states + φ.states,
                 self.strategy,
             )
-        return NotImplemented
+        raise InvalidOperation("+", self, φ)
 
     def __sub__(self, φ: Union[MPS, "MPSSum"]) -> "MPSSum":
         """Subtract an MPS or an MPSSum from the MPSSum.
@@ -384,7 +385,7 @@ class MPSSum:
                 self.states + φ.states,
                 self.strategy,
             )
-        return NotImplemented
+        raise InvalidOperation("-", self, φ)
 
     def __mul__(self, n: Weight) -> "MPSSum":
         """Multiply an MPSSum quantum state by an scalar n (MPSSum * n)
@@ -399,7 +400,7 @@ class MPSSum:
         """
         if isinstance(n, (float, complex)):
             return MPSSum([n * w for w in self.weights], self.states, self.strategy)
-        return NotImplemented
+        raise InvalidOperation("*", self, n)
 
     def __rmul__(self, n: Weight) -> "MPSSum":
         """Multiply an MPSSum quantum state by an scalar n (n * MPSSum).
@@ -414,7 +415,7 @@ class MPSSum:
         """
         if isinstance(n, (float, complex)):
             return MPSSum([n * w for w in self.weights], self.states, self.strategy)
-        return NotImplemented
+        raise InvalidOperation("*", n, self)
 
     def to_vector(self) -> np.ndarray:
         """Return one-dimensional complex vector of dimension() elements, with

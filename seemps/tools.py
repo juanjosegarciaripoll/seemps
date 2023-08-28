@@ -2,6 +2,13 @@ from math import cos, sin
 import numpy as np
 
 
+class InvalidOperation(TypeError):
+    def __init__(self, op, *args):
+        super().__init__(
+            f"Invalid operation {op} between arguments of types {(type(x) for x in args)}"
+        )
+
+
 def take_from_list(O, i):
     if type(O) == list:
         return O[i]
