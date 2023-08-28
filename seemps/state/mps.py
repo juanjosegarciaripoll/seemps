@@ -1,9 +1,11 @@
 import copy
 import math
+from numbers import Number
+from typing import Optional, Union
 import numpy as np
 from .. import expectation
 from .schmidt import vector2mps
-from .core import DEFAULT_TOLERANCE
+from .core import DEFAULT_STRATEGY, Strategy
 import warnings
 
 
@@ -82,28 +84,20 @@ class MPS(TensorArray):
                  the simplification routine, if simplify is True.
     """
 
+    _error: float
+    strategy: Strategy
+
     #
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
     #
     __array_priority__ = 10000
 
-    def __init__(
-        self,
-        data,
-        error=0,
-        maxsweeps=16,
-        tolerance=DEFAULT_TOLERANCE,
-        normalize=False,
-        max_bond_dimension=None,
-    ):
+    def __init__(self, data, error=0, strategy: Strategy = DEFAULT_STRATEGY):
         super(MPS, self).__init__(data)
         assert data[0].shape[0] == data[-1].shape[-1] == 1
         self._error = error
-        self.maxsweeps = maxsweeps
-        self.tolerance = tolerance
-        self.normalize = normalize
-        self.max_bond_dimension = max_bond_dimension
+        self.strategy = strategy
 
     def dimension(self) -> int:
         """Return the total size of the Hilbert space in which this MPS lives."""
@@ -137,20 +131,7 @@ class MPS(TensorArray):
             new_states = [self] + φ.states
         else:
             raise TypeError(f"Invalid addition between MPS and object of type {φ}")
-        if self.max_bond_dimension is None:
-            max_bond_dimension = φ.max_bond_dimension
-        elif φ.max_bond_dimension is None:
-            max_bond_dimension = self.max_bond_dimension
-        else:
-            max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
-        return MPSSum(
-            weights=new_weights,
-            states=new_states,
-            maxsweeps=min(self.maxsweeps, φ.maxsweeps),
-            tolerance=min(self.tolerance, φ.tolerance),
-            normalize=self.normalize,
-            max_bond_dimension=max_bond_dimension,
-        )
+        return MPSSum(weights=new_weights, states=new_states, strategy=self.strategy)
 
     def __sub__(self, φ):
         """Subtract an MPS or an MPSSum from the MPS.
@@ -171,20 +152,7 @@ class MPS(TensorArray):
             new_states = [self] + φ.states
         else:
             raise TypeError(f"Invalid subtraction between MPS and object of type {φ}")
-        if self.max_bond_dimension is None:
-            max_bond_dimension = φ.max_bond_dimension
-        elif φ.max_bond_dimension is None:
-            max_bond_dimension = self.max_bond_dimension
-        else:
-            max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
-        return MPSSum(
-            weights=new_weights,
-            states=new_states,
-            maxsweeps=min(self.maxsweeps, φ.maxsweeps),
-            tolerance=min(self.tolerance, φ.tolerance),
-            normalize=self.normalize,
-            max_bond_dimension=max_bond_dimension,
-        )
+        return MPSSum(weights=new_weights, states=new_states, strategy=self.strategy)
 
     def __mul__(self, n):
         """Multiply an MPS quantum state by a scalar n (MPS * n)
@@ -316,13 +284,7 @@ class MPS(TensorArray):
                 data[i] = A
             else:
                 D = A.shape[-1]
-        return MPS(
-            data,
-            maxsweeps=self.maxsweeps,
-            tolerance=self.tolerance,
-            normalize=self.normalize,
-            max_bond_dimension=self.max_bond_dimension,
-        )
+        return MPS(data, strategy=self.strategy)
 
 
 def _mps2vector(data: list[np.ndarray]) -> np.ndarray:
@@ -357,6 +319,10 @@ class MPSSum:
                  the simplification routine, if simplify is True.
     """
 
+    weights: list[Number]
+    states: list[MPS]
+    strategy: Strategy
+
     #
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
@@ -365,21 +331,15 @@ class MPSSum:
 
     def __init__(
         self,
-        weights,
-        states,
-        maxsweeps=16,
-        tolerance=DEFAULT_TOLERANCE,
-        normalize=False,
-        max_bond_dimension=None,
+        weights: list[Number],
+        states: list[MPS],
+        strategy: Strategy = DEFAULT_STRATEGY,
     ):
         self.weights = weights
         self.states = states
-        self.maxsweeps = maxsweeps
-        self.tolerance = tolerance
-        self.normalize = normalize
-        self.max_bond_dimension = max_bond_dimension
+        self.strategy = strategy
 
-    def __add__(self, φ):
+    def __add__(self, φ: Union[MPS, "MPSSum"]) -> "MPSSum":
         """Add an MPS or an MPSSum to the MPSSum.
 
         Parameters
@@ -390,30 +350,15 @@ class MPSSum:
         ------
         mps_list    -- New MPSSum.
         """
-        maxsweeps = min(self.maxsweeps, φ.maxsweeps)
-        tolerance = min(self.tolerance, φ.tolerance)
-        if self.max_bond_dimension is None:
-            max_bond_dimension = φ.max_bond_dimension
-        elif φ.max_bond_dimension is None:
-            max_bond_dimension = self.max_bond_dimension
-        else:
-            max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
         if isinstance(φ, MPS):
             new_weights = self.weights + [1]
             new_states = self.states + [φ]
         elif isinstance(φ, MPSSum):
             new_weights = self.weights + φ.weights
             new_states = self.states + φ.states
-        return MPSSum(
-            weights=new_weights,
-            states=new_states,
-            maxsweeps=maxsweeps,
-            tolerance=tolerance,
-            normalize=self.normalize,
-            max_bond_dimension=max_bond_dimension,
-        )
+        return MPSSum(weights=new_weights, states=new_states, strategy=self.strategy)
 
-    def __sub__(self, φ):
+    def __sub__(self, φ: Union[MPS, "MPSSum"]) -> "MPSSum":
         """Subtract an MPS or an MPSSum from the MPSSum.
 
         Parameters
@@ -424,30 +369,15 @@ class MPSSum:
         ------
         mps_list    -- New MPSSum.
         """
-        maxsweeps = min(self.maxsweeps, φ.maxsweeps)
-        tolerance = min(self.tolerance, φ.tolerance)
-        if self.max_bond_dimension is None:
-            max_bond_dimension = φ.max_bond_dimension
-        elif φ.max_bond_dimension is None:
-            max_bond_dimension = self.max_bond_dimension
-        else:
-            max_bond_dimension = min(self.max_bond_dimension, φ.max_bond_dimension)
         if isinstance(φ, MPS):
             new_weights = self.weights + [-1]
             new_states = self.states + [φ]
         elif isinstance(φ, MPSSum):
             new_weights = self.weights + list((-1) * np.asarray(φ.weights))
             new_states = self.states + φ.states
-        return MPSSum(
-            weights=new_weights,
-            states=new_states,
-            maxsweeps=maxsweeps,
-            tolerance=tolerance,
-            normalize=self.normalize,
-            max_bond_dimension=max_bond_dimension,
-        )
+        return MPSSum(weights=new_weights, states=new_states, strategy=self.strategy)
 
-    def __mul__(self, n):
+    def __mul__(self, n: Number) -> "MPSSum":
         """Multiply an MPSSum quantum state by an scalar n (MPSSum * n)
 
         Parameters
@@ -462,14 +392,11 @@ class MPSSum:
             return MPSSum(
                 weights=[n * w for w in self.weights],
                 states=self.states,
-                maxsweeps=self.maxsweeps,
-                tolerance=self.tolerance,
-                normalize=self.normalize,
-                max_bond_dimension=self.max_bond_dimension,
+                strategy=self.strategy,
             )
         raise Exception(f"Cannot multiply MPSSum by {n}")
 
-    def __rmul__(self, n):
+    def __rmul__(self, n: Number) -> "MPSSum":
         """Multiply an MPSSum quantum state by an scalar n (n * MPSSum).
 
         Parameters
@@ -484,29 +411,26 @@ class MPSSum:
             return MPSSum(
                 weights=[n * w for w in self.weights],
                 states=self.states,
-                maxsweeps=self.maxsweeps,
-                tolerance=self.tolerance,
-                normalize=self.normalize,
-                max_bond_dimension=self.max_bond_dimension,
+                strategy=self.strategy,
             )
         raise Exception(f"Cannot multiply MPSSum by {n}")
 
-    def to_vector(self):
+    def to_vector(self) -> np.ndarray:
         """Return one-dimensional complex vector of dimension() elements, with
         the complete wavefunction that is encoded in the MPS."""
         return sum(wa * A.to_vector() for wa, A in zip(self.weights, self.states))
 
-    def toMPS(self, normalize=None):
+    def toMPS(self, normalize: Optional[bool] = None, strategy: Strategy = None) -> MPS:
         from ..truncate.combine import combine
 
-        if normalize is None:
-            normalize = self.normalize
+        if strategy is None:
+            strategy = self.strategy
         ψ, _ = combine(
             self.weights,
             self.states,
-            maxsweeps=self.maxsweeps,
-            tolerance=self.tolerance,
-            normalize=normalize,
-            max_bond_dimension=self.max_bond_dimension,
+            maxsweeps=strategy.get_max_sweeps(),
+            tolerance=strategy.get_tolerance(),
+            normalize=strategy.get_normalize_flag() if normalize is None else normalize,
+            max_bond_dimension=strategy.get_max_bond_dimension(),
         )
         return ψ

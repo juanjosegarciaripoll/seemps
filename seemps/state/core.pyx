@@ -4,7 +4,7 @@ from libc.math cimport sqrt
 from libcpp cimport bool
 import enum
 
-class Truncation(enum.IntEnum):
+class Truncation:
     DO_NOT_TRUNCATE = 0
     RELATIVE_SINGULAR_VALUE = 1
     RELATIVE_NORM_SQUARED_ERROR = 2
@@ -17,16 +17,16 @@ cdef class Strategy:
     cdef int max_sweeps
 
     def __init__(self,
-                 method: Truncation = Truncation.RELATIVE_SINGULAR_VALUE,
+                 method: int = Truncation.RELATIVE_SINGULAR_VALUE,
                  tolerance: float = 1e-8,
                  max_bond_dimension: Optional[int] = None,
                  normalize: bool = False,
                  max_sweeps: int = 16):
         if max_bond_dimension is None:
             max_bond_dimension = np.iinfo(int).max
-        if method not in Truncation:
+        if method < 0 or method > 2:
             raise AssertionError("Invalid method argument passed to Strategy")
-        self.method = method.value
+        self.method = method
         if self.tolerance < 0 or self.tolerance >= 1.0:
             raise AssertionError("Invalid tolerance argument passed to Strategy")
         self.tolerance = tolerance
@@ -57,6 +57,9 @@ cdef class Strategy:
 
     def get_normalize_flag(self) -> bool:
         return self.normalize
+
+    def get_max_sweeps(self) -> int:
+        return self.max_sweeps
 
 DEFAULT_TOLERANCE = np.finfo(np.float64).eps
 
