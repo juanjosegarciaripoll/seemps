@@ -1,12 +1,13 @@
 import copy
 import math
-from numbers import Number
 from typing import Optional, Union
 import numpy as np
 from .. import expectation
 from .schmidt import vector2mps
 from .core import DEFAULT_STRATEGY, Strategy
 import warnings
+
+Weight = Union[float, complex]
 
 
 class TensorArray(object):
@@ -319,7 +320,7 @@ class MPSSum:
                  the simplification routine, if simplify is True.
     """
 
-    weights: list[Number]
+    weights: list[Weight]
     states: list[MPS]
     strategy: Strategy
 
@@ -331,7 +332,7 @@ class MPSSum:
 
     def __init__(
         self,
-        weights: list[Number],
+        weights: list[Weight],
         states: list[MPS],
         strategy: Strategy = DEFAULT_STRATEGY,
     ):
@@ -351,12 +352,19 @@ class MPSSum:
         mps_list    -- New MPSSum.
         """
         if isinstance(φ, MPS):
-            new_weights = self.weights + [1]
-            new_states = self.states + [φ]
+            return MPSSum(
+                self.weights + [1.0],
+                self.states + [φ],
+                self.strategy,
+            )
         elif isinstance(φ, MPSSum):
-            new_weights = self.weights + φ.weights
-            new_states = self.states + φ.states
-        return MPSSum(weights=new_weights, states=new_states, strategy=self.strategy)
+            return MPSSum(
+                self.weights + φ.weights,
+                self.states + φ.states,
+                self.strategy,
+            )
+        else:
+            raise Exception(f"Cannot add MPSSum and {type(φ)}")
 
     def __sub__(self, φ: Union[MPS, "MPSSum"]) -> "MPSSum":
         """Subtract an MPS or an MPSSum from the MPSSum.
@@ -370,14 +378,17 @@ class MPSSum:
         mps_list    -- New MPSSum.
         """
         if isinstance(φ, MPS):
-            new_weights = self.weights + [-1]
-            new_states = self.states + [φ]
+            return MPSSum(self.weights + [-1], self.states + [φ], self.strategy)
         elif isinstance(φ, MPSSum):
-            new_weights = self.weights + list((-1) * np.asarray(φ.weights))
-            new_states = self.states + φ.states
-        return MPSSum(weights=new_weights, states=new_states, strategy=self.strategy)
+            return MPSSum(
+                self.weights + [-w for w in φ.weights],
+                self.states + φ.states,
+                self.strategy,
+            )
+        else:
+            raise Exception(f"Cannot add MPSSum and {type(φ)}")
 
-    def __mul__(self, n: Number) -> "MPSSum":
+    def __mul__(self, n: Weight) -> "MPSSum":
         """Multiply an MPSSum quantum state by an scalar n (MPSSum * n)
 
         Parameters
@@ -388,15 +399,11 @@ class MPSSum:
         ------
         mps    -- New mps.
         """
-        if np.isscalar(n):
-            return MPSSum(
-                weights=[n * w for w in self.weights],
-                states=self.states,
-                strategy=self.strategy,
-            )
-        raise Exception(f"Cannot multiply MPSSum by {n}")
+        if isinstance(n, (float, complex)):
+            return MPSSum([n * w for w in self.weights], self.states, self.strategy)
+        return NotImplemented
 
-    def __rmul__(self, n: Number) -> "MPSSum":
+    def __rmul__(self, n: Weight) -> "MPSSum":
         """Multiply an MPSSum quantum state by an scalar n (n * MPSSum).
 
         Parameters
@@ -407,20 +414,20 @@ class MPSSum:
         ------
         mps    -- New mps.
         """
-        if np.isscalar(n):
-            return MPSSum(
-                weights=[n * w for w in self.weights],
-                states=self.states,
-                strategy=self.strategy,
-            )
-        raise Exception(f"Cannot multiply MPSSum by {n}")
+        if isinstance(n, (float, complex)):
+            return MPSSum([n * w for w in self.weights], self.states, self.strategy)
+        return NotImplemented
 
     def to_vector(self) -> np.ndarray:
         """Return one-dimensional complex vector of dimension() elements, with
         the complete wavefunction that is encoded in the MPS."""
-        return sum(wa * A.to_vector() for wa, A in zip(self.weights, self.states))
+        return np.asarray(
+            sum(wa * A.to_vector() for wa, A in zip(self.weights, self.states))
+        )
 
-    def toMPS(self, normalize: Optional[bool] = None, strategy: Strategy = None) -> MPS:
+    def toMPS(
+        self, normalize: Optional[bool] = None, strategy: Optional[Strategy] = None
+    ) -> MPS:
         from ..truncate.combine import combine
 
         if strategy is None:

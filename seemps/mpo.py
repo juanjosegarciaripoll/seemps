@@ -1,7 +1,9 @@
+from numbers import Number
+from typing import Optional, Union
 import numpy as np
 import copy
-from .state import MPS, MPSSum, TensorArray, DEFAULT_TOLERANCE
-from .truncate import simplify
+from .state import MPS, MPSSum, TensorArray, DEFAULT_STRATEGY, Strategy
+from . import truncate
 from .tools import log
 
 
@@ -28,24 +30,14 @@ class MPO(TensorArray):
                  the simplification routine, if simplify is True.
     """
 
+    strategy: Strategy
+
     __array_priority__ = 10000
 
-    def __init__(
-        self,
-        data,
-        simplify=False,
-        maxsweeps=16,
-        tolerance=DEFAULT_TOLERANCE,
-        normalize=False,
-        max_bond_dimension=None,
-    ):
+    def __init__(self, data: list[np.ndarray], strategy: Strategy = DEFAULT_STRATEGY):
         super(MPO, self).__init__(data)
         assert data[0].shape[0] == data[-1].shape[-1] == 1
-        self.maxsweeps = maxsweeps
-        self.tolerance = tolerance
-        self.normalize = normalize
-        self.max_bond_dimension = max_bond_dimension
-        self.simplify = simplify
+        self.strategy = strategy
 
     def __mul__(self, n):
         """Multiply an MPO quantum state by an scalar n (MPO * n)
@@ -96,31 +88,37 @@ class MPO(TensorArray):
             out = out.reshape(D, D, b)
         return out[:, :, 0]
 
-    def apply(self, b):
+    def apply(
+        self, b, strategy: Optional[Strategy] = None, simplify: Optional[bool] = None
+    ):
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
+        # TODO: Remove implicit conversion of MPSSum to MPS
         if isinstance(b, MPSSum):
-            b = b.toMPS()
-        if isinstance(b, MPS):
-            assert self.size == b.size
-            log(f"Total error before applying MPO {b.error()}")
-            err = 0.0
-            b = MPS(
-                [mpo_multiply_tensor(A, B) for A, B in zip(self._data, b)],
-                error=b.error(),
-            )
-            if self.simplify:
-                b, err, _ = simplify(
-                    b,
-                    maxsweeps=self.maxsweeps,
-                    tolerance=self.tolerance,
-                    normalize=self.normalize,
-                    max_bond_dimension=self.max_bond_dimension,
-                )
-            log(f"Total error after applying MPO {b.error()}, incremented by {err}")
-            return b
-        else:
+            b = b.toMPS(strategy=strategy)
+        if strategy is None:
+            strategy = self.strategy
+        if simplify is None:
+            simplify = strategy.get_simplify_flag()
+        if not isinstance(b, MPS):
             raise Exception(f"Cannot multiply MPO with {b}")
+        assert self.size == b.size
+        log(f"Total error before applying MPO {b.error()}")
+        err = 0.0
+        b = MPS(
+            [mpo_multiply_tensor(A, B) for A, B in zip(self._data, b)],
+            error=b.error(),
+        )
+        if strategy.get_simplify_flag():
+            b, err, _ = truncate.simplify(
+                b,
+                maxsweeps=strategy.get_max_sweeps(),
+                tolerance=strategy.get_tolerance(),
+                normalize=strategy.get_normalize_flag(),
+                max_bond_dimension=strategy.get_max_bond_dimension(),
+            )
+        log(f"Total error after applying MPO {b.error()}, incremented by {err}")
+        return b
 
     def __matmul__(self, b):
         """Implement multiplication A @ b between an MPO 'A' and
@@ -160,12 +158,7 @@ class MPO(TensorArray):
                 data[i] = A
             else:
                 D = A.shape[-1]
-        return MPO(
-            data,
-            simplify=self.simplify,
-            tolerance=self.tolerance,
-            normalize=self.normalize,
-        )
+        return MPO(data, strategy=self.strategy)
 
 
 class MPOList(object):
@@ -184,23 +177,14 @@ class MPOList(object):
 
     __array_priority__ = 10000
 
-    def __init__(
-        self,
-        mpos,
-        simplify=False,
-        maxsweeps=4,
-        tolerance=DEFAULT_TOLERANCE,
-        normalize=False,
-        max_bond_dimension=None,
-    ):
-        self.mpos = mpos
-        self.maxsweeps = maxsweeps
-        self.tolerance = tolerance
-        self.normalize = normalize
-        self.max_bond_dimension = max_bond_dimension
-        self.simplify = simplify
+    mpos: list[MPO]
+    strategy: Strategy
 
-    def __mul__(self, n):
+    def __init__(self, mpos: list[MPO], strategy: Strategy = DEFAULT_STRATEGY):
+        self.mpos = mpos
+        self.strategy = strategy
+
+    def __mul__(self, n: Number) -> "MPOList":
         """Multiply an MPOList quantum state by an scalar n (MPOList * n).
 
         Parameters
@@ -213,11 +197,9 @@ class MPOList(object):
         """
         if not np.isscalar(n):
             raise Exception(f"Cannot multiply MPOList by {n}")
-        mpo_mult = copy.deepcopy(self)
-        mpo_mult.mpos[0]._data[0] = n * mpo_mult.mpos[0]._data[0]
-        return mpo_mult
+        return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
 
-    def __rmul__(self, n):
+    def __rmul__(self, n: Number) -> "MPOList":
         """Multiply an MPOList quantum state by an scalar n (n * MPOList).
 
         Parameters
@@ -230,43 +212,54 @@ class MPOList(object):
         """
         if not np.isscalar(n):
             raise Exception(f"Cannot multiply MPOList by {n}")
-        mpo_mult = copy.deepcopy(self)
-        mpo_mult.mpos[0]._data[0] = n * mpo_mult.mpos[0]._data[0]
-        return mpo_mult
+        return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
 
-    def tomatrix(self):
+    def tomatrix(self) -> np.ndarray:
         """Return the matrix representation of this MPO."""
         A = self.mpos[0].tomatrix()
         for mpo in self.mpos[1:]:
             A = A @ mpo.tomatrix()
         return A
 
-    def apply(self, b):
+    def apply(
+        self,
+        b: Union[MPS, MPSSum],
+        strategy: Optional[Strategy] = None,
+        simplify: Optional[bool] = None,
+    ) -> MPS:
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
         if isinstance(b, MPSSum):
-            b = b.toMPS()
+            state = b.toMPS()
+        else:
+            state = b
+        if strategy is None:
+            strategy = self.strategy
+        if simplify is None:
+            simplify = strategy.get_simplify_flag()
         for mpo in self.mpos:
             # log(f'Total error before applying MPOList {b.error()}')
-            b = mpo.apply(b)
-            err = 0.0
-            if self.simplify and not mpo.simplify:
-                b, err, _ = simplify(
-                    b,
-                    maxsweeps=self.maxsweeps,
-                    tolerance=self.tolerance,
-                    normalize=self.normalize,
-                    max_bond_dimension=self.max_bond_dimension,
-                )
-            log(f"Total error after applying MPOList {b.error()}, incremented by {err}")
-        return b
+            state = mpo.apply(state)
+        err = 0.0
+        if simplify:
+            state, err, _ = truncate.simplify(
+                state,
+                maxsweeps=strategy.get_max_sweeps(),
+                tolerance=strategy.get_tolerance(),
+                normalize=strategy.get_normalize_flag(),
+                max_bond_dimension=strategy.get_max_bond_dimension(),
+            )
+        log(f"Total error after applying MPOList {state.error()}, incremented by {err}")
+        return state
 
-    def __matmul__(self, b):
+    def __matmul__(self, b: Union[MPS, MPSSum]) -> MPS:
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
         return self.apply(b)
 
-    def extend(self, L, sites=None, dimensions=2):
+    def extend(
+        self, L: int, sites: Optional[list[int]] = None, dimensions: int = 2
+    ) -> "MPOList":
         """Enlarge an MPOList so that it acts on a larger Hilbert space with 'L' sites.
 
         Parameters
@@ -280,10 +273,7 @@ class MPOList(object):
         ------
         mpo        -- A new MPOList.
         """
-        data = [mpo.extend(L, sites=sites, dimensions=dimensions) for mpo in self.mpos]
         return MPOList(
-            data,
-            simplify=self.simplify,
-            tolerance=self.tolerance,
-            normalize=self.normalize,
+            [mpo.extend(L, sites=sites, dimensions=dimensions) for mpo in self.mpos],
+            strategy=self.strategy,
         )

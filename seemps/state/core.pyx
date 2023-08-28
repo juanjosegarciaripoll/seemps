@@ -13,14 +13,16 @@ cdef class Strategy:
     cdef int method
     cdef double tolerance
     cdef int max_bond_dimension
-    cdef bool normalize
     cdef int max_sweeps
+    cdef bool normalize
+    cdef bool simplify
 
     def __init__(self,
                  method: int = Truncation.RELATIVE_SINGULAR_VALUE,
                  tolerance: float = 1e-8,
                  max_bond_dimension: Optional[int] = None,
                  normalize: bool = False,
+                 simplify: bool = False,
                  max_sweeps: int = 16):
         if max_bond_dimension is None:
             max_bond_dimension = np.iinfo(int).max
@@ -35,6 +37,7 @@ cdef class Strategy:
             raise AssertionError("Invalid bond dimension in Strategy")
         self.max_bond_dimension = max_bond_dimension
         self.normalize = normalize
+        self.simplify = simplify
         if max_sweeps < 0:
             raise AssertionError("Negative or zero number of sweeps in Strategy")
         self.max_sweeps = max_sweeps
@@ -43,11 +46,15 @@ cdef class Strategy:
                  method: Optional[Truncation] = None,
                  tolerance: Optional[float] = None,
                  max_bond_dimension: Optional[int] = None,
-                 normalize: Optional[bool] = False):
+                 normalize: Optional[bool] = None,
+                 simplify: Optional[bool] = None,
+                 max_sweeps: Optional[int] = None):
         return Strategy(method = self.method if method is None else method,
                         tolerance = self.tolerance if tolerance is None else tolerance,
                         max_bond_dimension = self.max_bond_dimension if max_bond_dimension is None else max_bond_dimension,
-                        normalize = self.normalize if normalize is None else normalize)
+                        normalize = self.normalize if normalize is None else normalize,
+                        simplify = self.simplify if simplify is None else simplify,
+                        max_sweeps = self.max_sweeps if max_sweeps is None else max_sweeps)
 
     def get_tolerance(self) -> float:
         return self.tolerance
@@ -60,6 +67,9 @@ cdef class Strategy:
 
     def get_max_sweeps(self) -> int:
         return self.max_sweeps
+
+    def get_simplify_flag(self) -> bool:
+        return self.simplify
 
 DEFAULT_TOLERANCE = np.finfo(np.float64).eps
 
