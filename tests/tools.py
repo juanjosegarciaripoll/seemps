@@ -24,7 +24,7 @@ def similar(A, B, **kwdargs):
         B = B.todense()
     elif isinstance(B, MPS):
         B = B.to_vector()
-    return (A.shape == B.shape) & np.all(np.isclose(A, B, **kwdargs))
+    return (A.shape == B.shape) and np.all(np.isclose(A, B, **kwdargs))
 
 
 def almostIdentity(L, places=7):
@@ -73,4 +73,8 @@ def run_over_random_mps(function, d=2, N=10, D=10, repeats=10):
 class MPSTestCase(unittest.TestCase):
     def assertSimilar(self, a, b):
         if not similar(a, b):
+            raise AssertionError("Different objects:\na = {a}\nb = {b}")
+
+    def assertSimilarMPS(self, a, b):
+        if (a.size != b.size) or not similar(a.to_vector(), b.to_vector()):
             raise AssertionError("Different objects:\na = {a}\nb = {b}")
