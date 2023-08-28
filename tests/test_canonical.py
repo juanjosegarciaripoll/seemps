@@ -81,7 +81,7 @@ class TestCanonicalForm(unittest.TestCase):
                 O = np.array([[0, 0], [0, 1]])
                 nrm2 = ξ.norm_squared()
                 self.assertAlmostEqual(
-                    ξ.expectation1(O) / nrm2, Ψ.expectation1(O, center) / nrm2
+                    ξ.expectation1(O, center) / nrm2, Ψ.expectation1(O, center) / nrm2
                 )
                 #
                 # The canonical form is the same when we use the
@@ -110,13 +110,13 @@ class TestCanonicalForm(unittest.TestCase):
 
     def test_canonical_mps_normalization(self):
         #
-        # We verify CanonicalMPS(...,normalize=True) normalizes the
+        # We verify normalize_inplace() normalizes the
         # vector without really changing it.
         #
         def ok(Ψ):
             for center in range(Ψ.size):
-                ξ1 = CanonicalMPS(Ψ, center=center, normalize=False)
-                ξ2 = CanonicalMPS(Ψ, center=center, normalize=True)
+                ξ1 = CanonicalMPS(Ψ, center=center)
+                ξ2 = CanonicalMPS(Ψ, center=center).normalize_inplace()
                 self.assertAlmostEqual(ξ2.norm_squared(), 1.0)
                 self.assertTrue(
                     similar(ξ1.to_vector() / np.sqrt(ξ1.norm_squared()), ξ2.to_vector())
@@ -131,7 +131,7 @@ class TestCanonicalForm(unittest.TestCase):
         #
         def ok(Ψ):
             for center in range(Ψ.size):
-                ψ = CanonicalMPS(Ψ, center=center, normalize=True)
+                ψ = CanonicalMPS(Ψ, center=center).normalize_inplace()
                 ξ = ψ.copy()
                 self.assertEqual(ξ.size, ψ.size)
                 self.assertEqual(ξ.center, ψ.center)

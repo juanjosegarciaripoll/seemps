@@ -1,12 +1,11 @@
 import numpy as np
-import unittest
 from .tools import *
 from seemps.state import CanonicalMPS, MPS
 from seemps.truncate import simplify, combine, AntilinearForm
 from seemps.expectation import expectation1, expectation2
 
 
-class TestLinearForm(unittest.TestCase):
+class TestLinearForm(TestCase):
     def test_canonical_env(self):
         #
         # When we pass two identical canonical form MPS to LinearForm, the
@@ -15,21 +14,21 @@ class TestLinearForm(unittest.TestCase):
         def ok(ψ):
             global foo
             for center in range(ψ.size):
-                ϕ = CanonicalMPS(ψ, center=center, normalize=True)
+                ϕ = CanonicalMPS(ψ, center=center).normalize_inplace()
                 LF = AntilinearForm(ϕ, ϕ, center)
                 for i in range(ϕ.size):
                     if i <= center:
-                        self.assertTrue(similar(LF.L[i], ϕ.left_environment(i)))
+                        self.assertSimilar(LF.L[i], ϕ.left_environment(i))
                         self.assertTrue(almostIdentity(LF.L[i], +1))
                     if i >= center:
-                        self.assertTrue(similar(LF.R[i], ϕ.right_environment(i)))
+                        self.assertSimilar(LF.R[i], ϕ.right_environment(i))
                         self.assertTrue(almostIdentity(LF.R[i], +1))
 
         run_over_random_mps(ok)
 
     def tensor1siteok(self, aϕ, O):
         for center in range(aϕ.size):
-            ϕ = CanonicalMPS(aϕ, center=center, normalize=True)
+            ϕ = CanonicalMPS(aϕ, center=center).normalize_inplace()
             for n in range(ϕ.size):
                 #
                 # Take an MPS Φ, construct a new state ψ = O1*ϕ with a local
@@ -60,7 +59,7 @@ class TestLinearForm(unittest.TestCase):
 
     def tensor2siteok(self, aϕ, O1, O2):
         for center in range(aϕ.size):
-            ϕ = CanonicalMPS(aϕ, center=center, normalize=True)
+            ϕ = CanonicalMPS(aϕ, center=center).normalize_inplace()
             for n in range(ϕ.size - 1):
                 #
                 # Take an MPS Φ, construct a new state ψ = O1*ϕ with a local

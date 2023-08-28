@@ -145,7 +145,6 @@ def wavefunction_product(ψ, ξ, conjugate=False, simplify=True, **kwdargs):
 
     out = MPS([combine(A, B) for A, B in zip(ψ, ξ)])
     if simplify:
-        out = CanonicalMPS(out, center=0, **kwdargs)
         out, _, _ = truncate.simplify(out, **kwdargs)
     return out
 

@@ -6,7 +6,7 @@ from seemps.register import *
 from .tools import *
 
 
-class TestAlgebraic(unittest.TestCase):
+class TestAlgebraic(TestCase):
     P1 = sp.diags([0.0, 1.0], 0)
     i2 = sp.eye(2, dtype=np.float64)
 
@@ -61,9 +61,9 @@ class TestAlgebraic(unittest.TestCase):
             ψξ = wavefunction_product(
                 ψmps, ξmps, simplify=True, normalize=False
             ).to_vector()
-            self.assertTrue(similar(ψξ, ψ * ξ))
+            self.assertSimilar(ψξ, ψ * ξ)
 
             ψcξ = wavefunction_product(
                 ψmps, ξmps, conjugate=True, simplify=False, normalize=False
             ).to_vector()
-            self.assertTrue(similar(ψcξ, ψ.conj() * ξ))
+            self.assertSimilar(ψcξ, ψ.conj() * ξ)

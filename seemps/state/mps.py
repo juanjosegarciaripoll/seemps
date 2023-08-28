@@ -27,12 +27,12 @@ class TensorArray(object):
     _data: list[np.ndarray]
     size: int
 
-    def __init__(self, data):
+    def __init__(self, data: Iterable[np.ndarray]):
         """Create a new TensorArray from a list of tensors. `data` is an
         iterable object, such as a list or other sequence. The list is cloned
         before storing it into this object, so as to avoid side effects when
         destructively modifying the array."""
-        self._data = list(data)
+        self._data = list(A for A in data)
         self.size = len(self._data)
 
     def __getitem__(self, k):
@@ -96,9 +96,13 @@ class MPS(TensorArray):
     #
     __array_priority__ = 10000
 
-    def __init__(self, data, error=0, strategy: Strategy = DEFAULT_STRATEGY):
+    def __init__(
+        self,
+        data: Iterable[np.ndarray],
+        error: float = 0,
+        strategy: Strategy = DEFAULT_STRATEGY,
+    ):
         super(MPS, self).__init__(data)
-        assert data[0].shape[0] == data[-1].shape[-1] == 1
         self._error = error
         self.strategy = strategy
 
@@ -111,9 +115,16 @@ class MPS(TensorArray):
         the complete wavefunction that is encoded in the MPS."""
         return _mps2vector(self._data)
 
-    @staticmethod
-    def from_vector(ψ: np.ndarray, dimensions: list[int], **kwdargs) -> "MPS":
-        return MPS(vector2mps(ψ, dimensions, **kwdargs))
+    @classmethod
+    def from_vector(
+        cls,
+        ψ: np.ndarray,
+        dimensions: list[int],
+        strategy: Strategy = DEFAULT_STRATEGY,
+        normalize: bool = True,
+        **kwdargs
+    ) -> "MPS":
+        return MPS(vector2mps(ψ, dimensions, strategy, normalize))
 
     def __add__(self, φ: Union["MPS", "MPSSum"]) -> "MPSSum":
         """Add an MPS or an MPSSum to the MPS.
@@ -194,7 +205,7 @@ class MPS(TensorArray):
         warnings.warn(
             "method norm2 is deprecated, use norm_squared", category=DeprecationWarning
         )
-        return abs(expectation.scprod(self, self))
+        return self.norm_squared()
 
     def norm_squared(self) -> float:
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""

@@ -5,6 +5,16 @@ import seemps.state
 import unittest
 
 
+class TestCase(unittest.TestCase):
+    def assertSimilar(self, A, B, **kwdargs):
+        if not similar(A, B, **kwdargs):
+            raise self.failureException(f"Objects are not similar:\nA={A}\nB={B}")
+
+    def assertAlmostIdentity(self, A, **kwdargs):
+        if not almostIdentity(A, **kwdargs):
+            raise self.failureException(f"Object not close to identity:\nA={A}")
+
+
 def similar(A, B, **kwdargs):
     if sp.issparse(A):
         A = A.todense()

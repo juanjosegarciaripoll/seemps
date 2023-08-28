@@ -1,6 +1,14 @@
+from typing import Optional
 import numpy as np
 from .. import state
-from ..state import DEFAULT_TOLERANCE, Truncation, Strategy
+from ..state import (
+    DEFAULT_TOLERANCE,
+    Truncation,
+    Strategy,
+    MPS,
+    CanonicalMPS,
+    DEFAULT_STRATEGY,
+)
 from ..tools import log, mydot
 from ..expectation import (
     begin_environment,
@@ -96,13 +104,13 @@ class AntilinearForm:
 
 
 def simplify(
-    ψ,
-    maxsweeps=4,
-    direction=+1,
-    tolerance=DEFAULT_TOLERANCE,
-    normalize=True,
-    max_bond_dimension=None,
-):
+    ψ: MPS,
+    maxsweeps: int = 4,
+    direction: int = +1,
+    tolerance: float = DEFAULT_TOLERANCE,
+    normalize: bool = True,
+    max_bond_dimension: Optional[int] = None,
+) -> tuple[MPS, float, int]:
     """Simplify an MPS ψ transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
 
@@ -123,22 +131,24 @@ def simplify(
     size = ψ.size
     start = 0 if direction > 0 else size - 1
 
-    base_error = ψ.error()
-    φ = state.CanonicalMPS(ψ, center=start, tolerance=tolerance, normalize=normalize)
-    if max_bond_dimension == 0 and tolerance <= 0:
-        return φ
-
-    form = AntilinearForm(φ, ψ, center=start)
-    norm_ψsqr = scprod(ψ, ψ).real
-    err = 1.0
-    log(
-        f"SIMPLIFY ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps, with tolerance {tolerance}."
-    )
     truncation = Strategy(
         method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
         tolerance=tolerance,
         max_bond_dimension=max_bond_dimension,
         normalize=normalize,
+    )
+    φ = CanonicalMPS(ψ, center=start, strategy=truncation)
+    if normalize:
+        φ.normalize_inplace()
+    if max_bond_dimension == 0 and tolerance <= 0:
+        return φ, 0.0, -direction
+
+    form = AntilinearForm(φ, ψ, center=start)
+    norm_ψsqr = scprod(ψ, ψ).real
+    base_error = ψ.error()
+    err = 1.0
+    log(
+        f"SIMPLIFY ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps, with tolerance {tolerance}."
     )
     for sweep in range(maxsweeps):
         if direction > 0:

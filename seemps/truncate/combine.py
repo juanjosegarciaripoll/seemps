@@ -1,7 +1,6 @@
 from typing import Optional
 import numpy as np
-from ..state.mps import MPS
-from ..state.canonical_mps import CanonicalMPS
+from ..state import MPS, CanonicalMPS, Weight
 from ..expectation import scprod
 from ..state import Truncation, Strategy, DEFAULT_TOLERANCE
 from ..tools import log
@@ -49,15 +48,15 @@ def guess_combine_state(weights, states):
 
 
 def combine(
-    weights,
-    states,
-    guess=None,
-    maxsweeps=4,
-    direction=+1,
+    weights: list[Weight],
+    states: list[MPS],
+    guess: Optional[MPS] = None,
+    maxsweeps: int = 4,
+    direction: int = +1,
     tolerance: float = DEFAULT_TOLERANCE,
     max_bond_dimension: Optional[int] = None,
     normalize: bool = True,
-):
+) -> tuple[MPS, float]:
     """Simplify an MPS ψ transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
 

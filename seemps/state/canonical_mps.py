@@ -1,11 +1,16 @@
+from numbers import Number
+from typing import Any, Iterable, Optional
+import warnings
 import numpy as np
 from .mps import MPS
 from . import schmidt
-from .core import Strategy, Truncation, DEFAULT_TOLERANCE
+from .core import DEFAULT_STRATEGY, Strategy, Truncation, DEFAULT_TOLERANCE
 from .. import expectation
 
 
-def _update_in_canonical_form(Ψ, A, site, direction, truncation: Strategy):
+def _update_in_canonical_form(
+    Ψ: MPS, A: np.ndarray, site: int, direction: int, truncation: Strategy
+) -> tuple[int, float]:
     """Insert a tensor in canonical form into the MPS Ψ at the given site.
     Update the neighboring sites in the process.
 
@@ -39,7 +44,7 @@ def _update_in_canonical_form(Ψ, A, site, direction, truncation: Strategy):
     return site, err
 
 
-def _canonicalize(Ψ, center, truncation):
+def _canonicalize(Ψ: MPS, center: int, truncation: Strategy) -> float:
     err = 0.0
     for i in range(0, center):
         center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, +1, truncation)
@@ -68,74 +73,77 @@ class CanonicalMPS(MPS):
     normalize -- normalize the state after finishing the canonical form
     """
 
+    center: int
+
     #
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
     #
-    def __init__(
-        self, data, center=None, error=0, normalize=False, tolerance=DEFAULT_TOLERANCE
-    ):
-        super(CanonicalMPS, self).__init__(data, error=error)
-        truncation = Strategy(
-            method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
-            tolerance=tolerance,
-            normalize=normalize,
-        )
+    def __init__(self, data: Iterable[np.ndarray], center=None, **kwdargs):
+        super(CanonicalMPS, self).__init__(data, **kwdargs)
         if isinstance(data, CanonicalMPS):
             self.center = data.center
             self._error = data._error
             if center is not None:
-                self.recenter(center, tolerance, normalize)
+                self.recenter(center)
         else:
             self.center = center = self._interpret_center(
                 0 if center is None else center
             )
-            self.update_error(_canonicalize(self, center, truncation))
-        if normalize:
+            self.update_error(_canonicalize(self, center, self.strategy))
+        if self.strategy.get_normalize_flag():
             A = self[center]
             self[center] = A / np.linalg.norm(A)
-        self.tolerance = tolerance
 
     @classmethod
     def from_vector(
-        ψ, dimensions, center=0, normalize=False, tolerance=DEFAULT_TOLERANCE
-    ):
+        cls,
+        ψ: np.ndarray,
+        dimensions: list[int],
+        strategy: Strategy = DEFAULT_STRATEGY,
+        normalize: bool = True,
+        **kwdargs
+    ) -> "CanonicalMPS":
         return CanonicalMPS(
-            schmidt.vector2mps(ψ, dimensions, tolerance),
-            center=center,
-            normalize=normalize,
-            tolerance=tolerance,
+            schmidt.vector2mps(ψ, dimensions, strategy, normalize),
+            center=kwdargs.get("center", 0),
+            strategy=strategy,
         )
 
-    def norm2(self):
+    def norm2(self) -> float:
+        """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
+        warnings.warn(
+            "method norm2 is deprecated, use norm_squared", category=DeprecationWarning
+        )
+        return self.norm_squared()
+
+    def norm_squared(self) -> float:
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
         A = self._data[self.center]
         return np.vdot(A, A)
 
-    def left_environment(self, site):
+    def left_environment(self, site: int) -> np.ndarray:
         start = min(site, self.center)
         ρ = expectation.begin_environment(self[start].shape[0])
         for A in self[start:site]:
             ρ = expectation.update_left_environment(A, A, ρ)
         return ρ
 
-    def right_environment(self, site):
+    def right_environment(self, site: int) -> np.ndarray:
         start = max(site, self.center)
         ρ = expectation.begin_environment(self[start].shape[-1])
         for A in self[start:site:-1]:
             ρ = expectation.update_right_environment(A, A, ρ)
         return ρ
 
-    def expectation1(self, operator, site=None):
-        """Return the expectated value of `operator` acting on the given `site`."""
-        if site is None or site == self.center:
-            A = self._data[self.center]
-            return np.vdot(A, np.einsum("ij,ajb->aib", operator, A))
-        else:
-            return expectation.expectation1(self, operator, site)
-
-    def entanglement_entropyAtCenter(self):
-        A = self._data[self.center]
+    def entanglement_entropy(self, site: Optional[int] = None) -> float:
+        """Return the entanglement entropy of the state divided at 'site',
+        which defaults to the canonical state's center."""
+        if site is None:
+            site = self.center
+        if site != self.center:
+            return self.copy().recenter(site).entanglement_entropy()
+        A = self._data[site]
         d1, d2, d3 = A.shape
         s = schmidt.svd(
             A.reshape(d1 * d2, d3),
@@ -146,14 +154,18 @@ class CanonicalMPS(MPS):
         )
         return -np.sum(2 * s * s * np.log2(s))
 
-    def update_canonical(self, A, direction, truncation: Strategy):
+    def update_canonical(
+        self, A: np.ndarray, direction: int, truncation: Strategy
+    ) -> float:
         self.center, err = _update_in_canonical_form(
             self, A, self.center, direction, truncation
         )
         self.update_error(err)
         return err
 
-    def update_2site(self, AA, site, direction, truncation: Strategy):
+    def update_2site(
+        self, AA: np.ndarray, site: int, direction: int, truncation: Strategy
+    ) -> float:
         """Split a two-site tensor into two one-site tensors by
         left/right orthonormalization and insert the tensor in
         canonical form into the MPS Ψ at the given site and the site
@@ -184,7 +196,7 @@ class CanonicalMPS(MPS):
         self.update_error(err)
         return err
 
-    def _interpret_center(self, center):
+    def _interpret_center(self, center: int) -> int:
         """Converts `center` into an integer between [0,size-1], with the
         convention that -1 = size-1, -2 = size-2, etc. Trows an exception of
         `center` if out of bounds."""
@@ -197,28 +209,33 @@ class CanonicalMPS(MPS):
         raise IndexError()
 
     def recenter(
-        self, center, tolerance: float = DEFAULT_TOLERANCE, normalize: bool = False
-    ):
+        self, center: int, strategy: Optional[Strategy] = None
+    ) -> "CanonicalMPS":
         """Update destructively the state to be in canonical form with respect
         to a different site."""
         center = self._interpret_center(center)
         old = self.center
-        truncation = Strategy(
-            method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
-            tolerance=tolerance,
-            normalize=normalize,
-        )
+        if strategy is None:
+            strategy = self.strategy
         if center != old:
             dr = +1 if center > old else -1
             for i in range(old, center, dr):
-                self.update_canonical(self._data[i], dr, truncation)
+                self.update_canonical(self._data[i], dr, strategy)
+        return self
+
+    def normalize_inplace(self) -> "CanonicalMPS":
+        n = self.center
+        A = self._data[n]
+        self._data[n] = A / np.linalg.norm(A)
         return self
 
     def __copy__(self):
         #
         # Return a copy of the MPS with a fresh new array.
         #
-        return type(self)(self)
+        return type(self)(
+            self, center=self.center, strategy=self.strategy, error=self.error
+        )
 
     def copy(self):
         """Return a fresh new TensorArray that shares the same tensor as its
