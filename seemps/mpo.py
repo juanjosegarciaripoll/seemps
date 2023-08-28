@@ -1,8 +1,8 @@
 from numbers import Number
-from typing import Optional, Union
+from typing import Iterable, Optional, Union
 import numpy as np
 import copy
-from .state import MPS, MPSSum, TensorArray, DEFAULT_STRATEGY, Strategy
+from .state import MPS, MPSSum, TensorArray, DEFAULT_STRATEGY, Strategy, Weight
 from . import truncate
 from .tools import log
 
@@ -39,7 +39,7 @@ class MPO(TensorArray):
         assert data[0].shape[0] == data[-1].shape[-1] == 1
         self.strategy = strategy
 
-    def __mul__(self, n):
+    def __mul__(self, n: Weight) -> "MPO":
         """Multiply an MPO quantum state by an scalar n (MPO * n)
 
         Parameters
@@ -50,13 +50,13 @@ class MPO(TensorArray):
         ------
         mpo -- New mpo.
         """
-        if not np.isscalar(n):
-            raise Exception(f"Cannot multiply MPO by {n}")
-        mpo_mult = copy.deepcopy(self)
-        mpo_mult._data[0] = n * mpo_mult._data[0]
-        return mpo_mult
+        if isinstance(n, (float, complex)):
+            mpo_mult = copy.deepcopy(self)
+            mpo_mult._data[0] = n * mpo_mult._data[0]
+            return mpo_mult
+        return NotImplemented
 
-    def __rmul__(self, n):
+    def __rmul__(self, n: Weight) -> "MPO":
         """Multiply an MPO quantum state by an scalar n (n * MPO).
 
         Parameters
@@ -67,17 +67,17 @@ class MPO(TensorArray):
         ------
         mpo -- New mpo.
         """
-        if not np.isscalar(n):
-            raise Exception(f"Cannot multiply MPO by {n}")
-        mpo_mult = copy.deepcopy(self)
-        mpo_mult._data[0] = n * mpo_mult._data[0]
-        return mpo_mult
+        if isinstance(n, (float, complex)):
+            mpo_mult = copy.deepcopy(self)
+            mpo_mult._data[0] = n * mpo_mult._data[0]
+            return mpo_mult
+        return NotImplemented
 
-    def dimensions(self):
+    def dimensions(self) -> list[int]:
         """Return the local dimensions of the MPO."""
         return [A.shape[1] for A in self._data]
 
-    def tomatrix(self):
+    def tomatrix(self) -> np.ndarray:
         """Return the matrix representation of this MPO."""
         D = 1  # Total physical dimension so far
         out = np.array([[[1.0]]])
@@ -89,43 +89,57 @@ class MPO(TensorArray):
         return out[:, :, 0]
 
     def apply(
-        self, b, strategy: Optional[Strategy] = None, simplify: Optional[bool] = None
-    ):
+        self,
+        b: Union[MPS, MPSSum],
+        strategy: Optional[Strategy] = None,
+        simplify: Optional[bool] = None,
+    ) -> MPS:
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
         # TODO: Remove implicit conversion of MPSSum to MPS
         if isinstance(b, MPSSum):
-            b = b.toMPS(strategy=strategy)
+            state: MPS = b.toMPS(strategy=strategy)
+        elif isinstance(b, MPS):
+            state = b
+        else:
+            raise TypeError(f"Cannot multiply MPO with {b}")
         if strategy is None:
             strategy = self.strategy
         if simplify is None:
             simplify = strategy.get_simplify_flag()
-        if not isinstance(b, MPS):
-            raise Exception(f"Cannot multiply MPO with {b}")
-        assert self.size == b.size
-        log(f"Total error before applying MPO {b.error()}")
+        assert self.size == state.size
+        log(f"Total error before applying MPO {state.error()}")
         err = 0.0
-        b = MPS(
-            [mpo_multiply_tensor(A, B) for A, B in zip(self._data, b)],
-            error=b.error(),
+        state = MPS(
+            [mpo_multiply_tensor(A, B) for A, B in zip(self._data, state._data)],
+            error=state.error(),
         )
         if strategy.get_simplify_flag():
-            b, err, _ = truncate.simplify(
-                b,
+            state, err, _ = truncate.simplify(
+                state,
                 maxsweeps=strategy.get_max_sweeps(),
                 tolerance=strategy.get_tolerance(),
                 normalize=strategy.get_normalize_flag(),
                 max_bond_dimension=strategy.get_max_bond_dimension(),
             )
-        log(f"Total error after applying MPO {b.error()}, incremented by {err}")
-        return b
+        log(f"Total error after applying MPO {state.error()}, incremented by {err}")
+        return state
 
-    def __matmul__(self, b):
+    def __matmul__(self, b: Union[MPS, MPSSum]) -> MPS:
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
         return self.apply(b)
 
-    def extend(self, L, sites=None, dimensions=2):
+    # TODO: We have to change the signature and working of this function, so that
+    # 'sites' only contains the locations of the _new_ sites, and 'L' is no longer
+    # needed. In this case, 'dimensions' will only list the dimensions of the added
+    # sites, not all of them.
+    def extend(
+        self,
+        L: int,
+        sites: Optional[Iterable[int]] = None,
+        dimensions: Union[int, list[int]] = 2,
+    ) -> "MPO":
         """Enlarge an MPO so that it acts on a larger Hilbert space with 'L' sites.
 
         Parameters
@@ -140,20 +154,21 @@ class MPO(TensorArray):
         mpo        -- A new MPO.
         """
         assert L >= self.size
-        if np.isscalar(dimensions):
-            dimensions = [dimensions] * L
+        if isinstance(dimensions, list):
+            final_dimensions = dimensions
+        else:
+            final_dimensions = [dimensions] * L
         if sites is None:
             sites = range(self.size)
-        else:
-            assert len(sites) == self.size
 
-        data = [None] * L
+        data: list[np.ndarray] = [np.ndarray(())] * L
         for ndx, A in zip(sites, self):
             data[ndx] = A
+            final_dimensions[ndx] = A.shape[2]
         D = 1
         for i, A in enumerate(data):
-            if A is None:
-                d = dimensions[i]
+            if A.size == 0:
+                d = final_dimensions[i]
                 A = np.eye(D).reshape(D, 1, 1, D) * np.eye(d).reshape(1, d, d, 1)
                 data[i] = A
             else:
@@ -195,9 +210,9 @@ class MPOList(object):
         ------
         mpo -- New mpo.
         """
-        if not np.isscalar(n):
-            raise Exception(f"Cannot multiply MPOList by {n}")
-        return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
+        if isinstance(n, (float, complex)):
+            return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
+        return NotImplemented
 
     def __rmul__(self, n: Number) -> "MPOList":
         """Multiply an MPOList quantum state by an scalar n (n * MPOList).
@@ -210,9 +225,9 @@ class MPOList(object):
         ------
         mpo -- New mpo.
         """
-        if not np.isscalar(n):
-            raise Exception(f"Cannot multiply MPOList by {n}")
-        return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
+        if isinstance(n, (float, complex)):
+            return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
+        return NotImplemented
 
     def tomatrix(self) -> np.ndarray:
         """Return the matrix representation of this MPO."""
@@ -229,6 +244,7 @@ class MPOList(object):
     ) -> MPS:
         """Implement multiplication A @ b between an MPO 'A' and
         a Matrix Product State 'b'."""
+        state: MPS
         if isinstance(b, MPSSum):
             state = b.toMPS()
         else:

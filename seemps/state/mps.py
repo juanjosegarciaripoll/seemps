@@ -1,6 +1,7 @@
 import copy
 import math
-from typing import Optional, Union
+from numbers import Number
+from typing import Iterable, Optional, Union
 import numpy as np
 from .. import expectation
 from .schmidt import vector2mps
@@ -110,10 +111,10 @@ class MPS(TensorArray):
         return _mps2vector(self._data)
 
     @staticmethod
-    def from_vector(ψ, dimensions, **kwdargs):
+    def from_vector(ψ: np.ndarray, dimensions: list[int], **kwdargs) -> "MPS":
         return MPS(vector2mps(ψ, dimensions, **kwdargs))
 
-    def __add__(self, φ):
+    def __add__(self, φ: Union["MPS", "MPSSum"]) -> "MPSSum":
         """Add an MPS or an MPSSum to the MPS.
 
         Parameters
@@ -125,16 +126,12 @@ class MPS(TensorArray):
         mps_list    -- New MPSSum.
         """
         if isinstance(φ, MPS):
-            new_weights = [1, 1]
-            new_states = [self, φ]
-        elif isinstance(φ, MPSSum):
-            new_weights = [1] + list((1) * np.asarray(φ.weights))
-            new_states = [self] + φ.states
-        else:
-            raise TypeError(f"Invalid addition between MPS and object of type {φ}")
-        return MPSSum(weights=new_weights, states=new_states, strategy=self.strategy)
+            return MPSSum([1, 1], [self, φ], self.strategy)
+        if isinstance(φ, MPSSum):
+            return MPSSum([1] + φ.weights, [self] + φ.states, self.strategy)
+        return NotImplemented
 
-    def __sub__(self, φ):
+    def __sub__(self, φ: Union["MPS", "MPSSum"]) -> "MPSSum":
         """Subtract an MPS or an MPSSum from the MPS.
 
         Parameters
@@ -146,16 +143,16 @@ class MPS(TensorArray):
         mps_list    -- New MPSSum.
         """
         if isinstance(φ, MPS):
-            new_weights = [1, -1]
-            new_states = [self, φ]
-        elif isinstance(φ, MPSSum):
-            new_weights = [1] + list((-1) * np.asarray(φ.weights))
-            new_states = [self] + φ.states
-        else:
-            raise TypeError(f"Invalid subtraction between MPS and object of type {φ}")
-        return MPSSum(weights=new_weights, states=new_states, strategy=self.strategy)
+            return MPSSum([1, -1], [self, φ], self.strategy)
+        if isinstance(φ, MPSSum):
+            return MPSSum(
+                [1] + list((-1) * np.asarray(φ.weights)),
+                [self] + φ.states,
+                self.strategy,
+            )
+        return NotImplemented
 
-    def __mul__(self, n):
+    def __mul__(self, n: Weight) -> "MPS":
         """Multiply an MPS quantum state by a scalar n (MPS * n)
 
         Parameters
@@ -166,17 +163,14 @@ class MPS(TensorArray):
         ------
         mps    -- New mps.
         """
-        if np.isscalar(n):
+        if isinstance(n, (float, complex)):
             mps_mult = copy.deepcopy(self)
             mps_mult._data[0] = n * mps_mult._data[0]
             mps_mult._error = np.abs(n) ** 2 * mps_mult._error
             return mps_mult
-        else:
-            raise TypeError(
-                f"Invalid multiplication between MPS and object of type {n}"
-            )
+        return NotImplemented
 
-    def __rmul__(self, n):
+    def __rmul__(self, n: Weight) -> "MPS":
         """Multiply an MPS quantum state by a scalar n (n * MPS).
 
         Parameters
@@ -187,70 +181,76 @@ class MPS(TensorArray):
         ------
         mps    -- New mps.
         """
-        if np.isscalar(n):
+        if isinstance(n, (float, complex)):
             mps_mult = copy.deepcopy(self)
             mps_mult._data[0] = n * mps_mult._data[0]
             mps_mult._error = np.abs(n) ** 2 * mps_mult._error
             return mps_mult
-        else:
-            raise TypeError(
-                f"Invalid multiplication between MPS and object of type {n}"
-            )
+        return NotImplemented
 
-    def norm2(self):
+    def norm2(self) -> float:
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
         warnings.warn(
             "method norm2 is deprecated, use norm_squared", category=DeprecationWarning
         )
         return abs(expectation.scprod(self, self))
 
-    def norm_squared(self):
+    def norm_squared(self) -> float:
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
         return abs(expectation.scprod(self, self))
 
-    def norm(self):
+    def norm(self) -> float:
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
         return np.sqrt(abs(expectation.scprod(self, self)))
 
-    def expectation1(self, operator, n):
+    def expectation1(self, operator, n) -> Number:
         """Return the expectation value of `operator` acting on the `n`-th
         site of the MPS. See `mps.expectation.expectation1()`."""
         return expectation.expectation1(self, operator, n)
 
-    def expectation2(self, operator1, operator2, i, j=None):
+    def expectation2(self, operator1, operator2, i, j=None) -> Number:
         """Return the expectation value of `operator1` and `operator2` acting
         on the sites `i` and `j`. See `mps.expectation.expectation2()`"""
         return expectation.expectation2(self, operator1, operator2, i, j)
 
-    def all_expectation1(self, operator):
+    def all_expectation1(self, operator) -> Number:
         """Return all expectation values of `operator` acting on all possible
         sites of the MPS. See `mps.expectation.all_expectation1()`."""
         return expectation.all_expectation1(self, operator)
 
-    def left_environment(self, site):
+    def left_environment(self, site: int) -> np.ndarray:
         ρ = expectation.begin_environment()
         for A in self[:site]:
             ρ = expectation.update_left_environment(A, A, ρ)
         return ρ
 
-    def right_environment(self, site):
+    def right_environment(self, site: int) -> np.ndarray:
         ρ = expectation.begin_environment()
         for A in self[-1:site:-1]:
             ρ = expectation.update_right_environment(A, A, ρ)
         return ρ
 
-    def error(self):
+    def error(self) -> float:
         """Return any recorded norm-2 truncation errors in this state. More
         precisely, ‖exact - actual‖^2."""
         return self._error
 
-    def update_error(self, delta):
+    def update_error(self, delta: float) -> float:
         """Update an estimate of the norm-2 truncation errors. We use the
         triangle inequality to guess an upper bound."""
         self._error = (np.sqrt(self._error) + np.sqrt(delta)) ** 2
         return self._error
 
-    def extend(self, L, sites=None, dimensions=2):
+    # TODO: We have to change the signature and working of this function, so that
+    # 'sites' only contains the locations of the _new_ sites, and 'L' is no longer
+    # needed. In this case, 'dimensions' will only list the dimensions of the added
+    # sites, not all of them.
+    def extend(
+        self,
+        L: int,
+        sites: Optional[Iterable[int]] = None,
+        dimensions: Union[int, list[int]] = 2,
+    ):
         """Enlarge an MPS so that it lives in a Hilbert space with `L` sites.
 
         Parameters
@@ -265,21 +265,21 @@ class MPS(TensorArray):
         mpo        -- A new MPO.
         """
         assert L >= self.size
-        if np.isscalar(dimensions):
-            dimensions = [dimensions] * L
+        if isinstance(dimensions, int):
+            final_dimensions = [dimensions] * L
+        else:
+            final_dimensions = dimensions.copy()
         if sites is None:
             sites = range(self.size)
-        else:
-            assert len(sites) == self.size
 
-        data = [None] * L
+        data: list[np.ndarray] = [np.ndarray(())] * L
         for ndx, A in zip(sites, self):
             data[ndx] = A
-            dimensions[ndx] = A.shape[1]
+            final_dimensions[ndx] = A.shape[1]
         D = 1
         for i, A in enumerate(data):
-            if A is None:
-                d = dimensions[i]
+            if A.size == 0:
+                d = final_dimensions[i]
                 A = np.zeros((D, d, D))
                 A[:, 0, :] = np.eye(D)
                 data[i] = A
@@ -363,8 +363,7 @@ class MPSSum:
                 self.states + φ.states,
                 self.strategy,
             )
-        else:
-            raise Exception(f"Cannot add MPSSum and {type(φ)}")
+        return NotImplemented
 
     def __sub__(self, φ: Union[MPS, "MPSSum"]) -> "MPSSum":
         """Subtract an MPS or an MPSSum from the MPSSum.
@@ -379,14 +378,13 @@ class MPSSum:
         """
         if isinstance(φ, MPS):
             return MPSSum(self.weights + [-1], self.states + [φ], self.strategy)
-        elif isinstance(φ, MPSSum):
+        if isinstance(φ, MPSSum):
             return MPSSum(
                 self.weights + [-w for w in φ.weights],
                 self.states + φ.states,
                 self.strategy,
             )
-        else:
-            raise Exception(f"Cannot add MPSSum and {type(φ)}")
+        return NotImplemented
 
     def __mul__(self, n: Weight) -> "MPSSum":
         """Multiply an MPSSum quantum state by an scalar n (MPSSum * n)
