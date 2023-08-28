@@ -9,7 +9,7 @@ from .. import expectation
 
 
 def _update_in_canonical_form(
-    Ψ: MPS, A: np.ndarray, site: int, direction: int, truncation: Strategy
+    Ψ: list[np.ndarray], A: np.ndarray, site: int, direction: int, truncation: Strategy
 ) -> tuple[int, float]:
     """Insert a tensor in canonical form into the MPS Ψ at the given site.
     Update the neighboring sites in the process.
@@ -26,7 +26,7 @@ def _update_in_canonical_form(
     (see truncate_vector in File 1a - MPS class)
     """
     if direction > 0:
-        if site + 1 == Ψ.size:
+        if site + 1 == len(Ψ):
             Ψ[site] = A
             err = 0.0
         else:
@@ -44,13 +44,13 @@ def _update_in_canonical_form(
     return site, err
 
 
-def _canonicalize(Ψ: MPS, center: int, truncation: Strategy) -> float:
+def _canonicalize(Ψ: list[np.ndarray], center: int, truncation: Strategy) -> float:
     err = 0.0
     for i in range(0, center):
-        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, +1, truncation)
+        _, errk = _update_in_canonical_form(Ψ, Ψ[i], i, +1, truncation)
         err += errk
-    for i in range(Ψ.size - 1, center, -1):
-        center, errk = _update_in_canonical_form(Ψ, Ψ[i], i, -1, truncation)
+    for i in range(len(Ψ) - 1, center, -1):
+        _, errk = _update_in_canonical_form(Ψ, Ψ[i], i, -1, truncation)
         err += errk
     return err
 
@@ -90,7 +90,7 @@ class CanonicalMPS(MPS):
             self.center = center = self._interpret_center(
                 0 if center is None else center
             )
-            self.update_error(_canonicalize(self, center, self.strategy))
+            self.update_error(_canonicalize(self._data, center, self.strategy))
         if self.strategy.get_normalize_flag():
             A = self[center]
             self[center] = A / np.linalg.norm(A)
@@ -158,7 +158,7 @@ class CanonicalMPS(MPS):
         self, A: np.ndarray, direction: int, truncation: Strategy
     ) -> float:
         self.center, err = _update_in_canonical_form(
-            self, A, self.center, direction, truncation
+            self._data, A, self.center, direction, truncation
         )
         self.update_error(err)
         return err
