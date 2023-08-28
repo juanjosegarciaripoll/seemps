@@ -1,7 +1,7 @@
 import numpy as np
 import scipy.linalg  # type: ignore
 from . import state
-from .state import TruncationStrategy, DEFAULT_TRUNCATION
+from .state import Strategy, DEFAULT_STRATEGY
 
 
 def pairwise_unitaries(H, δt):
@@ -13,7 +13,7 @@ def pairwise_unitaries(H, δt):
     ]
 
 
-def apply_pairwise_unitaries(U, ψ, start, direction, truncation: TruncationStrategy):
+def apply_pairwise_unitaries(U, ψ, start, direction, truncation: Strategy):
     """Apply the list of pairwise unitaries U onto an MPS state ψ in
     canonical form. Unitaries are applied onto pairs of sites (i,i+1),
     (i+2,i+3), etc. We start at 'i=start' and move in increasing or
@@ -63,7 +63,7 @@ class TEBD_evolution(object):
         dt,
         timesteps=1,
         order=1,
-        truncation: TruncationStrategy = DEFAULT_TRUNCATION,
+        truncation: Strategy = DEFAULT_STRATEGY,
     ):
         """Create a TEBD algorithm to evolve a quantum state ψ with a fixed
         Hamiltonian H.

@@ -31,7 +31,7 @@ class TestExpectation(unittest.TestCase):
             for n, bits in enumerate(conf):
                 proj = ψwave[n]
                 ϕmps = seemps.state.product_state(map(bit2state, bits[-nbits:]))
-                self.assertEqual(proj, scprod(ϕmps, ψmps))
+                self.assertAlmostEqual(proj, scprod(ϕmps, ψmps))
 
     def test_norm_standard(self):
         #

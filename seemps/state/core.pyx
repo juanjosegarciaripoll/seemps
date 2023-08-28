@@ -2,38 +2,52 @@ import numpy as np
 cimport numpy as cnp
 from libc.math cimport sqrt
 from libcpp cimport bool
+import enum
 
-cdef class TruncationStrategy:
-    cdef int method
-    cdef double tolerance
-    cdef int max_bond_dimension
-    cdef bool normalize
-
+class Truncation(enum.IntEnum):
     DO_NOT_TRUNCATE = 0
     RELATIVE_SINGULAR_VALUE = 1
     RELATIVE_NORM_SQUARED_ERROR = 2
 
+cdef class Strategy:
+    cdef int method
+    cdef double tolerance
+    cdef int max_bond_dimension
+    cdef bool normalize
+    cdef int max_sweeps
+
     def __init__(self,
-                 method: int = RELATIVE_SINGULAR_VALUE,
+                 method: Truncation = Truncation.RELATIVE_SINGULAR_VALUE,
                  tolerance: float = 1e-8,
                  max_bond_dimension: Optional[int] = None,
-                 normalize: bool = False):
+                 normalize: bool = False,
+                 max_sweeps: int = 16):
         if max_bond_dimension is None:
             max_bond_dimension = np.iinfo(int).max
-        if self.method < 0 or self.method > 2:
-            raise AssertionError("Invalid method argument passed to TruncationStrategy")
-        self.method = method
+        if method not in Truncation:
+            raise AssertionError("Invalid method argument passed to Strategy")
+        self.method = method.value
         if self.tolerance < 0 or self.tolerance >= 1.0:
-            raise AssertionError("Invalid tolerance argument passed to TruncationStrategy")
+            raise AssertionError("Invalid tolerance argument passed to Strategy")
         self.tolerance = tolerance
         max_bond_dimension = int(max_bond_dimension)
         if max_bond_dimension <= 0:
-            raise AssertionError("Invalid bond dimension in TruncationStrategy")
+            raise AssertionError("Invalid bond dimension in Strategy")
         self.max_bond_dimension = max_bond_dimension
         self.normalize = normalize
+        if max_sweeps < 0:
+            raise AssertionError("Negative or zero number of sweeps in Strategy")
+        self.max_sweeps = max_sweeps
 
-    def set_normalization(self, normalize: bool) -> TruncationStrategy:
-        return TruncationStrategy(self.method, self.tolerance, self.max_bond_dimension, normalize)
+    def replace(self,
+                 method: Optional[Truncation] = None,
+                 tolerance: Optional[float] = None,
+                 max_bond_dimension: Optional[int] = None,
+                 normalize: Optional[bool] = False):
+        return Strategy(method = self.method if method is None else method,
+                        tolerance = self.tolerance if tolerance is None else tolerance,
+                        max_bond_dimension = self.max_bond_dimension if max_bond_dimension is None else max_bond_dimension,
+                        normalize = self.normalize if normalize is None else normalize)
 
     def get_tolerance(self) -> float:
         return self.tolerance
@@ -46,12 +60,12 @@ cdef class TruncationStrategy:
 
 DEFAULT_TOLERANCE = np.finfo(np.float64).eps
 
-DEFAULT_TRUNCATION = TruncationStrategy(method = TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
-                                        tolerance = np.finfo(np.float64).eps,
-                                        max_bond_dimension = np.iinfo(int).max,
-                                        normalize = False)
+DEFAULT_STRATEGY = Strategy(method = Truncation.RELATIVE_NORM_SQUARED_ERROR,
+                            tolerance = np.finfo(np.float64).eps,
+                            max_bond_dimension = np.iinfo(int).max,
+                            normalize = False)
 
-NO_TRUNCATION = TruncationStrategy(method = TruncationStrategy.DO_NOT_TRUNCATE)
+NO_TRUNCATION = DEFAULT_STRATEGY.replace(method = Truncation.DO_NOT_TRUNCATE)
 
 cdef cnp.float64_t[::1] errors_buffer = np.zeros(1024, dtype=np.float64)
 
@@ -62,7 +76,7 @@ cdef cnp.float64_t *get_errors_buffer(Py_ssize_t N) noexcept:
     return &errors_buffer[0]
 
 def truncate_vector(cnp.ndarray[cnp.float64_t, ndim=1] s,
-                    TruncationStrategy strategy):
+                    Strategy strategy):
     global errors_buffer
 
     cdef:

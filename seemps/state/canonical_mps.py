@@ -1,11 +1,11 @@
 import numpy as np
 from .mps import MPS
 from . import schmidt
-from .core import TruncationStrategy, DEFAULT_TOLERANCE, DEFAULT_TRUNCATION
+from .core import Strategy, Truncation, DEFAULT_TOLERANCE
 from .. import expectation
 
 
-def _update_in_canonical_form(Ψ, A, site, direction, truncation: TruncationStrategy):
+def _update_in_canonical_form(Ψ, A, site, direction, truncation: Strategy):
     """Insert a tensor in canonical form into the MPS Ψ at the given site.
     Update the neighboring sites in the process.
 
@@ -76,8 +76,8 @@ class CanonicalMPS(MPS):
         self, data, center=None, error=0, normalize=False, tolerance=DEFAULT_TOLERANCE
     ):
         super(CanonicalMPS, self).__init__(data, error=error)
-        truncation = TruncationStrategy(
-            method=TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
+        truncation = Strategy(
+            method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
             tolerance=tolerance,
             normalize=normalize,
         )
@@ -146,14 +146,14 @@ class CanonicalMPS(MPS):
         )
         return -np.sum(2 * s * s * np.log2(s))
 
-    def update_canonical(self, A, direction, truncation: TruncationStrategy):
+    def update_canonical(self, A, direction, truncation: Strategy):
         self.center, err = _update_in_canonical_form(
             self, A, self.center, direction, truncation
         )
         self.update_error(err)
         return err
 
-    def update_2site(self, AA, site, direction, truncation: TruncationStrategy):
+    def update_2site(self, AA, site, direction, truncation: Strategy):
         """Split a two-site tensor into two one-site tensors by
         left/right orthonormalization and insert the tensor in
         canonical form into the MPS Ψ at the given site and the site
@@ -203,8 +203,8 @@ class CanonicalMPS(MPS):
         to a different site."""
         center = self._interpret_center(center)
         old = self.center
-        truncation = TruncationStrategy(
-            method=TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
+        truncation = Strategy(
+            method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
             tolerance=tolerance,
             normalize=normalize,
         )

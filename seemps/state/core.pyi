@@ -1,22 +1,20 @@
 from typing import Optional
 import numpy as np
 
-class TruncationStrategy:
+class Strategy:
     DO_NOT_TRUNCATE: int
     RELATIVE_SINGULAR_VALUE: int
     RELATIVE_NORM_SQUARED_ERROR: int
 
     def __init__(
-        self: TruncationStrategy,
+        self: Strategy,
         method: int = 1,
         tolerance: float = 1e-8,
         max_bond_dimension: Optional[int] = None,
         normalize: bool = False,
     ):
         pass
-    def set_normalization(
-        self: TruncationStrategy, normalize: bool
-    ) -> TruncationStrategy:
+    def set_normalization(self: Strategy, normalize: bool) -> Strategy:
         pass
     def get_tolerance(self) -> float:
         pass
@@ -27,9 +25,9 @@ class TruncationStrategy:
 
 DEFAULT_TOLERANCE: float
 
-NO_TRUNCATION: TruncationStrategy
+NO_TRUNCATION: Strategy
 
-DEFAULT_TRUNCATION: TruncationStrategy
+DEFAULT_STRATEGY: Strategy
 
-def truncate_vector(s: np.ndarray, strategy: TruncationStrategy):
+def truncate_vector(s: np.ndarray, strategy: Strategy):
     pass

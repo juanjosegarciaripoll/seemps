@@ -1,6 +1,6 @@
 import numpy as np
 from . import core
-from .core import TruncationStrategy, truncate_vector, DEFAULT_TRUNCATION
+from .core import Strategy, truncate_vector, DEFAULT_STRATEGY
 from scipy.linalg import svd  # type: ignore
 
 #
@@ -24,7 +24,7 @@ def _schmidt_split(ψ, strategy, overwrite):
     return U[:, :D], s.reshape(D, 1) * V[:D, :]
 
 
-def ortho_right(A, strategy: TruncationStrategy):
+def ortho_right(A, strategy: Strategy):
     α, i, β = A.shape
     U, s, V = svd(
         A.reshape(α * i, β),
@@ -37,7 +37,7 @@ def ortho_right(A, strategy: TruncationStrategy):
     return U[:, :D].reshape(α, i, D), s.reshape(D, 1) * V[:D, :], err
 
 
-def ortho_left(A, strategy: TruncationStrategy):
+def ortho_left(A, strategy: Strategy):
     α, i, β = A.shape
     U, s, V = svd(
         A.reshape(α, i * β),
@@ -50,7 +50,7 @@ def ortho_left(A, strategy: TruncationStrategy):
     return V[:D, :].reshape(D, i, β), U[:, :D] * s.reshape(1, D), err
 
 
-def left_orth_2site(AA, strategy: TruncationStrategy):
+def left_orth_2site(AA, strategy: Strategy):
     α, d1, d2, β = AA.shape
     Ψ = AA.reshape(α * d1, β * d2)
     U, S, V = svd(
@@ -63,7 +63,7 @@ def left_orth_2site(AA, strategy: TruncationStrategy):
     return U, SV, err
 
 
-def right_orth_2site(AA, strategy: TruncationStrategy):
+def right_orth_2site(AA, strategy: Strategy):
     α, d1, d2, β = AA.shape
     Ψ = AA.reshape(α * d1, β * d2)
     U, S, V = svd(Ψ, full_matrices=False, lapack_driver=SVD_LAPACK_DRIVER)
@@ -77,7 +77,7 @@ def right_orth_2site(AA, strategy: TruncationStrategy):
 def vector2mps(
     ψ,
     dimensions: list[int],
-    strategy: TruncationStrategy = DEFAULT_TRUNCATION,
+    strategy: Strategy = DEFAULT_STRATEGY,
     normalize: bool = True,
 ):
     """Construct a list of tensors for an MPS that approximates the state ψ

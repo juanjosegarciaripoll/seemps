@@ -1,6 +1,6 @@
 import numpy as np
 from .. import state
-from ..state import DEFAULT_TOLERANCE, DEFAULT_TRUNCATION, TruncationStrategy
+from ..state import DEFAULT_TOLERANCE, Truncation, Strategy
 from ..tools import log, mydot
 from ..expectation import (
     begin_environment,
@@ -134,8 +134,8 @@ def simplify(
     log(
         f"SIMPLIFY ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps, with tolerance {tolerance}."
     )
-    truncation = TruncationStrategy(
-        method=TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
+    truncation = Strategy(
+        method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
         tolerance=tolerance,
         max_bond_dimension=max_bond_dimension,
         normalize=normalize,

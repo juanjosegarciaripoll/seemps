@@ -2,8 +2,9 @@ from .mps import MPS, TensorArray, MPSSum
 from .factories import product_state, GHZ, W, wavepacket, graph, AKLT, random, gaussian
 from .canonical_mps import CanonicalMPS
 from .core import (
-    TruncationStrategy,
-    DEFAULT_TRUNCATION,
+    Strategy,
+    Truncation,
+    DEFAULT_STRATEGY,
     DEFAULT_TOLERANCE,
     NO_TRUNCATION,
 )

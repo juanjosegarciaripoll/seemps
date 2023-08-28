@@ -3,7 +3,7 @@ import numpy as np
 from ..state.mps import MPS
 from ..state.canonical_mps import CanonicalMPS
 from ..expectation import scprod
-from ..state import DEFAULT_TRUNCATION, TruncationStrategy, DEFAULT_TOLERANCE
+from ..state import Truncation, Strategy, DEFAULT_TOLERANCE
 from ..tools import log
 from .simplify import AntilinearForm
 
@@ -92,8 +92,8 @@ def combine(
 
     size = φ.size
     forms = [AntilinearForm(φ, ψ, center=start) for ψ in states]
-    truncation = TruncationStrategy(
-        method=TruncationStrategy.RELATIVE_NORM_SQUARED_ERROR,
+    truncation = Strategy(
+        method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
         tolerance=tolerance,
         max_bond_dimension=max_bond_dimension,
         normalize=normalize,
