@@ -1,11 +1,13 @@
-import unittest
 import scipy.sparse as sp
 from scipy.sparse.linalg import expm_multiply
-from seemps.state import CanonicalMPS, DEFAULT_STRATEGY
+from seemps.state import CanonicalMPS, DEFAULT_STRATEGY, product_state
 from seemps.tools import *
 from .tools import *
 from seemps.evolution import *
-from seemps.hamiltonians import make_ti_Hamiltonian
+from seemps.hamiltonians import (
+    ConstantNNHamiltonian,
+    Heisenberg_Hamiltonian,
+)
 
 
 def random_wavefunction(n):
@@ -13,125 +15,138 @@ def random_wavefunction(n):
     return ψ / np.linalg.norm(ψ)
 
 
-class TestTEBD_sweep(unittest.TestCase):
-    @staticmethod
-    def hopping_model(N, t, ω):
-        a = annihilation(2)
-        ad = creation(2)
-        return make_ti_Hamiltonian(N, [t * a, t * ad], [ad, a], local_term=ω * (ad @ a))
+class EvolutionTestCase(TestCase):
+    Heisenberg2 = 0.25 * (np.kron(σx, σx) + np.kron(σy, σy) + np.kron(σz, σz))
 
-    @staticmethod
-    def hopping_model_Trotter_matrix(N, t, ω):
+    def random_initial_state(self, size: int) -> MPS:
+        states = np.random.randn(size, 2) + 1j * np.random.randn(size, 2)
+        for n in range(size):
+            states[n, :] /= np.linalg.norm(states[n, :])
+        return product_state(states)
+
+
+class TestPairwiseUnitaries(EvolutionTestCase):
+    def test_pairwise_unitaries_matrices(self):
+        """Check that the nearest-neighbor unitary matrices are built properly."""
+        dt = 0.33
+        H = Heisenberg_Hamiltonian(3)
+        pairwiseU = PairwiseUnitaries(H, dt, DEFAULT_STRATEGY)
+        exactU = scipy.linalg.expm(-1j * dt * self.Heisenberg2)
+        self.assertSimilar(pairwiseU.U[0], exactU.reshape(2, 2, 2, 2))
+        self.assertSimilar(pairwiseU.U[1], exactU.reshape(2, 2, 2, 2))
+
+    def test_pairwise_unitaries_two_sites(self):
+        """Verify the exact action of the PairwiseUnitaries on two sites."""
+        dt = 0.33
+        H = Heisenberg_Hamiltonian(2)
+        exactU = scipy.linalg.expm(-1j * dt * self.Heisenberg2)
+        pairwiseU = PairwiseUnitaries(H, dt, DEFAULT_STRATEGY)
+        mps = self.random_initial_state(2)
+        self.assertSimilar(
+            pairwiseU.U[0].reshape(4, 4) @ mps.to_vector(), exactU @ mps.to_vector()
+        )
+        self.assertSimilar(pairwiseU.apply(mps).to_vector(), exactU @ mps.to_vector())
+
+    def test_pairwise_unitaries_three_sites(self):
+        """Verify the exact action of the PairwiseUnitaries on two sites."""
+        dt = 0.33
+        H = Heisenberg_Hamiltonian(3)
+        exactU12 = np.kron(scipy.linalg.expm(-1j * dt * self.Heisenberg2), np.eye(2))
+        exactU23 = np.kron(np.eye(2), scipy.linalg.expm(-1j * dt * self.Heisenberg2))
+        pairwiseU = PairwiseUnitaries(H, dt, DEFAULT_STRATEGY)
+        mps = self.random_initial_state(3)
         #
-        # Hamiltonian that generates the evolution of the odd hoppings
-        # and local frequencies
-        return sp.diags(
-            [[t, 0] * (N // 2), [ω] + [ω / 2] * (N - 2) + [ω], [t, 0] * (N // 2)],
-            offsets=[-1, 0, +1],
-            shape=(N, N),
-            dtype=np.float64,
+        # When center = 0, unitaries are applied left to right
+        self.assertSimilar(
+            pairwiseU.apply(CanonicalMPS(mps, center=0)).to_vector(),
+            exactU23 @ exactU12 @ mps.to_vector(),
+        )
+        #
+        # Otherwise, they are applied right to left
+        self.assertSimilar(
+            pairwiseU.apply(CanonicalMPS(mps, center=2)).to_vector(),
+            exactU12 @ exactU23 @ mps.to_vector(),
         )
 
-    @staticmethod
-    def hopping_model_matrix(N, t, ω):
-        return sp.diags([[t] * (N), ω, [t] * (N)], offsets=[-1, 0, +1], shape=(N, N))
-
-    def inactive_test_apply_pairwise_unitaries(self):
-        N = 2
-        tt = -np.pi / 2
-        ω = np.pi
-        dt = 0.1
+    def test_pairwise_unitaries_four_sites(self):
+        """Verify the exact action of the PairwiseUnitaries on two sites."""
+        dt = 0.33
+        H = Heisenberg_Hamiltonian(4)
+        exactU12 = np.kron(scipy.linalg.expm(-1j * dt * self.Heisenberg2), np.eye(4))
+        exactU23 = np.kron(
+            np.eye(2),
+            np.kron(scipy.linalg.expm(-1j * dt * self.Heisenberg2), np.eye(2)),
+        )
+        exactU34 = np.kron(np.eye(4), scipy.linalg.expm(-1j * dt * self.Heisenberg2))
+        pairwiseU = PairwiseUnitaries(H, dt, DEFAULT_STRATEGY)
+        mps = self.random_initial_state(4)
         #
-        # Numerically exact solution using Scipy's exponentiation routine
-        ψwave = random_wavefunction(N)
-        print(seemps.state.wavepacket(ψwave).to_vector())
-        HMat = self.hopping_model_Trotter_matrix(N, tt, ω)
-        ψwave_final = expm_multiply(+1j * dt * HMat, ψwave)
-        print(seemps.state.wavepacket(ψwave_final).to_vector())
-        print(HMat.todense())
+        # When center = 0, unitaries are applied left to right
+        self.assertSimilar(
+            pairwiseU.apply(CanonicalMPS(mps, center=0)).to_vector(),
+            exactU34 @ exactU23 @ exactU12 @ mps.to_vector(),
+        )
         #
-        # Evolution using Trrotter
-        H = self.hopping_model(N, tt, ω)
-        U = pairwise_unitaries(H, dt)
-        ψ = CanonicalMPS(seemps.state.wavepacket(ψwave))
-        start = 0
-        direction = 1
-        apply_pairwise_unitaries(U, ψ, start, direction, truncation=DEFAULT_STRATEGY)
-        print(ψ.to_vector())
-        print(np.abs(seemps.state.wavepacket(ψwave_final).to_vector() - ψ.to_vector()))
-
-        self.assertTrue(
-            similar(
-                abs(seemps.state.wavepacket(ψwave_final).to_vector()),
-                abs(ψ.to_vector()),
-            )
+        # Otherwise, they are applied right to left
+        self.assertSimilar(
+            pairwiseU.apply(CanonicalMPS(mps, center=2)).to_vector(),
+            exactU12 @ exactU23 @ exactU34 @ mps.to_vector(),
         )
 
-    def test_TEBD_evolution_first_order(self):
-        #
-        #
-        #
-        N = 19
-        t = -np.pi / 2
-        ω = np.pi
-        dt = 1e-6
-        Nt = int(1000)
-        # ψwave = random_wavefunction(N)
-        xx = np.arange(N)
-        x0 = int(N // 2)
-        w0 = 5
-        k0 = np.pi / 2
-        #
-        # Approximate evolution of a wavepacket in a tight-binding model
-        ψwave = np.exp(-((xx - x0) ** 2) / w0**2 + 1j * k0 * xx)
-        ψwave = ψwave / np.linalg.norm(ψwave)
-        Hmat = self.hopping_model_matrix(N, t, ω)
-        ψwave_final = expm_multiply(-1j * dt * Nt * Hmat, ψwave)
-        #
-        # Trotter solution
-        ψmps = CanonicalMPS(seemps.state.wavepacket(ψwave))
-        H = self.hopping_model(N, t, ω)
-        ψmps = TEBD_evolution(
-            ψmps, H, dt, timesteps=Nt, order=1, truncation=DEFAULT_STRATEGY
-        ).evolve()
 
-        self.assertTrue(
-            similar(
-                abs(seemps.state.wavepacket(ψwave_final).to_vector()),
-                abs(ψmps.to_vector()),
-            )
+class TestTrotter2nd(EvolutionTestCase):
+    def test_trotter_2nd_order_two_sites(self):
+        dt = 0.33
+        trotterU = Trotter2ndOrder(Heisenberg_Hamiltonian(2), dt)
+        U12 = scipy.linalg.expm(-1j * dt * self.Heisenberg2)
+        mps = self.random_initial_state(2)
+        self.assertSimilar(trotterU.apply(mps).to_vector(), U12 @ mps.to_vector())
+
+    def test_trotter_2nd_order_three_sites(self):
+        dt = 0.33
+        trotterU = Trotter2ndOrder(Heisenberg_Hamiltonian(3), dt)
+        U2 = scipy.linalg.expm(-0.5j * dt * self.Heisenberg2)
+        U23 = np.kron(np.eye(2), U2)
+        U12 = np.kron(U2, np.eye(2))
+        mps = self.random_initial_state(3)
+        self.assertSimilar(
+            trotterU.apply(mps).to_vector(),
+            U12 @ (U23 @ (U23 @ (U12 @ mps.to_vector()))),
         )
 
-    def test_TEBD_evolution_second_order(self):
-        #
-        #
-        #
-        N = 21
-        t = 0.1
-        ω = 0.5
-        dt = 1e-6
-        Nt = int(1000)
-        # ψwave = random_wavefunction(N)
-        xx = np.arange(N)
-        x0 = int(N // 2)
-        w0 = 5
-        k0 = np.pi / 2
-        #
-        # Approximate evolution of a wavepacket in a tight-binding model
-        ψwave = np.exp(-((xx - x0) ** 2) / w0**2 + 1j * k0 * xx)
-        ψwave = ψwave / np.linalg.norm(ψwave)
-        Hmat = self.hopping_model_matrix(N, t, ω)
-        ψwave_final = expm_multiply(-1j * dt * Nt * Hmat, ψwave)
-        #
-        # Trotter evolution
-        H = self.hopping_model(N, t, ω)
-        ψmps = CanonicalMPS(seemps.state.wavepacket(ψwave))
-        ψmps = TEBD_evolution(
-            ψmps, H, dt, timesteps=Nt, order=2, truncation=DEFAULT_STRATEGY
-        ).evolve()
-        self.assertTrue(
-            similar(
-                abs(seemps.state.wavepacket(ψwave_final).to_vector()),
-                abs(ψmps.to_vector()),
-            )
+    def test_trotter_2nd_order_four_sites(self):
+        dt = 0.33
+        trotterU = Trotter2ndOrder(Heisenberg_Hamiltonian(4), dt)
+        U2 = scipy.linalg.expm(-0.5j * dt * self.Heisenberg2)
+        U34 = np.kron(np.eye(4), U2)
+        U23 = np.kron(np.eye(2), np.kron(U2, np.eye(2)))
+        U12 = np.kron(U2, np.eye(4))
+        mps = self.random_initial_state(4)
+        self.assertSimilar(
+            trotterU.apply(mps).to_vector(),
+            U12 @ (U23 @ (U34 @ (U34 @ (U23 @ (U12 @ mps.to_vector()))))),
+        )
+
+
+class TestTrotter3rd(EvolutionTestCase):
+    def test_trotter_3rd_order_two_sites(self):
+        dt = 0.33
+        trotterU = Trotter3rdOrder(Heisenberg_Hamiltonian(2), dt)
+        U12 = scipy.linalg.expm(-1j * dt * self.Heisenberg2)
+        mps = self.random_initial_state(2)
+        self.assertSimilar(trotterU.apply(mps).to_vector(), U12 @ mps.to_vector())
+
+    def test_trotter_3rd_order_three_sites(self):
+        dt = 0.33
+        trotterU = Trotter3rdOrder(Heisenberg_Hamiltonian(3), dt)
+        U2half = scipy.linalg.expm(-0.5j * dt * self.Heisenberg2)
+        U2 = scipy.linalg.expm(-0.25j * dt * self.Heisenberg2)
+        U23 = np.kron(np.eye(2), U2)
+        U12 = np.kron(U2, np.eye(2))
+        U23half = np.kron(np.eye(2), U2half)
+        U12half = np.kron(U2half, np.eye(2))
+        mps = self.random_initial_state(3)
+        self.assertSimilar(
+            trotterU.apply(mps).to_vector(),
+            U23 @ (U12 @ (U12half @ (U23half @ (U23 @ (U12 @ mps.to_vector()))))),
         )

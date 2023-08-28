@@ -1,10 +1,19 @@
+from typing import Union, Optional
 import numpy as np
 from numbers import Number
+from math import sqrt
+from .tools import σx, σy, σz
 import scipy.sparse as sp  # type: ignore
+
+Operator = Union[np.ndarray, sp.sparray]
+DenseOperator = np.ndarray
 
 
 class NNHamiltonian(object):
-    def __init__(self, size):
+    size: int
+    constant: bool
+
+    def __init__(self, size: int):
         #
         # Create a nearest-neighbor interaction Hamiltonian
         # of a given size, initially empty.
@@ -12,19 +21,19 @@ class NNHamiltonian(object):
         self.size = size
         self.constant = False
 
-    def dimension(self, ndx):
+    def dimension(self, site: int) -> int:
         #
         # Return the dimension of the local Hilbert space
         #
         return 0
 
-    def interaction_term(self, ndx, t=0.0):
+    def interaction_term(self, site: int, t=0.0) -> Operator:
         #
-        # Return the interaction between sites (ndx,ndx+1)
+        # Return the interaction between sites (site,site+1)
         #
         return 0
 
-    def tomatrix(self, t=0.0):
+    def tomatrix(self, t: float = 0.0) -> Operator:
         """Return a sparse matrix representing the NNHamiltonian on the
         full Hilbert space."""
 
@@ -45,7 +54,10 @@ class NNHamiltonian(object):
 
 
 class ConstantNNHamiltonian(NNHamiltonian):
-    def __init__(self, size, dimension):
+    dimensions: list[int]
+    interactions: list[Operator]
+
+    def __init__(self, size: int, dimension: Union[int, list[int]]):
         #
         # Create a nearest-neighbor interaction Hamiltonian with fixed
         # local terms and interactions.
@@ -55,62 +67,71 @@ class ConstantNNHamiltonian(NNHamiltonian):
         #
         super(ConstantNNHamiltonian, self).__init__(size)
         self.constant = True
-        self.int_left = [[] for _ in range(size - 1)]
-        self.int_right = [[] for _ in range(size - 1)]
-        self.interactions = [0j] * (size - 1)
-        if isinstance(dimension, Number):
-            dimension = [dimension] * size
-        self.dimension_ = dimension
+        if isinstance(dimension, list):
+            self.dimensions = dimension
+        else:
+            self.dimensions = [dimension] * size
+        self.interactions = [
+            np.zeros((si * sj, si * sj))
+            for si, sj in zip(self.dimensions[:-1], self.dimensions[1:])
+        ]
 
-    def add_local_term(self, ndx, operator):
+    def add_local_term(self, site: int, operator: Operator) -> "ConstantNNHamiltonian":
         #
         # Set the local term acting on the given site
         #
-        if ndx == 0:
-            self.add_interaction_term(ndx, operator, np.eye(self.dimension(1)))
-        elif ndx == self.size - 1:
+        if site < 0 or site >= self.size:
+            raise IndexError("Site {site} out of bounds in add_local_term()")
+        if site == 0:
+            self.add_interaction_term(site, operator, np.eye(self.dimensions[1]))
+        elif site == self.size - 1:
             self.add_interaction_term(
-                ndx - 1, np.eye(self.dimension(ndx - 1)), operator
+                site - 1, np.eye(self.dimensions[site - 1]), operator
             )
         else:
             self.add_interaction_term(
-                ndx - 1, np.eye(self.dimension(ndx - 1)), 0.5 * operator
+                site - 1, np.eye(self.dimensions[site - 1]), 0.5 * operator
             )
             self.add_interaction_term(
-                ndx, 0.5 * operator, np.eye(self.dimension(ndx + 1))
+                site, 0.5 * operator, np.eye(self.dimensions[site + 1])
             )
+        return self
 
-    def add_interaction_term(self, ndx, L, R):
-        #
-        # Add an interaction term $L \otimes R$ acting on sites 'ndx' and 'ndx+1'
-        #
-        # Add to int_left, int_right
-        #
-        # Update the self.interactions[ndx] term
-        self.int_left[ndx].append(L)
-        self.int_right[ndx].append(R)
-        self.interactions[ndx] += np.kron(L, R)
+    def add_interaction_term(self, site, op1: Operator, op2: Optional[Operator] = None):
+        """Add an interaction term to this Hamiltonian, acting in 'site' and 'site+1'.
+        If 'op2' is None, then 'op1' is interpreted as an operator acting on both
+        sites in matrix form. If 'op1' and 'op2' are both provided, the operator
+        is np.kron(op1, op2)."""
+        if site < 0 or site >= self.size - 1:
+            raise IndexError("Site {site} out of bounds in add_interaction_term()")
+        H12 = op1 if op2 is None else sp.kron(op1, op2)
+        if (
+            H12.ndim != 2
+            or H12.shape[0] != H12.shape[1]
+            or H12.shape[1] != self.dimension(site) * self.dimension(site + 1)
+        ):
+            raise Exception(f"Invalid operators supplied to add_interaction_term()")
+        self.interactions[site] += H12
+        return self
 
-    def dimension(self, ndx):
-        return self.dimension_[ndx]
+    def dimension(self, site) -> int:
+        return self.dimensions[site]
 
-    def interaction_term(self, ndx, t=0.0):
-        # for (L, R) in zip(self.int_left[ndx], self.int_right[ndx]):
-        # self.interactions[ndx] = sum([np.kron(L, R) for (L, R) in zip(self.int_left[ndx], self.int_right[ndx])])
-        return self.interactions[ndx]
-
-    def constant(self):
-        return True
+    def interaction_term(self, site: int, t: float = 0.0) -> Operator:
+        return self.interactions[site]
 
 
-def make_ti_Hamiltonian(size, intL, intR, local_term=None):
+def make_ti_Hamiltonian(
+    size,
+    interaction: Optional[Operator] = None,
+    local_term: Optional[Operator] = None,
+) -> ConstantNNHamiltonian:
     """Construct a translationally invariant, constant Hamiltonian with open
     boundaries and fixed interactions.
 
     Arguments:
     size        -- Number of sites in the model
-    int_left    -- list of L (applied to site ndx) operators
-    int_right   -- list of R (applied to site ndx + 1) operators
+    interaction -- Two-body operator in matrix form
     local_term  -- operator acting on every site (optional)
 
     Returns:
@@ -118,16 +139,23 @@ def make_ti_Hamiltonian(size, intL, intR, local_term=None):
     """
     if local_term is not None:
         dimension = len(local_term)
+    elif interaction is not None:
+        dimension = round(sqrt(interaction.shape[0]))
     else:
-        dimension = len(intL[0])
+        raise Exception("Either interactions or local term must be supplied")
 
     H = ConstantNNHamiltonian(size, dimension)
-    H.local_term = local_term
-    H.intL = intL
-    H.intR = intR
-    for ndx in range(size - 1):
-        for L, R in zip(H.intL, H.intR):
-            H.add_interaction_term(ndx, L, R)
+    for site in range(size - 1):
+        if interaction is not None:
+            H.add_interaction_term(site, interaction)
         if local_term is not None:
-            H.add_local_term(ndx, local_term)
+            H.add_local_term(site, local_term)
     return H
+
+
+def Heisenberg_Hamiltonian(size: int) -> ConstantNNHamiltonian:
+    """Make a nearest-neighbor Hamiltonian with Heisenberg interactions
+    over 'size' S=1/2 spins."""
+    return make_ti_Hamiltonian(
+        size, 0.25 * (sp.kron(σx, σx) + sp.kron(σy, σy) + sp.kron(σz, σz)).real
+    )
