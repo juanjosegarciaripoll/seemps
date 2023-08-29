@@ -1,6 +1,6 @@
 import scipy.sparse as sp
 from scipy.sparse.linalg import expm_multiply
-from seemps.state import CanonicalMPS, DEFAULT_STRATEGY, product_state
+from seemps.state import CanonicalMPS, DEFAULT_STRATEGY, product_state, NO_TRUNCATION
 from seemps.tools import *
 from .tools import *
 from seemps.evolution import *
@@ -29,11 +29,12 @@ class TestPairwiseUnitaries(EvolutionTestCase):
     def test_pairwise_unitaries_matrices(self):
         """Check that the nearest-neighbor unitary matrices are built properly."""
         dt = 0.33
-        H = Heisenberg_Hamiltonian(3)
+        H = Heisenberg_Hamiltonian(4)
         pairwiseU = PairwiseUnitaries(H, dt, DEFAULT_STRATEGY)
         exactU = scipy.linalg.expm(-1j * dt * self.Heisenberg2)
         self.assertSimilar(pairwiseU.U[0], exactU.reshape(2, 2, 2, 2))
         self.assertSimilar(pairwiseU.U[1], exactU.reshape(2, 2, 2, 2))
+        self.assertSimilar(pairwiseU.U[2], exactU.reshape(2, 2, 2, 2))
 
     def test_pairwise_unitaries_two_sites(self):
         """Verify the exact action of the PairwiseUnitaries on two sites."""
@@ -48,7 +49,7 @@ class TestPairwiseUnitaries(EvolutionTestCase):
         self.assertSimilar(pairwiseU.apply(mps).to_vector(), exactU @ mps.to_vector())
 
     def test_pairwise_unitaries_three_sites(self):
-        """Verify the exact action of the PairwiseUnitaries on two sites."""
+        """Verify the exact action of the PairwiseUnitaries on three sites."""
         dt = 0.33
         H = Heisenberg_Hamiltonian(3)
         exactU12 = np.kron(scipy.linalg.expm(-1j * dt * self.Heisenberg2), np.eye(2))
@@ -69,7 +70,7 @@ class TestPairwiseUnitaries(EvolutionTestCase):
         )
 
     def test_pairwise_unitaries_four_sites(self):
-        """Verify the exact action of the PairwiseUnitaries on two sites."""
+        """Verify the exact action of the PairwiseUnitaries on four sites."""
         dt = 0.33
         H = Heisenberg_Hamiltonian(4)
         exactU12 = np.kron(scipy.linalg.expm(-1j * dt * self.Heisenberg2), np.eye(4))
@@ -78,7 +79,7 @@ class TestPairwiseUnitaries(EvolutionTestCase):
             np.kron(scipy.linalg.expm(-1j * dt * self.Heisenberg2), np.eye(2)),
         )
         exactU34 = np.kron(np.eye(4), scipy.linalg.expm(-1j * dt * self.Heisenberg2))
-        pairwiseU = PairwiseUnitaries(H, dt, DEFAULT_STRATEGY)
+        pairwiseU = PairwiseUnitaries(H, dt, NO_TRUNCATION)
         mps = self.random_initial_state(4)
         #
         # When center = 0, unitaries are applied left to right
@@ -92,6 +93,23 @@ class TestPairwiseUnitaries(EvolutionTestCase):
             pairwiseU.apply(CanonicalMPS(mps, center=2)).to_vector(),
             exactU12 @ exactU23 @ exactU34 @ mps.to_vector(),
         )
+
+    def test_pairwise_unitaries_center_strategy(self):
+        """Verify how PairwiseUnitaries decides the order of application."""
+        dt = 0.33
+        N = 7
+        H = Heisenberg_Hamiltonian(N)
+        pairwiseU = PairwiseUnitaries(H, dt, NO_TRUNCATION)
+        mps = self.random_initial_state(N)
+        mps_from_left = pairwiseU.apply(CanonicalMPS(mps, center=0))
+        mps_from_right = pairwiseU.apply(CanonicalMPS(mps, center=N - 1))
+        self.assertSimilar(mps_from_left, pairwiseU.apply(CanonicalMPS(mps, center=0)))
+        self.assertSimilar(mps_from_left, pairwiseU.apply(CanonicalMPS(mps, center=1)))
+        self.assertSimilar(mps_from_left, pairwiseU.apply(CanonicalMPS(mps, center=2)))
+        self.assertSimilar(mps_from_right, pairwiseU.apply(CanonicalMPS(mps, center=3)))
+        self.assertSimilar(mps_from_right, pairwiseU.apply(CanonicalMPS(mps, center=4)))
+        self.assertSimilar(mps_from_right, pairwiseU.apply(CanonicalMPS(mps, center=5)))
+        self.assertSimilar(mps_from_right, pairwiseU.apply(CanonicalMPS(mps, center=6)))
 
 
 class TestTrotter2nd(EvolutionTestCase):
