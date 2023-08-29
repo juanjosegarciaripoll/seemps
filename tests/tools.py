@@ -6,7 +6,7 @@ import unittest
 
 
 class TestCase(unittest.TestCase):
-    def assertEqualTensors(self, a, b):
+    def assertEqualTensors(self, a, b) -> None:
         if not (
             (a.dtype == b.dtype)
             and (a.ndim == b.ndim)
@@ -15,11 +15,24 @@ class TestCase(unittest.TestCase):
         ):
             raise AssertionError("Different objects:\na = {a}\nb = {b}")
 
-    def assertSimilar(self, A, B, **kwdargs):
-        if not similar(A, B, **kwdargs):
-            raise self.failureException(f"Objects are not similar:\nA={A}\nB={B}")
+    def assertSimilar(self, A, B, **kwdargs) -> None:
+        if sp.issparse(A):
+            A = A.todense()
+        elif isinstance(A, MPS):
+            A = A.to_vector()
+        if sp.issparse(B):
+            B = B.todense()
+        elif isinstance(B, MPS):
+            B = B.to_vector()
+        if A.ndim != B.ndim or A.shape != B.shape:
+            error = ""
+        elif np.all(np.isclose(A, B, **kwdargs)):
+            return
+        else:
+            error = f"\nmax(|A-B|)={np.max(np.abs(A - B))}"
+        raise self.failureException(f"Objects are not similar:\nA={A}\nB={B}" + error)
 
-    def assertAlmostIdentity(self, A, **kwdargs):
+    def assertAlmostIdentity(self, A, **kwdargs) -> None:
         if not almostIdentity(A, **kwdargs):
             raise self.failureException(f"Object not close to identity:\nA={A}")
 
