@@ -56,6 +56,9 @@ cdef class Strategy:
                         simplify = self.simplify if simplify is None else simplify,
                         max_sweeps = self.max_sweeps if max_sweeps is None else max_sweeps)
 
+    def get_method(self) -> int:
+        return self.method
+
     def get_tolerance(self) -> float:
         return self.tolerance
 
@@ -70,6 +73,17 @@ cdef class Strategy:
 
     def get_simplify_flag(self) -> bool:
         return self.simplify
+
+    def __str__(self) -> str:
+        if self.method == 0:
+            method="None"
+        elif self.method == 1:
+            method="RelativeSVD"
+        elif self.method == 2:
+            method="RelativeNorm"
+        return f"Strategy(method={method}, tolerance={self.tolerance}, " \
+               f"max_bond_dimension={self.max_bond_dimension}, normalize={self.normalize}, " \
+               f"simplify={self.simplify}, max_sweeps={self.max_sweeps})"
 
 DEFAULT_TOLERANCE = np.finfo(np.float64).eps
 
@@ -93,7 +107,7 @@ def truncate_vector(cnp.ndarray[cnp.float64_t, ndim=1] s,
     global errors_buffer
 
     cdef:
-        Py_ssize_t i, j, ndx, N = s.size
+        Py_ssize_t i, final_size, N = s.size
         double total, max_error, new_norm
         cnp.float64_t *errors = get_errors_buffer(N)
         cnp.float64_t *data
@@ -103,18 +117,18 @@ def truncate_vector(cnp.ndarray[cnp.float64_t, ndim=1] s,
     elif strategy.method == 1:
         data = &s[0]
         max_error = strategy.tolerance * data[0]
+        final_size = N
         for i in range(N):
             if data[i] <= max_error:
+                final_size = i
                 break
-        if i == 0:
-            i = 1
-        elif i > strategy.max_bond_dimension:
-            i = strategy.max_bond_dimension
-        final_size = i
+        if final_size <= 0:
+            final_size = 1
+        elif final_size > strategy.max_bond_dimension:
+            final_size = strategy.max_bond_dimension
         max_error = 0.0
-        while i < N:
+        for i in range(final_size, N):
             max_error += data[i] * data[i]
-            i += i
         s = s[:final_size]
     else:
         #
@@ -131,7 +145,6 @@ def truncate_vector(cnp.ndarray[cnp.float64_t, ndim=1] s,
         errors[N] = total
 
         max_error = total * strategy.tolerance
-        ndx = 1
         final_error = 0.0
         for i in range(N):
             if errors[i] >= max_error:
