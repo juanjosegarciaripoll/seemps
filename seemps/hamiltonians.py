@@ -111,7 +111,7 @@ class ConstantNNHamiltonian(NNHamiltonian):
             or H12.shape[1] != self.dimension(site) * self.dimension(site + 1)
         ):
             raise Exception(f"Invalid operators supplied to add_interaction_term()")
-        self.interactions[site] += H12
+        self.interactions[site] = self.interactions[site] + H12
         return self
 
     def dimension(self, site) -> int:
