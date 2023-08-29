@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "cython>=3.0.0", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "SeeMPS"
-version = "1.0"
+version = "1.2"
 dependencies = ["numpy", "scipy", "h5py"]
 
 [project.urls]
