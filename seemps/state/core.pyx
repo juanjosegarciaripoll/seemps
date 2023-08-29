@@ -8,6 +8,7 @@ class Truncation:
     DO_NOT_TRUNCATE = 0
     RELATIVE_SINGULAR_VALUE = 1
     RELATIVE_NORM_SQUARED_ERROR = 2
+    ABSOLUTE_SINGULAR_VALUE = 3
 
 cdef class Strategy:
     cdef int method
@@ -26,7 +27,7 @@ cdef class Strategy:
                  max_sweeps: int = 16):
         if max_bond_dimension is None:
             max_bond_dimension = np.iinfo(int).max
-        if method < 0 or method > 2:
+        if method < 0 or method > 3:
             raise AssertionError("Invalid method argument passed to Strategy")
         self.method = method
         if self.tolerance < 0 or self.tolerance >= 1.0:
@@ -81,6 +82,8 @@ cdef class Strategy:
             method="RelativeSVD"
         elif self.method == 2:
             method="RelativeNorm"
+        else:
+            method="AbsoluteSVD"
         return f"Strategy(method={method}, tolerance={self.tolerance}, " \
                f"max_bond_dimension={self.max_bond_dimension}, normalize={self.normalize}, " \
                f"simplify={self.simplify}, max_sweeps={self.max_sweeps})"
@@ -114,23 +117,7 @@ def truncate_vector(cnp.ndarray[cnp.float64_t, ndim=1] s,
 
     if strategy.method == 0:
         max_error = 0.0
-    elif strategy.method == 1:
-        data = &s[0]
-        max_error = strategy.tolerance * data[0]
-        final_size = N
-        for i in range(N):
-            if data[i] <= max_error:
-                final_size = i
-                break
-        if final_size <= 0:
-            final_size = 1
-        elif final_size > strategy.max_bond_dimension:
-            final_size = strategy.max_bond_dimension
-        max_error = 0.0
-        for i in range(final_size, N):
-            max_error += data[i] * data[i]
-        s = s[:final_size]
-    else:
+    elif strategy.method == 2:
         #
         # Compute the cumulative sum of the reduced density matrix eigen values
         # in reversed order. Thus errors[i] is the error we make when we drop
@@ -159,4 +146,23 @@ def truncate_vector(cnp.ndarray[cnp.float64_t, ndim=1] s,
             data = &s[0]
             for i in range(final_size):
                 data[i] /= new_norm
+    else:
+        data = &s[0]
+        if strategy.method == 1:
+            max_error = strategy.tolerance * data[0]
+        else:
+            max_error = strategy.tolerance
+        final_size = N
+        for i in range(N):
+            if data[i] <= max_error:
+                final_size = i
+                break
+        if final_size <= 0:
+            final_size = 1
+        elif final_size > strategy.max_bond_dimension:
+            final_size = strategy.max_bond_dimension
+        max_error = 0.0
+        for i in range(final_size, N):
+            max_error += data[i] * data[i]
+        s = s[:final_size]
     return s, max_error
