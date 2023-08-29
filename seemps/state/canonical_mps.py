@@ -79,8 +79,14 @@ class CanonicalMPS(MPS):
     # This class contains all the matrices and vectors that form
     # a Matrix-Product State.
     #
-    def __init__(self, data: Iterable[np.ndarray], center=None, **kwdargs):
-        super(CanonicalMPS, self).__init__(data, **kwdargs)
+    def __init__(
+        self,
+        data: Iterable[np.ndarray],
+        center: Optional[int] = None,
+        normalize: bool = False,
+        **kwdargs
+    ):
+        super().__init__(data, **kwdargs)
         if isinstance(data, CanonicalMPS):
             self.center = data.center
             self._error = data._error
@@ -91,7 +97,7 @@ class CanonicalMPS(MPS):
                 0 if center is None else center
             )
             self.update_error(_canonicalize(self._data, center, self.strategy))
-        if self.strategy.get_normalize_flag():
+        if normalize or self.strategy.get_normalize_flag():
             A = self[center]
             self[center] = A / np.linalg.norm(A)
 
