@@ -131,10 +131,18 @@ def AKLT(n: int) -> MPS:
     return MPS(data)
 
 
-def random(d: int, N: int, D: int = 1, truncate: bool = True) -> MPS:
+def random(
+    d: int,
+    N: int,
+    D: int = 1,
+    truncate: bool = True,
+    rng: Optional[np.random.Generator] = None,
+) -> MPS:
     """Create a random state with 'N' elements of dimension 'd' and bond
     dimension 'D'."""
     mps: list[np.ndarray] = [np.ndarray(())] * N
+    if rng is None:
+        rng = np.random.default_rng()
     DR = 1
     if N > 60:
         truncate = False
@@ -144,7 +152,7 @@ def random(d: int, N: int, D: int = 1, truncate: bool = True) -> MPS:
             DR = D
         else:
             DR = np.min([DR * d, D, d ** (N - i - 1)])
-        mps[i] = np.random.rand(DL, d, DR)
+        mps[i] = rng.normal(size=(DL, d, DR))
     return MPS(mps)
 
 
