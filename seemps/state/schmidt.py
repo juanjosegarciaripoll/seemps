@@ -51,27 +51,41 @@ def ortho_left(A, strategy: Strategy):
 
 
 def left_orth_2site(AA, strategy: Strategy):
+    """Split a tensor AA[a,b,c,d] into B[a,b,r] and C[r,c,d] such
+    that 'B' is a left-isometry, truncating the size 'r' according
+    to the given 'strategy'. Tensor 'AA' may be overwritten."""
     α, d1, d2, β = AA.shape
-    Ψ = AA.reshape(α * d1, β * d2)
     U, S, V = svd(
-        Ψ, full_matrices=False, check_finite=False, lapack_driver=SVD_LAPACK_DRIVER
+        AA.reshape(α * d1, β * d2),
+        full_matrices=False,
+        overwrite_a=True,
+        check_finite=False,
+        lapack_driver=SVD_LAPACK_DRIVER,
     )
     S, err = core.truncate_vector(S, strategy)
     D = S.size
-    U = U[:, :D].reshape(α, d1, D)
-    SV = (S.reshape(D, 1) * V[:D, :]).reshape(D, d2, β)
-    return U, SV, err
+    return (
+        U[:, :D].reshape(α, d1, D),
+        (S.reshape(D, 1) * V[:D, :]).reshape(D, d2, β),
+        err,
+    )
 
 
 def right_orth_2site(AA, strategy: Strategy):
+    """Split a tensor AA[a,b,c,d] into B[a,b,r] and C[r,c,d] such
+    that 'C' is a right-isometry, truncating the size 'r' according
+    to the given 'strategy'. Tensor 'AA' may be overwritten."""
     α, d1, d2, β = AA.shape
-    Ψ = AA.reshape(α * d1, β * d2)
-    U, S, V = svd(Ψ, full_matrices=False, lapack_driver=SVD_LAPACK_DRIVER)
+    U, S, V = svd(
+        AA.reshape(α * d1, β * d2),
+        full_matrices=False,
+        overwrite_a=True,
+        lapack_driver=SVD_LAPACK_DRIVER,
+        check_finite=False,
+    )
     S, err = truncate_vector(S, strategy)
     D = S.size
-    US = (U[:, :D] * S).reshape(α, d1, D)
-    V = V[:D, :].reshape(D, d2, β)
-    return US, V, err
+    return (U[:, :D] * S).reshape(α, d1, D), V[:D, :].reshape(D, d2, β), err
 
 
 def vector2mps(
