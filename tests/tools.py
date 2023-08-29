@@ -6,6 +6,15 @@ import unittest
 
 
 class TestCase(unittest.TestCase):
+    def assertEqualTensors(self, a, b):
+        if not (
+            (a.dtype == b.dtype)
+            and (a.ndim == b.ndim)
+            and (a.shape == b.shape)
+            and np.all(a == b)
+        ):
+            raise AssertionError("Different objects:\na = {a}\nb = {b}")
+
     def assertSimilar(self, A, B, **kwdargs):
         if not similar(A, B, **kwdargs):
             raise self.failureException(f"Objects are not similar:\nA={A}\nB={B}")
@@ -70,11 +79,7 @@ def run_over_random_mps(function, d=2, N=10, D=10, repeats=10):
             function(seemps.state.random(d, N, D))
 
 
-class MPSTestCase(unittest.TestCase):
-    def assertSimilar(self, a, b):
-        if not similar(a, b):
-            raise AssertionError("Different objects:\na = {a}\nb = {b}")
-
+class MPSTestCase(TestCase):
     def assertSimilarMPS(self, a, b):
         if (a.size != b.size) or not similar(a.to_vector(), b.to_vector()):
             raise AssertionError("Different objects:\na = {a}\nb = {b}")
