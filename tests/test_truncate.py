@@ -1,98 +1,115 @@
-import numpy as np
+import seemps
+from seemps.state.core import Truncation, Strategy, truncate_vector
 from .tools import *
-from seemps.state import CanonicalMPS, MPS
-from seemps.truncate import simplify, combine, AntilinearForm
-from seemps.expectation import expectation1, expectation2
 
 
-class TestLinearForm(TestCase):
-    def test_canonical_env(self):
-        #
-        # When we pass two identical canonical form MPS to LinearForm, the
-        # left and right environments are the identity
-        #
-        def ok(ψ):
-            global foo
-            for center in range(ψ.size):
-                ϕ = CanonicalMPS(ψ, center=center).normalize_inplace()
-                LF = AntilinearForm(ϕ, ϕ, center)
-                for i in range(ϕ.size):
-                    if i <= center:
-                        self.assertSimilar(LF.L[i], ϕ.left_environment(i))
-                        self.assertTrue(almostIdentity(LF.L[i], +1))
-                    if i >= center:
-                        self.assertSimilar(LF.R[i], ϕ.right_environment(i))
-                        self.assertTrue(almostIdentity(LF.R[i], +1))
+class TestStrategy(TestCase):
+    def test_strategy_no_truncation(self):
+        s = np.array([1.0, 0.2, 0.01, 0.005, 0.0005])
+        strategy = Strategy(method=Truncation.DO_NOT_TRUNCATE, tolerance=1.0)
+        news, err = truncate_vector(s, strategy)
+        self.assertEqual(err, 0.0)
+        self.assertEqualTensors(news, s)
 
-        run_over_random_mps(ok)
+    def test_strategy_relative_singular_value(self):
+        s = np.array([1.0, 0.1, 0.01, 0.001, 0.0001])
 
-    def tensor1siteok(self, aϕ, O):
-        for center in range(aϕ.size):
-            ϕ = CanonicalMPS(aϕ, center=center).normalize_inplace()
-            for n in range(ϕ.size):
-                #
-                # Take an MPS Φ, construct a new state ψ = O1*ϕ with a local
-                # operator on the 'n-th' site
-                #
-                ψ = seemps.state.MPS(ϕ)
-                ψ[n] = np.einsum("ij,ajb->aib", O, ψ[n])
-                #
-                # and make sure that the AntilinearForm provides the right tensor to
-                # compute <ϕ|ψ> = <ϕ|O1|ϕ>
-                #
-                Odesired = expectation1(ϕ, O, n)
-                LF = AntilinearForm(ϕ, ψ, center)
-                Oestimate = np.einsum("aib,aib", ϕ[center].conj(), LF.tensor1site())
-                self.assertAlmostEqual(Oestimate, Odesired)
-                if n >= center:
-                    self.assertTrue(almostIdentity(LF.L[center], +1))
-                if n <= center:
-                    self.assertTrue(almostIdentity(LF.R[center], +1))
+        strategy = Strategy(
+            method=Truncation.RELATIVE_SINGULAR_VALUE,
+            tolerance=0.5,
+            normalize=False,
+        )
+        news, err = truncate_vector(s, strategy)
+        self.assertSimilar(news, np.array([1.0]))
+        self.assertAlmostEqual(err, np.sum(s[1:] ** 2))
 
-    def test_tensor1site_product(self):
-        O = np.array([[0.3, 0.2 + 1.0j], [0.2 - 1.0j, 2.0]])
-        run_over_random_mps(lambda ϕ: self.tensor1siteok(ϕ, O), D=1)
+        strategy = Strategy(
+            method=Truncation.RELATIVE_SINGULAR_VALUE,
+            tolerance=0.05,
+            normalize=False,
+        )
+        news, err = truncate_vector(s, strategy)
+        self.assertSimilar(news, np.array([1.0, 0.1]))
+        self.assertAlmostEqual(err, np.sum(s[2:] ** 2))
 
-    def test_tensor1site(self):
-        O = np.array([[0.3, 0.2 + 1.0j], [0.2 - 1.0j, 2.0]])
-        run_over_random_mps(lambda ϕ: self.tensor1siteok(ϕ, O))
+        strategy = Strategy(
+            method=Truncation.RELATIVE_SINGULAR_VALUE,
+            tolerance=0.005,
+            normalize=False,
+        )
+        news, err = truncate_vector(s, strategy)
+        self.assertSimilar(news, np.array([1.0, 0.1, 0.01]))
+        self.assertAlmostEqual(err, np.sum(s[3:] ** 2))
 
-    def tensor2siteok(self, aϕ, O1, O2):
-        for center in range(aϕ.size):
-            ϕ = CanonicalMPS(aϕ, center=center).normalize_inplace()
-            for n in range(ϕ.size - 1):
-                #
-                # Take an MPS Φ, construct a new state ψ = O1*ϕ with a local
-                # operator on the 'n-th' site
-                #
-                ψ = seemps.state.MPS(ϕ)
-                ψ[n] = np.einsum("ij,ajb->aib", O1, ψ[n])
-                ψ[n + 1] = np.einsum("ij,ajb->aib", O2, ψ[n + 1])
-                #
-                # and make sure that the AntilinearForm provides the right tensor to
-                # compute <ϕ|ψ> = <ϕ|O1|ϕ>
-                #
-                Odesired = ϕ.expectation2(O1, O2, n)
-                LF = AntilinearForm(ϕ, ψ, center)
-                if center + 1 < ϕ.size:
-                    D = np.einsum("ijk,klm->ijlm", ϕ[center], ϕ[center + 1])
-                    Oestimate = np.einsum("aijb,aijb", D.conj(), LF.tensor2site(+1))
-                    self.assertAlmostEqual(Oestimate, Odesired)
-                if center > 0:
-                    D = np.einsum("ijk,klm->ijlm", ϕ[center - 1], ϕ[center])
-                    Oestimate = np.einsum("aijb,aijb", D.conj(), LF.tensor2site(-1))
-                    self.assertAlmostEqual(Oestimate, Odesired)
-                if n >= center:
-                    self.assertTrue(almostIdentity(LF.L[center], +1))
-                if n + 1 <= center:
-                    self.assertTrue(almostIdentity(LF.R[center], +1))
+        strategy = Strategy(
+            method=Truncation.RELATIVE_SINGULAR_VALUE,
+            tolerance=0.0005,
+            normalize=False,
+        )
+        news, err = truncate_vector(s, strategy)
+        self.assertSimilar(news, np.array([1.0, 0.1, 0.01, 0.001]))
+        self.assertAlmostEqual(err, np.sum(s[4:] ** 2))
 
-    def test_tensor2site_product(self):
-        O1 = np.array([[0.3, 0.2 + 1.0j], [0.2 - 1.0j, 2.0]])
-        O2 = np.array([[0.34, 0.4 - 0.7j], [0.4 + 0.7j, -0.6]])
-        run_over_random_mps(lambda ϕ: self.tensor2siteok(ϕ, O1, O2), D=1)
+        strategy = Strategy(
+            method=Truncation.RELATIVE_SINGULAR_VALUE,
+            tolerance=0.00005,
+            normalize=False,
+        )
+        news, err = truncate_vector(s, strategy)
+        self.assertSimilar(news, s)
+        self.assertAlmostEqual(err, 0.0)
 
-    def test_tensor2site(self):
-        O1 = np.array([[0.3, 0.2 + 1.0j], [0.2 - 1.0j, 2.0]])
-        O2 = np.array([[0.34, 0.4 - 0.7j], [0.4 + 0.7j, -0.6]])
-        run_over_random_mps(lambda ϕ: self.tensor2siteok(ϕ, O1, O2))
+    def test_strategy_relative_norm(self):
+        s = np.array([1.0, 0.1, 0.01, 0.001, 0.0001])
+        norm_errors = [
+            1.01010100e-02,
+            1.01010000e-04,
+            1.01000000e-06,
+            9.99999994e-09,
+            0.00000000e00,
+        ]
+
+        strategy = Strategy(
+            method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
+            tolerance=0.1,
+            normalize=False,
+        )
+        news, err = truncate_vector(s, strategy)
+        self.assertSimilar(news, np.array([1.0]))
+        self.assertAlmostEqual(err, norm_errors[0])
+
+        strategy = Strategy(
+            method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
+            tolerance=1e-3,
+            normalize=False,
+        )
+        news, err = truncate_vector(s, strategy)
+        self.assertSimilar(news, np.array([1.0, 0.1]))
+        self.assertAlmostEqual(err, norm_errors[1])
+
+        strategy = Strategy(
+            method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
+            tolerance=1e-5,
+            normalize=False,
+        )
+        news, err = truncate_vector(s, strategy)
+        self.assertSimilar(news, np.array([1.0, 0.1, 0.01]))
+        self.assertAlmostEqual(err, norm_errors[2])
+
+        strategy = Strategy(
+            method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
+            tolerance=1e-7,
+            normalize=False,
+        )
+        news, err = truncate_vector(s, strategy)
+        self.assertSimilar(news, np.array([1.0, 0.1, 0.01, 0.001]))
+        self.assertAlmostEqual(err, norm_errors[3])
+
+        strategy = Strategy(
+            method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
+            tolerance=1e-9,
+            normalize=False,
+        )
+        news, err = truncate_vector(s, strategy)
+        self.assertSimilar(news, s)
+        self.assertAlmostEqual(err, norm_errors[4])
