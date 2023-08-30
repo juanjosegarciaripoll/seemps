@@ -169,38 +169,41 @@ class CanonicalMPS(MPS):
         self.update_error(err)
         return err
 
-    def update_2site(
-        self, AA: np.ndarray, site: int, direction: int, truncation: Strategy
-    ) -> float:
+    def update_2site_right(self, AA: np.ndarray, site: int, strategy: Strategy) -> None:
         """Split a two-site tensor into two one-site tensors by
-        left/right orthonormalization and insert the tensor in
-        canonical form into the MPS Ψ at the given site and the site
-        on its left/right. Update the neighboring sites in the process.
+        right orthonormalization and insert the tensor in canonical form into
+        the MPS Ψ at the given site and the site on its right. Update the
+        neighboring sites in the process.
 
         Arguments:
         ----------
-        Ψ = MPS in CanonicalMPS form
         AA = two-site tensor to be split by orthonormalization
-        site = the index of the site with respect to which
-        orthonormalization is carried out
-        direction = if greater (less) than zero right (left) orthonormalization
-        is carried out
-        tolerance = truncation tolerance for the singular values
-        (see truncate_vector in File 1a - MPS class)
+        site = the index of the site with respect to which orthonormalization is carried out
+        truncation = truncation tolerance for the singular values
         """
-        assert site <= self.center <= site + 1
-        if direction < 0:
-            self._data[site], self._data[site + 1], err = schmidt.right_orth_2site(
-                AA, truncation
-            )
-            self.center = site
-        else:
-            self._data[site], self._data[site + 1], err = schmidt.left_orth_2site(
-                AA, truncation
-            )
-            self.center = site + 1
+        self._data[site], self._data[site + 1], err = schmidt.left_orth_2site(
+            AA, strategy
+        )
+        self.center = site + 1
         self.update_error(err)
-        return err
+
+    def update_2site_left(self, AA: np.ndarray, site: int, strategy: Strategy) -> None:
+        """Split a two-site tensor into two one-site tensors by
+        left orthonormalization and insert the tensor in canonical form into the
+        MPS Ψ at the given site and the site on its right. Update the
+        neighboring sites in the process.
+
+        Arguments:
+        ----------
+        AA = two-site tensor to be split by orthonormalization
+        site = the index of the site with respect to which orthonormalization is carried out
+        strategy = truncation tolerance for the singular values
+        """
+        self._data[site], self._data[site + 1], err = schmidt.right_orth_2site(
+            AA, strategy
+        )
+        self.center = site
+        self.update_error(err)
 
     def _interpret_center(self, center: int) -> int:
         """Converts `center` into an integer between [0,size-1], with the

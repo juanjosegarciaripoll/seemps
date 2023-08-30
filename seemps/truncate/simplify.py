@@ -153,12 +153,12 @@ def simplify(
     for sweep in range(maxsweeps):
         if direction > 0:
             for n in range(0, size - 1):
-                φ.update_2site(form.tensor2site(direction), n, direction, truncation)
+                φ.update_2site_right(form.tensor2site(direction), n, truncation)
                 form.update(direction)
             last = size - 1
         else:
             for n in reversed(range(0, size - 1)):
-                φ.update_2site(form.tensor2site(direction), n, direction, truncation)
+                φ.update_2site_left(form.tensor2site(direction), n, truncation)
                 form.update(direction)
             last = 0
         #

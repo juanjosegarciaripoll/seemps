@@ -48,13 +48,13 @@ class PairwiseUnitaries:
                 ψ.recenter(1)
             for j in range(L - 1):
                 ## AA = np.einsum("ijk,klm,nrjl -> inrm", ψ[j], ψ[j + 1], U[j])
-                ψ.update_2site(_contract_U_A_B(U[j], ψ[j], ψ[j + 1]), j, +1, strategy)
+                ψ.update_2site_right(_contract_U_A_B(U[j], ψ[j], ψ[j + 1]), j, strategy)
         else:
             if center < L - 2:
                 ψ.recenter(L - 2)
             for j in range(L - 2, -1, -1):
                 ## AA = np.einsum("ijk,klm,nrjl -> inrm", ψ[j], ψ[j + 1], U[j])
-                ψ.update_2site(_contract_U_A_B(U[j], ψ[j], ψ[j + 1]), j, -1, strategy)
+                ψ.update_2site_left(_contract_U_A_B(U[j], ψ[j], ψ[j + 1]), j, strategy)
         return ψ
 
 

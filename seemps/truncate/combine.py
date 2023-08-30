@@ -103,7 +103,7 @@ def combine(
                 tensor = sum(
                     α * f.tensor2site(direction) for α, f in zip(weights, forms)
                 )
-                φ.update_2site(tensor, n, direction, truncation)
+                φ.update_2site_right(tensor, n, truncation)
                 for f in forms:
                     f.update(direction)
         else:
@@ -111,7 +111,7 @@ def combine(
                 tensor = sum(
                     α * f.tensor2site(direction) for α, f in zip(weights, forms)
                 )
-                φ.update_2site(tensor, n, direction, truncation)
+                φ.update_2site_left(tensor, n, truncation)
                 for f in forms:
                     f.update(direction)
             last = 0
