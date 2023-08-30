@@ -6,6 +6,8 @@ import unittest
 
 
 class TestCase(unittest.TestCase):
+    rng = np.random.default_rng(seed=0x1232388472)
+
     def assertEqualTensors(self, a, b) -> None:
         if not (
             (a.dtype == b.dtype)
