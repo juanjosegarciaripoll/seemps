@@ -1,4 +1,5 @@
 from .test_tools import *
+from .test_contractions import *
 from .test_mps import *
 from .test_sample_states import *
 from .test_canonical import *

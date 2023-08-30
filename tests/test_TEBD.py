@@ -32,9 +32,9 @@ class TestPairwiseUnitaries(EvolutionTestCase):
         H = Heisenberg_Hamiltonian(4)
         pairwiseU = PairwiseUnitaries(H, dt, DEFAULT_STRATEGY)
         exactU = scipy.linalg.expm(-1j * dt * self.Heisenberg2)
-        self.assertSimilar(pairwiseU.U[0], exactU.reshape(2, 2, 2, 2))
-        self.assertSimilar(pairwiseU.U[1], exactU.reshape(2, 2, 2, 2))
-        self.assertSimilar(pairwiseU.U[2], exactU.reshape(2, 2, 2, 2))
+        self.assertSimilar(pairwiseU.U[0], exactU)
+        self.assertSimilar(pairwiseU.U[1], exactU)
+        self.assertSimilar(pairwiseU.U[2], exactU)
 
     def test_pairwise_unitaries_two_sites(self):
         """Verify the exact action of the PairwiseUnitaries on two sites."""
