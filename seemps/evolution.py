@@ -10,69 +10,17 @@ from .state import Strategy, DEFAULT_STRATEGY, MPS, CanonicalMPS
 Unitary = np.ndarray
 
 
-def _investigate_unitary_contraction():
-    import timeit
-
-    A = np.random.randn(10, 2, 13)
-    A /= np.linalg.norm(A)
-    B = np.random.randn(13, 2, 10)
-    B /= np.linalg.norm(B)
-    U = np.random.randn(2, 2, 2, 2)
-
-    def method1():
-        return np.einsum("ijk,klm,nrjl -> inrm", A, B, U)
-
-    path = np.einsum_path("ijk,klm,nrjl -> inrm", A, B, U, optimize="optimal")[0]
-
-    def method2():
-        return np.einsum("ijk,klm,nrjl -> inrm", A, B, U, optimize=path)
-
-    def method3():
-        a, d, b = A.shape
-        b, e, c = B.shape
-        D = d * e
-        aux = np.tensordot(A, B, (2, 0)).reshape(a, D, c)
-        aux = np.tensordot(U.reshape(D, D), aux, (1, 1)).transpose(1, 0, 2)
-        return aux.reshape(a, d, e, c)
-
-    def method4():
-        a, d, b = A.shape
-        b, e, c = B.shape
-        D = d * e
-        aux = np.tensordot(A, B, (2, 0)).reshape(a, D, c)
-        aux = np.tensordot(aux, U.reshape(D, D), (1, 1)).transpose(0, 2, 1)
-        return aux.reshape(a, d, e, c)
-
-    repeats = 10000
-    t = timeit.timeit(method1, number=repeats)
-    t = timeit.timeit(method1, number=repeats)
-    print(f"Method1 {t/repeats}s")
-
-    t = timeit.timeit(method2, number=repeats)
-    t = timeit.timeit(method2, number=repeats)
-    print(f"Method2 {t/repeats}s")
-
-    t = timeit.timeit(method3, number=repeats)
-    t = timeit.timeit(method3, number=repeats)
-    print(f"Method3 {t/repeats}s")
-
-    t = timeit.timeit(method4, number=repeats)
-    t = timeit.timeit(method4, number=repeats)
-    print(f"Method4 {t/repeats}s")
-
-    for i, m in enumerate([method1, method2, method3, method4]):
-        err = np.linalg.norm(method1() - m())
-        print(f"Method{i} error = {err}")
-
-
 def _contract_U_A_B(U: np.ndarray, A: np.ndarray, B: np.ndarray) -> np.ndarray:
-    """Implements np.einsum('ijk,klm,nrjl -> inrm', A, B, U)"""
-    a, d, _ = A.shape
-    _, e, c = B.shape
-    D = d * e
-    aux = np.tensordot(A, B, (2, 0)).reshape(a, D, c)
-    aux = np.tensordot(U.reshape(D, D), aux, (1, 1)).transpose(1, 0, 2)
-    return aux.reshape(a, d, e, c)
+    #
+    # Assuming U[n*r,j*l], A[i,j,k] and B[k,l,m]
+    # Implements np.einsum('ijk,klm,nrjl -> inrm', A, B, U)
+    # See tests.test_contractions for other implementations and timing
+    #
+    a, d, b = A.shape
+    b, e, c = B.shape
+    return np.matmul(
+        U, np.matmul(A.reshape(-1, b), B.reshape(b, -1)).reshape(a, -1, c)
+    ).reshape(a, d, e, c)
 
 
 class PairwiseUnitaries:
@@ -80,12 +28,7 @@ class PairwiseUnitaries:
 
     def __init__(self, H: NNHamiltonian, dt: float, strategy: Strategy):
         self.U = [
-            scipy.linalg.expm((-1j * dt) * H.interaction_term(k)).reshape(
-                H.dimension(k),
-                H.dimension(k + 1),
-                H.dimension(k),
-                H.dimension(k + 1),
-            )
+            scipy.linalg.expm((-1j * dt) * H.interaction_term(k))
             for k in range(H.size - 1)
         ]
         self.strategy = strategy
@@ -105,15 +48,13 @@ class PairwiseUnitaries:
                 ψ.recenter(1)
             for j in range(L - 1):
                 ## AA = np.einsum("ijk,klm,nrjl -> inrm", ψ[j], ψ[j + 1], U[j])
-                AA = _contract_U_A_B(U[j], ψ[j], ψ[j + 1])
-                ψ.update_2site(AA, j, +1, strategy)
+                ψ.update_2site(_contract_U_A_B(U[j], ψ[j], ψ[j + 1]), j, +1, strategy)
         else:
             if center < L - 2:
                 ψ.recenter(L - 2)
             for j in range(L - 2, -1, -1):
                 ## AA = np.einsum("ijk,klm,nrjl -> inrm", ψ[j], ψ[j + 1], U[j])
-                AA = _contract_U_A_B(U[j], ψ[j], ψ[j + 1])
-                ψ.update_2site(AA, j, -1, strategy)
+                ψ.update_2site(_contract_U_A_B(U[j], ψ[j], ψ[j + 1]), j, -1, strategy)
         return ψ
 
 
