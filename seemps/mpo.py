@@ -33,7 +33,7 @@ class MPO(array.TensorArray):
 
     __array_priority__ = 10000
 
-    def __init__(self, data: list[np.ndarray], strategy: Strategy = DEFAULT_STRATEGY):
+    def __init__(self, data: list[Tensor4], strategy: Strategy = DEFAULT_STRATEGY):
         super(MPO, self).__init__(data)
         assert data[0].shape[0] == data[-1].shape[-1] == 1
         self.strategy = strategy
@@ -76,7 +76,7 @@ class MPO(array.TensorArray):
         """Return the local dimensions of the MPO."""
         return [A.shape[1] for A in self._data]
 
-    def tomatrix(self) -> np.ndarray:
+    def tomatrix(self) -> Operator:
         """Return the matrix representation of this MPO."""
         D = 1  # Total physical dimension so far
         out = np.array([[[1.0]]])
@@ -200,7 +200,7 @@ class MPOList(object):
         self.mpos = mpos
         self.strategy = strategy
 
-    def __mul__(self, n: Complex) -> "MPOList":
+    def __mul__(self, n: Weight) -> "MPOList":
         """Multiply an MPOList quantum state by an scalar n (MPOList * n).
 
         Parameters
@@ -215,7 +215,7 @@ class MPOList(object):
             return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
         raise InvalidOperation("*", self, n)
 
-    def __rmul__(self, n: Complex) -> "MPOList":
+    def __rmul__(self, n: Weight) -> "MPOList":
         """Multiply an MPOList quantum state by an scalar n (n * MPOList).
 
         Parameters
@@ -230,7 +230,7 @@ class MPOList(object):
             return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
         raise InvalidOperation("*", n, self)
 
-    def tomatrix(self) -> np.ndarray:
+    def tomatrix(self) -> Operator:
         """Return the matrix representation of this MPO."""
         A = self.mpos[0].tomatrix()
         for mpo in self.mpos[1:]:

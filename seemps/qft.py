@@ -1,10 +1,11 @@
 import numpy as np
 from numpy import pi as π
+from .typing import *
 from .state import MPS
 from .mpo import MPO, MPOList
 
 
-def qft_mpo(N, sign=-1, **kwargs):
+def qft_mpo(N: int, sign: int = -1, **kwargs) -> MPOList:
     """Create an MPOList object representing a Quantum Fourier Transform
     for a quantum register with `N` qubits.
 
@@ -52,24 +53,24 @@ def qft_mpo(N, sign=-1, **kwargs):
     )
 
 
-def iqft_mpo(N, **kwargs):
+def iqft_mpo(N: int, **kwargs) -> MPOList:
     """Implement the inverse of the qft_mpo() operator."""
     return qft_mpo(N, +1, **kwargs)
 
 
-def qft(Ψmps, **kwargs):
+def qft(Ψmps: MPS, **kwargs) -> MPS:
     """Apply the quantum Fourier transform onto a quantum register
     of qubits encoded in the matrix product state 'Ψ'"""
     return qft_mpo(len(Ψmps), sign=-1, **kwargs).apply(Ψmps)
 
 
-def iqft(Ψmps, **kwargs):
+def iqft(Ψmps: MPS, **kwargs) -> MPS:
     """Apply the inverse quantum Fourier transform onto a quantum register
     of qubits encoded in the matrix product state 'Ψ'"""
     return qft_mpo(len(Ψmps), sign=+1, **kwargs).apply(Ψmps)
 
 
-def qft_flip(Ψmps):
+def qft_flip(Ψmps: MPS) -> MPS:
     """Swap the qubits in the quantum register, to fix the reversal
     suffered during the quantum Fourier transform."""
     return MPS(
@@ -78,11 +79,13 @@ def qft_flip(Ψmps):
     )
 
 
-def qft_wavefunction(Ψ):
+def qft_wavefunction(Ψ: Vector) -> Vector:
     return np.fft.fft(Ψ) / np.sqrt(Ψ.size)
 
 
-def qft_nd_mpo(sites, N=None, sign=-1, **kwargs):
+def qft_nd_mpo(
+    sites: list[int], N: Optional[int] = None, sign: int = -1, **kwargs
+) -> MPOList:
     """Create an MPOList object representing a Quantum Fourier Transform
     for subset of qubits in a quantum register with `N` qubits.
 
@@ -151,6 +154,6 @@ def qft_nd_mpo(sites, N=None, sign=-1, **kwargs):
     return MPOList([make_layer(sites[i:]) for i in range(len(sites))], **kwargs)
 
 
-def iqft_nd_mpo(sites, N=None, **kwargs):
+def iqft_nd_mpo(sites: list[int], N: Optional[int] = None, **kwargs) -> MPOList:
     """Implement the inverse of the qft_nd_mpo() operator."""
     return qft_nd_mpo(sites, N=N, sign=+1, **kwargs)

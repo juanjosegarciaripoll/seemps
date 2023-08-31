@@ -1,10 +1,13 @@
 import numpy as np
-from .state import MPS, CanonicalMPS
+from .typing import *
+from .state import MPS
 from .mpo import MPOList, MPO
 from . import truncate
 
 
-def qubo_mpo(J=None, h=None, **kwdargs):
+def qubo_mpo(
+    J: Optional[Operator] = None, h: Optional[Vector] = None, **kwdargs
+) -> MPO:
     """Return the MPO associated to a QUBO operator
          $\\sum_i J_{ij} s_i s_j + \\sum_i h_i s_i$
     defined by the interaction 'J' and the field 'h'.
@@ -57,7 +60,12 @@ def qubo_mpo(J=None, h=None, **kwdargs):
     return MPO(data, **kwdargs)
 
 
-def qubo_exponential_mpo(J=None, h=None, beta=-1.0, **kwdargs):
+def qubo_exponential_mpo(
+    J: Optional[Operator] = None,
+    h: Optional[Vector] = None,
+    beta: float = -1.0,
+    **kwdargs
+) -> Union[MPO, MPOList]:
     """Return the MPO associated to the exponential $\\exp(\\beta H)$ of
     the QUBO operator
          $H = \\sum_i J_{ij} s_i s_j + \\sum_i h_i s_i$
@@ -111,7 +119,9 @@ def qubo_exponential_mpo(J=None, h=None, beta=-1.0, **kwdargs):
         return MPOList(out)
 
 
-def wavefunction_product(ψ, ξ, conjugate=False, simplify=True, **kwdargs):
+def wavefunction_product(
+    ψ: MPS, ξ: MPS, conjugate: bool = False, simplify: bool = True, **kwdargs
+) -> MPS:
     """Implement a nonlinear transformation that multiplies two MPS, to
     create a new MPS with combined bond dimensions. In other words, act
     with the nonlinear transformation <s|ψξ> = ψ(s)ξ(s)|s> or
@@ -149,7 +159,9 @@ def wavefunction_product(ψ, ξ, conjugate=False, simplify=True, **kwdargs):
     return out
 
 
-def twoscomplement(L, control=0, sites=None, **kwdargs):
+def twoscomplement(
+    L: int, control: int = 0, sites: Optional[Iterable[int]] = None, **kwdargs
+) -> MPO:
     """Return an MPO that performs a two's complement of the selected qubits
     depending on a 'control' qubit in a register with L qubits.
 

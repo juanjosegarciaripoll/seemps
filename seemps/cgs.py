@@ -1,10 +1,18 @@
+from .typing import Optional
 from .expectation import scprod
-from .state import DEFAULT_TOLERANCE
+from .state import DEFAULT_TOLERANCE, MPS
+from .mpo import MPO
 from .truncate.combine import combine
 from .tools import log
 
 
-def cgs(A, b, guess=None, maxiter=100, tolerance=DEFAULT_TOLERANCE):
+def cgs(
+    A: MPO,
+    b: MPS,
+    guess: Optional[MPS] = None,
+    maxiter: int = 100,
+    tolerance: float = DEFAULT_TOLERANCE,
+) -> tuple[MPS, float]:
     """Given the MPO `A` and the MPS `b`, estimate another MPS that
     solves the linear system of equations A * ψ = b, using the
     conjugate gradient system.
@@ -23,9 +31,9 @@ def cgs(A, b, guess=None, maxiter=100, tolerance=DEFAULT_TOLERANCE):
     error     -- norm square of the residual, ||r||^2
     """
     normb = scprod(b, b).real
-    x = guess
     r = b
-    if x is not None:
+    if guess is not None:
+        x: MPS = guess
         r, _ = combine(
             [1.0, -1.0], [b, A.apply(x)], tolerance=tolerance, normalize=False
         )
@@ -35,7 +43,7 @@ def cgs(A, b, guess=None, maxiter=100, tolerance=DEFAULT_TOLERANCE):
     for i in range(maxiter):
         Ap = A.apply(p)
         α = ρ / scprod(p, Ap).real
-        if x is not None:
+        if i > 0 or guess is not None:
             x, _ = combine([1, α], [x, p], tolerance=tolerance, normalize=False)
         else:
             x, _ = combine([α], [p], tolerance=tolerance, normalize=False)
