@@ -1,4 +1,4 @@
-from typing import Optional
+from ..typing import *
 import numpy as np
 from ..state import MPS, CanonicalMPS, Weight
 from ..expectation import scprod
@@ -17,34 +17,25 @@ def multi_norm_squared(α, ψ):
     return c
 
 
-def guess_combine_state(weights, states):
-    guess = []
-    weighted_states = []
-    for i, psi in enumerate(states):
-        weighted_states.append(weights[i] * psi)
-    for site in range(states[0].size):
-        DL_max = 0
-        DR_max = 0
-        z = 0
-        for state in states:
-            z += state[site][0, 0, 0]
-            DL, i, DR = state[site].shape
-            if DL > DL_max:
-                DL_max = DL
-            if DR > DR_max:
-                DR_max = DR
-        guess.append(np.zeros((DL_max, i, DR_max), dtype=type(z)))
-    for site in range(states[0].size):
-        for psi in weighted_states:
-            DL, i, DR = psi[site].shape
-            guess[site][:DL, :, :DR] += psi[site]
-    return MPS(
-        guess,
-        maxsweeps=states[0].maxsweeps,
-        tolerance=states[0].tolerance,
-        normalize=states[0].normalize,
-        max_bond_dimension=states[0].max_bond_dimension,
-    )
+def guess_combine_state(weights: list[Weight], states: list[MPS]) -> MPS:
+    def combine_tensors(A: Tensor3, sumA: Tensor3) -> Tensor3:
+        DL, d, DR = sumA.shape
+        a, d, b = A.shape
+        if DL < a or DR < b:
+            # Extend with zeros to accommodate new contribution
+            sumA = sumA.reshape(max(DL, a), d, max(DR, b))
+        dt = type(A[0, 0, 0] + sumA[0, 0, 0])
+        if sumA.dtype != dt:
+            sumA = sumA.astype(dt)
+        else:
+            sumA[:a, :, :b] += A
+        return sumA
+
+    guess: MPS = weights[0] * states[0]
+    for n, state in enumerate(states[1:]):
+        for i, (A, sumA) in enumerate(zip(state, guess)):
+            guess[i] = combine_tensors(A if i > 0 else A * weights[n], sumA)
+    return guess
 
 
 def combine(
@@ -80,30 +71,30 @@ def combine(
     base_error = sum(
         np.sqrt(np.abs(α)) * np.sqrt(ψ.error()) for α, ψ in zip(weights, states)
     )
-    start = 0 if direction > 0 else guess.size - 1
-    φ = CanonicalMPS(guess, center=start, tolerance=tolerance, normalize=normalize)
-    err = norm_ψsqr = multi_norm_squared(weights, states)
-    if norm_ψsqr < tolerance:
-        return MPS([np.zeros((1, P.shape[1], 1)) for P in φ]), 0
-    log(
-        f"COMBINE ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps.\nWeights: {weights}"
-    )
-
-    size = φ.size
-    forms = [AntilinearForm(φ, ψ, center=start) for ψ in states]
-    truncation = Strategy(
+    strategy = Strategy(
         method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
         tolerance=tolerance,
         max_bond_dimension=max_bond_dimension,
         normalize=normalize,
     )
+    start = 0 if direction > 0 else guess.size - 1
+    φ = CanonicalMPS(guess, center=start, strategy=strategy, normalize=normalize)
+    err = norm_ψsqr = multi_norm_squared(weights, states)
+    if norm_ψsqr < tolerance:
+        return MPS([np.zeros((1, P.shape[1], 1)) for P in φ]), 0
+    log(
+        f"COMBINE ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps with tolerance {strategy.get_tolerance()}.\nWeights: {weights}"
+    )
+
+    size = φ.size
+    forms = [AntilinearForm(φ, ψ, center=start) for ψ in states]
     for sweep in range(maxsweeps):
         if direction > 0:
             for n in range(0, size - 1):
                 tensor = sum(
                     α * f.tensor2site(direction) for α, f in zip(weights, forms)
                 )
-                φ.update_2site_right(tensor, n, truncation)
+                φ.update_2site_right(tensor, n, strategy)
                 for f in forms:
                     f.update(direction)
         else:
@@ -111,7 +102,7 @@ def combine(
                 tensor = sum(
                     α * f.tensor2site(direction) for α, f in zip(weights, forms)
                 )
-                φ.update_2site_left(tensor, n, truncation)
+                φ.update_2site_left(tensor, n, strategy)
                 for f in forms:
                     f.update(direction)
             last = 0
