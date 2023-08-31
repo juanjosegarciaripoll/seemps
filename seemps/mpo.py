@@ -2,7 +2,7 @@ from numbers import Number
 from typing import Iterable, Optional, Union
 import numpy as np
 import copy
-from .state import MPS, MPSSum, TensorArray, DEFAULT_STRATEGY, Strategy, Weight
+from .state import MPS, MPSSum, array, DEFAULT_STRATEGY, Strategy, Weight
 from . import truncate
 from .tools import log, InvalidOperation
 
@@ -13,7 +13,7 @@ def mpo_multiply_tensor(A, B):
     return C.reshape(s[0] * s[1], s[2], s[3] * s[4])
 
 
-class MPO(TensorArray):
+class MPO(array.TensorArray):
     """MPO (Matrix Product Operator) class.
 
     This implements a bare-bones Matrix Product Operator object with open
