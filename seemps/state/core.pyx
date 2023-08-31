@@ -3,6 +3,9 @@ cimport numpy as cnp
 from libc.math cimport sqrt
 from libcpp cimport bool
 import enum
+# something.pxd
+cdef extern from "limits.h":
+    cdef int INT_MAX
 
 class Truncation:
     DO_NOT_TRUNCATE = 0
@@ -21,22 +24,22 @@ cdef class Strategy:
     def __init__(self,
                  method: int = Truncation.RELATIVE_SINGULAR_VALUE,
                  tolerance: float = 1e-8,
-                 max_bond_dimension: Optional[int] = None,
+                 max_bond_dimension: Optional[int] = INT_MAX,
                  normalize: bool = False,
                  simplify: bool = False,
                  max_sweeps: int = 16):
-        if max_bond_dimension is None:
-            max_bond_dimension = np.iinfo(int).max
         if method < 0 or method > 3:
             raise AssertionError("Invalid method argument passed to Strategy")
         self.method = method
         if self.tolerance < 0 or self.tolerance >= 1.0:
             raise AssertionError("Invalid tolerance argument passed to Strategy")
         self.tolerance = tolerance
-        max_bond_dimension = int(max_bond_dimension)
-        if max_bond_dimension <= 0:
+        if max_bond_dimension is None:
+            self.max_bond_dimension = INT_MAX
+        elif max_bond_dimension <= 0:
             raise AssertionError("Invalid bond dimension in Strategy")
-        self.max_bond_dimension = max_bond_dimension
+        else:
+            self.max_bond_dimension = max_bond_dimension
         self.normalize = normalize
         self.simplify = simplify
         if max_sweeps < 0:
@@ -92,7 +95,7 @@ DEFAULT_TOLERANCE = np.finfo(np.float64).eps
 
 DEFAULT_STRATEGY = Strategy(method = Truncation.RELATIVE_NORM_SQUARED_ERROR,
                             tolerance = np.finfo(np.float64).eps,
-                            max_bond_dimension = np.iinfo(int).max,
+                            max_bond_dimension = INT_MAX,
                             normalize = False)
 
 NO_TRUNCATION = DEFAULT_STRATEGY.replace(method = Truncation.DO_NOT_TRUNCATE)

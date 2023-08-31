@@ -11,7 +11,7 @@ class Strategy:
         self: Strategy,
         method: int = 1,
         tolerance: float = 1e-8,
-        max_bond_dimension: Optional[int] = None,
+        max_bond_dimension: int = 0x8fffffff,
         max_sweeps: int = 16,
         normalize: bool = False,
         simplify: bool = False,
