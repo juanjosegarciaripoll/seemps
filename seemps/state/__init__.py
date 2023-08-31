@@ -1,4 +1,5 @@
-from .mps import MPS, TensorArray, MPSSum, Weight
+from . import array
+from .mps import MPS, MPSSum, Weight
 from .factories import product_state, GHZ, W, wavepacket, graph, AKLT, random, gaussian
 from .canonical_mps import CanonicalMPS
 from .core import (

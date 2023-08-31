@@ -1,6 +1,5 @@
 import unittest
 import numpy as np
-from seemps.state import TensorArray, MPS, MPSSum
 
 
 class MPSStatesFixture(unittest.TestCase):

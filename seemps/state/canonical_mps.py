@@ -1,7 +1,6 @@
-from numbers import Number
-from typing import Any, Iterable, Optional
 import warnings
 import numpy as np
+from ..typing import *
 from .mps import MPS
 from . import schmidt
 from .core import DEFAULT_STRATEGY, Strategy, Truncation, DEFAULT_TOLERANCE
@@ -9,7 +8,7 @@ from .. import expectation
 
 
 def _update_in_canonical_form(
-    Ψ: list[np.ndarray], A: np.ndarray, site: int, direction: int, truncation: Strategy
+    Ψ: list[Tensor3], A: Tensor3, site: int, direction: int, truncation: Strategy
 ) -> tuple[int, float]:
     """Insert a tensor in canonical form into the MPS Ψ at the given site.
     Update the neighboring sites in the process.
@@ -44,7 +43,7 @@ def _update_in_canonical_form(
     return site, err
 
 
-def _canonicalize(Ψ: list[np.ndarray], center: int, truncation: Strategy) -> float:
+def _canonicalize(Ψ: list[Tensor3], center: int, truncation: Strategy) -> float:
     err = 0.0
     for i in range(0, center):
         _, errk = _update_in_canonical_form(Ψ, Ψ[i], i, +1, truncation)
@@ -81,31 +80,33 @@ class CanonicalMPS(MPS):
     #
     def __init__(
         self,
-        data: Iterable[np.ndarray],
+        data: Iterable[Tensor3],
         center: Optional[int] = None,
         normalize: bool = False,
         **kwdargs
     ):
         super().__init__(data, **kwdargs)
+        actual_center: int
         if isinstance(data, CanonicalMPS):
-            self.center = data.center
+            actual_center = self.center = data.center
             self._error = data._error
             if center is not None:
-                self.recenter(center)
+                actual_center = center
+                self.recenter(actual_center)
         else:
-            self.center = center = self._interpret_center(
+            self.center = actual_center = self._interpret_center(
                 0 if center is None else center
             )
-            self.update_error(_canonicalize(self._data, center, self.strategy))
+            self.update_error(_canonicalize(self._data, actual_center, self.strategy))
         if normalize or self.strategy.get_normalize_flag():
-            A = self[center]
-            self[center] = A / np.linalg.norm(A)
+            A = self[actual_center]
+            self[actual_center] = A / np.linalg.norm(A)
 
     @classmethod
     def from_vector(
         cls,
-        ψ: np.ndarray,
-        dimensions: list[int],
+        ψ: VectorLike,
+        dimensions: Sequence[int],
         strategy: Strategy = DEFAULT_STRATEGY,
         normalize: bool = True,
         **kwdargs
@@ -131,14 +132,14 @@ class CanonicalMPS(MPS):
     def left_environment(self, site: int) -> np.ndarray:
         start = min(site, self.center)
         ρ = expectation.begin_environment(self[start].shape[0])
-        for A in self[start:site]:
+        for A in self._data[start:site]:
             ρ = expectation.update_left_environment(A, A, ρ)
         return ρ
 
     def right_environment(self, site: int) -> np.ndarray:
         start = max(site, self.center)
         ρ = expectation.begin_environment(self[start].shape[-1])
-        for A in self[start:site:-1]:
+        for A in self._data[start:site:-1]:
             ρ = expectation.update_right_environment(A, A, ρ)
         return ρ
 

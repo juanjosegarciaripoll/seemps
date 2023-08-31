@@ -1,4 +1,6 @@
 import numpy as np
+import math
+from ..typing import *
 from . import core
 from .core import Strategy, truncate_vector, DEFAULT_STRATEGY
 from scipy.linalg import svd  # type: ignore
@@ -89,11 +91,11 @@ def right_orth_2site(AA, strategy: Strategy):
 
 
 def vector2mps(
-    ψ,
-    dimensions: list[int],
+    state: VectorLike,
+    dimensions: Sequence[int],
     strategy: Strategy = DEFAULT_STRATEGY,
     normalize: bool = True,
-):
+) -> list[Tensor3]:
     """Construct a list of tensors for an MPS that approximates the state ψ
     represented as a complex vector in a Hilbert space.
 
@@ -104,10 +106,10 @@ def vector2mps(
     tolerance -- truncation criterion for dropping Schmidt numbers
     normalize -- boolean to determine if the MPS is normalized
     """
-
-    if np.prod(dimensions) != ψ.size:
+    ψ: NDArray = np.asarray(state)
+    if math.prod(dimensions) != ψ.size:
         raise Exception("Wrong dimensions specified when converting a vector to MPS")
-    output = [0] * len(dimensions)
+    output = [ψ] * len(dimensions)
     Da = 1
     for i, d in enumerate(dimensions[:-1]):
         # We split a new subsystem and group the left bond dimension

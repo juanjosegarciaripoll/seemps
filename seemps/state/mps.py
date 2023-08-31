@@ -1,75 +1,16 @@
 import copy
 import math
-from numbers import Number
-from typing import Iterable, Optional, Union
 import numpy as np
+from ..typing import *
 from .. import expectation
 from ..tools import InvalidOperation
 from .schmidt import vector2mps
 from .core import DEFAULT_STRATEGY, Strategy
+from . import array
 import warnings
 
-Weight = Union[float, complex]
 
-
-class TensorArray(object):
-    """TensorArray class.
-
-    This class provides the basis for all tensor networks. The class abstracts
-    a one-dimensional array of tensors that is freshly copied whenever the
-    object is cloned. Two TensorArray's can share the same tensors and be
-    destructively modified.
-
-    Attributes:
-    size = number of tensors in the array
-    """
-
-    _data: list[np.ndarray]
-    size: int
-
-    def __init__(self, data: Iterable[np.ndarray]):
-        """Create a new TensorArray from a list of tensors. `data` is an
-        iterable object, such as a list or other sequence. The list is cloned
-        before storing it into this object, so as to avoid side effects when
-        destructively modifying the array."""
-        self._data = list(A for A in data)
-        self.size = len(self._data)
-
-    def __getitem__(self, k):
-        #
-        # Get MP matrix at position `k`. If 'A' is an MP, we can now
-        # do A[k]
-        #
-        return self._data[k]
-
-    def __setitem__(self, k, value):
-        #
-        # Replace matrix at position `k` with new tensor `value`. If 'A'
-        # is an MP, we can now do A[k] = value
-        #
-        self._data[k] = value
-        return value
-
-    def __copy__(self):
-        #
-        # Return a copy of the MPS with a fresh new array.
-        #
-        return type(self)(self._data)
-
-    def __iter__(self):
-        return self._data.__iter__()
-
-    def __len__(self):
-        return self.size
-
-    def copy(self):
-        """Return a fresh new TensorArray that shares the same tensor as its
-        sibling, but which can be destructively modified without affecting it.
-        """
-        return self.__copy__()
-
-
-class MPS(TensorArray):
+class MPS(array.TensorArray):
     """MPS (Matrix Product State) class.
 
     This implements a bare-bones Matrix Product State object with open
@@ -110,7 +51,7 @@ class MPS(TensorArray):
         """Return the total size of the Hilbert space in which this MPS lives."""
         return math.prod([a.shape[1] for a in self._data])
 
-    def to_vector(self) -> np.ndarray:
+    def to_vector(self) -> Vector:
         """Return one-dimensional complex vector of dimension() elements, with
         the complete wavefunction that is encoded in the MPS."""
         return _mps2vector(self._data)
@@ -118,8 +59,8 @@ class MPS(TensorArray):
     @classmethod
     def from_vector(
         cls,
-        ψ: np.ndarray,
-        dimensions: list[int],
+        ψ: VectorLike,
+        dimensions: Sequence[int],
         strategy: Strategy = DEFAULT_STRATEGY,
         normalize: bool = True,
         **kwdargs
@@ -232,13 +173,13 @@ class MPS(TensorArray):
 
     def left_environment(self, site: int) -> np.ndarray:
         ρ = expectation.begin_environment()
-        for A in self[:site]:
+        for A in self._data[:site]:
             ρ = expectation.update_left_environment(A, A, ρ)
         return ρ
 
     def right_environment(self, site: int) -> np.ndarray:
         ρ = expectation.begin_environment()
-        for A in self[-1:site:-1]:
+        for A in self._data[-1:site:-1]:
             ρ = expectation.update_right_environment(A, A, ρ)
         return ρ
 

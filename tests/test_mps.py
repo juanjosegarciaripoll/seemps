@@ -1,6 +1,7 @@
 import unittest
 import numpy as np
-from seemps.state import TensorArray, MPS, MPSSum
+from seemps.state import MPS, MPSSum
+from seemps.state.array import TensorArray
 from .tools import *
 from .fixture_mps_states import MPSStatesFixture
 
