@@ -1,5 +1,7 @@
 import numpy as np
-from typing import Iterable
+from ..typing import *
+
+_T = TypeVar("_T", bound="TensorArray")
 
 
 class TensorArray(object):
@@ -17,7 +19,7 @@ class TensorArray(object):
     _data: list[np.ndarray]
     size: int
 
-    def __init__(self, data: Iterable[np.ndarray]):
+    def __init__(self, data: Iterable[NDArray]):
         """Create a new TensorArray from a list of tensors. `data` is an
         iterable object, such as a list or other sequence. The list is cloned
         before storing it into this object, so as to avoid side effects when
@@ -25,14 +27,14 @@ class TensorArray(object):
         self._data = list(A for A in data)
         self.size = len(self._data)
 
-    def __getitem__(self, k):
+    def __getitem__(self, k: int) -> NDArray:
         #
         # Get MP matrix at position `k`. If 'A' is an MP, we can now
         # do A[k]
         #
         return self._data[k]
 
-    def __setitem__(self, k, value):
+    def __setitem__(self, k: int, value: NDArray) -> NDArray:
         #
         # Replace matrix at position `k` with new tensor `value`. If 'A'
         # is an MP, we can now do A[k] = value
@@ -40,19 +42,19 @@ class TensorArray(object):
         self._data[k] = value
         return value
 
-    def __copy__(self):
+    def __copy__(self: _T) -> _T:
         #
         # Return a copy of the MPS with a fresh new array.
         #
         return type(self)(self._data)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[NDArray]:
         return self._data.__iter__()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.size
 
-    def copy(self):
+    def copy(self: _T) -> _T:
         """Return a fresh new TensorArray that shares the same tensor as its
         sibling, but which can be destructively modified without affecting it.
         """
