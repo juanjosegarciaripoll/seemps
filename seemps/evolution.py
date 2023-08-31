@@ -1,16 +1,12 @@
 from abc import abstractmethod
-from typing import Union
 import numpy as np
-import math
+from .typing import Unitary, Tensor3, Tensor4, Union
 import scipy.linalg  # type: ignore
-
 from seemps.hamiltonians import NNHamiltonian  # type: ignore
 from .state import Strategy, DEFAULT_STRATEGY, MPS, CanonicalMPS
 
-Unitary = np.ndarray
 
-
-def _contract_U_A_B(U: np.ndarray, A: np.ndarray, B: np.ndarray) -> np.ndarray:
+def _contract_U_A_B(U: Unitary, A: Tensor3, B: Tensor3) -> Tensor4:
     #
     # Assuming U[n*r,j*l], A[i,j,k] and B[k,l,m]
     # Implements np.einsum('ijk,klm,nrjl -> inrm', A, B, U)
