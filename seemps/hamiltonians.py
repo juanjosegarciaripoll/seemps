@@ -93,7 +93,9 @@ class ConstantNNHamiltonian(NNHamiltonian):
             )
         return self
 
-    def add_interaction_term(self, site, op1: Operator, op2: Optional[Operator] = None):
+    def add_interaction_term(
+        self, site, op1: Operator, op2: Optional[Operator] = None
+    ) -> "ConstantNNHamiltonian":
         """Add an interaction term to this Hamiltonian, acting in 'site' and 'site+1'.
         If 'op2' is None, then 'op1' is interpreted as an operator acting on both
         sites in matrix form. If 'op1' and 'op2' are both provided, the operator
@@ -117,41 +119,47 @@ class ConstantNNHamiltonian(NNHamiltonian):
         return self.interactions[site]
 
 
-def make_ti_Hamiltonian(
-    size,
-    interaction: Optional[Operator] = None,
-    local_term: Optional[Operator] = None,
-) -> ConstantNNHamiltonian:
-    """Construct a translationally invariant, constant Hamiltonian with open
-    boundaries and fixed interactions.
+class ConstantTIHamiltonian(ConstantNNHamiltonian):
+    """Translationally invariant Hamiltonian with constant nearest-neighbor
+    interactions"""
 
-    Arguments:
-    size        -- Number of sites in the model
-    interaction -- Two-body operator in matrix form
-    local_term  -- operator acting on every site (optional)
+    def __init__(
+        self,
+        size: int,
+        interaction: Optional[Operator] = None,
+        local_term: Optional[Operator] = None,
+    ):
+        """Construct a translationally invariant, constant Hamiltonian with open
+        boundaries and fixed interactions.
 
-    Returns:
-    H           -- ConstantNNHamiltonian
-    """
-    if local_term is not None:
-        dimension = len(local_term)
-    elif interaction is not None:
-        dimension = round(sqrt(interaction.shape[0]))
-    else:
-        raise Exception("Either interactions or local term must be supplied")
+        Arguments:
+        size        -- Number of sites in the model
+        interaction -- Two-body operator in matrix form
+        local_term  -- operator acting on every site (optional)
 
-    H = ConstantNNHamiltonian(size, dimension)
-    for site in range(size - 1):
-        if interaction is not None:
-            H.add_interaction_term(site, interaction)
+        Returns:
+        H           -- ConstantNNHamiltonian
+        """
         if local_term is not None:
-            H.add_local_term(site, local_term)
-    return H
+            dimension = len(local_term)
+        elif interaction is not None:
+            dimension = round(sqrt(interaction.shape[0]))
+        else:
+            raise Exception("Either interactions or local term must be supplied")
+
+        super().__init__(size, dimension)
+        for site in range(size - 1):
+            if interaction is not None:
+                self.add_interaction_term(site, interaction)
+            if local_term is not None:
+                self.add_local_term(site, local_term)
 
 
-def Heisenberg_Hamiltonian(size: int) -> ConstantNNHamiltonian:
-    """Make a nearest-neighbor Hamiltonian with Heisenberg interactions
+class HeisenbergHamiltonian(ConstantTIHamiltonian):
+    """Nearest-neighbor Hamiltonian with constant Heisenberg interactions
     over 'size' S=1/2 spins."""
-    return make_ti_Hamiltonian(
-        size, 0.25 * (sp.kron(σx, σx) + sp.kron(σy, σy) + sp.kron(σz, σz)).real
-    )
+
+    def __init__(self, size: int):
+        return super().__init__(
+            size, 0.25 * (sp.kron(σx, σx) + sp.kron(σy, σy) + sp.kron(σz, σz)).real
+        )
