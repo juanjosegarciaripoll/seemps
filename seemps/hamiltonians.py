@@ -1,12 +1,8 @@
-from typing import Union, Optional
 import numpy as np
-from numbers import Number
+from .typing import *
 from math import sqrt
 from .tools import σx, σy, σz
 import scipy.sparse as sp  # type: ignore
-
-Operator = Union[np.ndarray, sp.sparray]
-DenseOperator = np.ndarray
 
 
 class NNHamiltonian(object):

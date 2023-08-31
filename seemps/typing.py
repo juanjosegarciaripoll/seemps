@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.typing import NDArray, ArrayLike
 import scipy.sparse  # type: ignore
-from numbers import Number
+from numbers import Complex, Real
 from typing import Sequence, Iterator, Iterable, Optional, Union, overload, TypeVar
 
 Weight = Union[float, complex]
@@ -14,3 +14,5 @@ VectorLike = ArrayLike
 Tensor3 = NDArray
 Tensor4 = NDArray
 Environment = NDArray
+
+MPSLike = Sequence[Tensor3]

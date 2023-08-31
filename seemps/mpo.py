@@ -1,6 +1,5 @@
-from numbers import Number
-from typing import Iterable, Optional, Union
 import numpy as np
+from .typing import *
 import copy
 from .state import MPS, MPSSum, array, DEFAULT_STRATEGY, Strategy, Weight
 from . import truncate
@@ -201,7 +200,7 @@ class MPOList(object):
         self.mpos = mpos
         self.strategy = strategy
 
-    def __mul__(self, n: Number) -> "MPOList":
+    def __mul__(self, n: Complex) -> "MPOList":
         """Multiply an MPOList quantum state by an scalar n (MPOList * n).
 
         Parameters
@@ -216,7 +215,7 @@ class MPOList(object):
             return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
         raise InvalidOperation("*", self, n)
 
-    def __rmul__(self, n: Number) -> "MPOList":
+    def __rmul__(self, n: Complex) -> "MPOList":
         """Multiply an MPOList quantum state by an scalar n (n * MPOList).
 
         Parameters

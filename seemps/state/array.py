@@ -4,7 +4,7 @@ from ..typing import *
 _T = TypeVar("_T", bound="TensorArray")
 
 
-class TensorArray(object):
+class TensorArray(Sequence[NDArray]):
     """TensorArray class.
 
     This class provides the basis for all tensor networks. The class abstracts
@@ -27,12 +27,20 @@ class TensorArray(object):
         self._data = list(A for A in data)
         self.size = len(self._data)
 
+    @overload
     def __getitem__(self, k: int) -> NDArray:
+        ...
+
+    @overload
+    def __getitem__(self, k: slice) -> Sequence[NDArray]:
+        ...
+
+    def __getitem__(self, k: Union[int, slice]) -> Union[NDArray, Sequence[NDArray]]:
         #
         # Get MP matrix at position `k`. If 'A' is an MP, we can now
         # do A[k]
         #
-        return self._data[k]
+        return self._data[k]  # type: ignore
 
     def __setitem__(self, k: int, value: NDArray) -> NDArray:
         #

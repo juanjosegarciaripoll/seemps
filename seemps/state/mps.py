@@ -2,8 +2,8 @@ import copy
 import math
 import numpy as np
 from ..typing import *
-from .. import expectation
 from ..tools import InvalidOperation
+from .environments import *
 from .schmidt import vector2mps
 from .core import DEFAULT_STRATEGY, Strategy
 from . import array
@@ -79,9 +79,9 @@ class MPS(array.TensorArray):
         mps_list    -- New MPSSum.
         """
         if isinstance(φ, MPS):
-            return MPSSum([1, 1], [self, φ], self.strategy)
+            return MPSSum([1.0, 1.0], [self, φ], self.strategy)
         if isinstance(φ, MPSSum):
-            return MPSSum([1] + φ.weights, [self] + φ.states, self.strategy)
+            return MPSSum([1.0] + φ.weights, [self] + φ.states, self.strategy)
         raise InvalidOperation("+", self, φ)
 
     def __sub__(self, φ: Union["MPS", "MPSSum"]) -> "MPSSum":
@@ -150,37 +150,79 @@ class MPS(array.TensorArray):
 
     def norm_squared(self) -> float:
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
-        return abs(expectation.scprod(self, self))
+        return abs(scprod(self, self))
 
     def norm(self) -> float:
         """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
-        return np.sqrt(abs(expectation.scprod(self, self)))
+        return np.sqrt(abs(scprod(self, self)))
 
-    def expectation1(self, operator, n) -> Number:
-        """Return the expectation value of `operator` acting on the `n`-th
+    def expectation1(self, O: Operator, site: int) -> Weight:
+        """Return the expectation value of `O` acting on the `n`-th
         site of the MPS. See `mps.expectation.expectation1()`."""
-        return expectation.expectation1(self, operator, n)
+        ρL = self.left_environment(site)
+        A = self[site]
+        OL = update_left_environment(A, A, ρL, operator=O)
+        ρR = self.right_environment(site)
+        return join_environments(OL, ρR)
 
-    def expectation2(self, operator1, operator2, i, j=None) -> Number:
-        """Return the expectation value of `operator1` and `operator2` acting
+    def expectation2(
+        self, Opi: Operator, Opj: Operator, i: int, j: Optional[int] = None
+    ) -> Weight:
+        """Return the expectation value of `Opi` and `Opj` acting
         on the sites `i` and `j`. See `mps.expectation.expectation2()`"""
-        return expectation.expectation2(self, operator1, operator2, i, j)
+        if j is None:
+            j = i + 1
+        elif j == i:
+            return self.expectation1(Opi @ Opj, i)
+        elif j < i:
+            i, j = j, i
+        OQL = self.left_environment(i)
+        for ndx in range(i, j + 1):
+            A = self[ndx]
+            if ndx == i:
+                OQL = update_left_environment(A, A, OQL, operator=Opi)
+            elif ndx == j:
+                OQL = update_left_environment(A, A, OQL, operator=Opj)
+            else:
+                OQL = update_left_environment(A, A, OQL)
+        return join_environments(OQL, self.right_environment(j))
 
-    def all_expectation1(self, operator) -> Number:
+    def all_expectation1(self, operator: Union[Operator, list[Operator]]) -> Vector:
         """Return all expectation values of `operator` acting on all possible
         sites of the MPS. See `mps.expectation.all_expectation1()`."""
-        return expectation.all_expectation1(self, operator)
+        L = self.size
+        ρ = begin_environment()
+        allρR: list[Environment] = [ρ] * L
+        for i in range(L - 1, 0, -1):
+            A = self[i]
+            ρ = update_right_environment(A, A, ρ)
+            allρR[i - 1] = ρ
 
-    def left_environment(self, site: int) -> np.ndarray:
-        ρ = expectation.begin_environment()
+        ρL = begin_environment()
+        output: list[Weight] = [0.0] * L
+        for i in range(L):
+            A = self[i]
+            ρR = allρR[i]
+            OρL = update_left_environment(
+                A,
+                A,
+                ρL,
+                operator=operator[i] if isinstance(operator, list) else operator,
+            )
+            output[i] = join_environments(OρL, ρR)
+            ρL = update_left_environment(A, A, ρL)
+        return np.array(output)
+
+    def left_environment(self, site: int) -> Environment:
+        ρ = begin_environment()
         for A in self._data[:site]:
-            ρ = expectation.update_left_environment(A, A, ρ)
+            ρ = update_left_environment(A, A, ρ)
         return ρ
 
-    def right_environment(self, site: int) -> np.ndarray:
-        ρ = expectation.begin_environment()
+    def right_environment(self, site: int) -> Environment:
+        ρ = begin_environment()
         for A in self._data[-1:site:-1]:
-            ρ = expectation.update_right_environment(A, A, ρ)
+            ρ = update_right_environment(A, A, ρ)
         return ρ
 
     def error(self) -> float:
@@ -246,7 +288,7 @@ def _mps2vector(data: list[np.ndarray]) -> np.ndarray:
     # Input:
     #  - data: list of tensors for the MPS (unchecked)
     # Output:
-    #  - Ψ: Vector of complex numbers with all the wavefunction amplitudes
+    #  - Ψ: Vector of complex Complexs with all the wavefunction amplitudes
     #
     # We keep Ψ[D,β], a tensor with all matrices contracted so far, where
     # 'D' is the dimension of the physical subsystems up to this point and

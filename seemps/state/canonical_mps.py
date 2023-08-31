@@ -3,7 +3,7 @@ import numpy as np
 from ..typing import *
 from .mps import MPS
 from . import schmidt
-from .core import DEFAULT_STRATEGY, Strategy, Truncation, DEFAULT_TOLERANCE
+from .core import DEFAULT_STRATEGY, Strategy, DEFAULT_TOLERANCE
 from .. import expectation
 
 
@@ -129,21 +129,21 @@ class CanonicalMPS(MPS):
         A = self._data[self.center]
         return np.vdot(A, A)
 
-    def left_environment(self, site: int) -> np.ndarray:
+    def left_environment(self, site: int) -> Environment:
         start = min(site, self.center)
         ρ = expectation.begin_environment(self[start].shape[0])
         for A in self._data[start:site]:
             ρ = expectation.update_left_environment(A, A, ρ)
         return ρ
 
-    def right_environment(self, site: int) -> np.ndarray:
+    def right_environment(self, site: int) -> Environment:
         start = max(site, self.center)
         ρ = expectation.begin_environment(self[start].shape[-1])
         for A in self._data[start:site:-1]:
             ρ = expectation.update_right_environment(A, A, ρ)
         return ρ
 
-    def entanglement_entropy(self, site: Optional[int] = None) -> float:
+    def entanglement_entropy(self, site: Optional[int] = None) -> Real:
         """Return the entanglement entropy of the state divided at 'site',
         which defaults to the canonical state's center."""
         if site is None:
@@ -170,7 +170,7 @@ class CanonicalMPS(MPS):
         self.update_error(err)
         return err
 
-    def update_2site_right(self, AA: np.ndarray, site: int, strategy: Strategy) -> None:
+    def update_2site_right(self, AA: Tensor4, site: int, strategy: Strategy) -> None:
         """Split a two-site tensor into two one-site tensors by
         right orthonormalization and insert the tensor in canonical form into
         the MPS Ψ at the given site and the site on its right. Update the
@@ -188,7 +188,7 @@ class CanonicalMPS(MPS):
         self.center = site + 1
         self.update_error(err)
 
-    def update_2site_left(self, AA: np.ndarray, site: int, strategy: Strategy) -> None:
+    def update_2site_left(self, AA: Tensor4, site: int, strategy: Strategy) -> None:
         """Split a two-site tensor into two one-site tensors by
         left orthonormalization and insert the tensor in canonical form into the
         MPS Ψ at the given site and the site on its right. Update the
