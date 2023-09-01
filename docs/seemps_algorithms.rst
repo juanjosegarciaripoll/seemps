@@ -9,8 +9,19 @@ MPS algorithms
 MPS simplification
 ------------------
 
-.. autofunction:: seemps.truncate.simplify
+.. autosummary::
+   :toctree: generated/
 
-.. autofunction:: seemps.truncate.combine
+   ~seemps.truncate.simplify
+   ~seemps.truncate.combine
 
+.. _mps_tebd:
 
+TEBD Time evolution
+-------------------
+
+.. autosummary::
+   :toctree: generated/
+
+   ~seemps.evolution.Trotter2ndOrder
+   ~seemps.evolution.Trotter3rdOrder
