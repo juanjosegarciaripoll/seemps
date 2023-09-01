@@ -17,7 +17,7 @@ class TestQFT(TestCase):
         np.random.seed(1022)
         for N in range(4, 10):
             ψmps, ψ = self.gaussian_mps(N)
-            self.Similar(
+            self.assertSimilar(
                 qft_flip(qft(ψmps)).to_vector(), numpy.fft.fft(ψ, norm="ortho")
             )
 
