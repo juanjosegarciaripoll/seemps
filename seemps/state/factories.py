@@ -1,31 +1,43 @@
+from __future__ import annotations
 from typing import Optional, Union
+import warnings
 import numpy as np
-import numpy.typing as npt
+from ..typing import VectorLike, Tensor3
 from .mps import MPS
 
 
 def product_state(
-    vectors: Union[np.ndarray, list[np.ndarray]], length: Optional[int] = None
+    vectors: Union[VectorLike, list[VectorLike]], length: Optional[int] = None
 ) -> MPS:
-    #
-    # If `length` is `None`, `vectors` will be a list of complex vectors
-    # representing the elements of the product state.
-    #
-    # If `length` is an integer, `vectors` is a single complex vector and
-    # it is repeated `length` times to build a product state.
-    #
-    def to_tensor(v):
+    """Create a product state :class:`MPS`.
+
+    Parameters
+    ----------
+    vectors : VectorLike | list[VectorLike]
+        This may be a list of wavefunctions, or a single state vector that is
+        repeated on all sites.
+    length : int, optional
+        If `vectors` is a single wavefunction, we need to know the size of the
+        MPS, given as an integer value here.
+
+    Returns
+    -------
+    MPS
+        The quantum state in matrix-product state form.
+    """
+
+    def to_tensor(v) -> Tensor3:
         v = np.asarray(v)
         return v.reshape(1, v.size, 1)
 
     if length is not None:
-        return MPS([to_tensor(vectors)] * length)
+        return MPS([to_tensor(vectors)] * length)  # type: ignore
     else:
-        return MPS([to_tensor(v) for v in vectors])
+        return MPS([to_tensor(v) for v in vectors])  # type: ignore
 
 
 def GHZ(n: int) -> MPS:
-    """Return a GHZ state with `n` qubits in MPS form."""
+    """:class:`MPS` representing a GHZ state with `n` qubits."""
     a = np.zeros((2, 2, 2))
     b = a.copy()
     a[0, 0, 0] = a[0, 1, 1] = 1.0 / np.sqrt(2.0)
@@ -39,7 +51,11 @@ def GHZ(n: int) -> MPS:
 
 
 def W(n: int) -> MPS:
-    """Return a W with one excitation over `n` qubits."""
+    """:class:`MPS` representing a W-state with `n` qubits.
+
+    The W-state is defined as the quantum superpositions of all quantum states
+    with a single spin up :math:`\\sum_i \\sigma_i^+ |000\ldots\\rangle`
+    """
     a = np.zeros((2, 2, 2))
     a[0, 0, 0] = 1.0
     a[0, 1, 1] = 1.0 / np.sqrt(n)
@@ -50,29 +66,14 @@ def W(n: int) -> MPS:
     return MPS(data)
 
 
-def wavepacket(state: npt.ArrayLike) -> MPS:
-    #
-    # Create an MPS for a spin 1/2 system with the given amplitude
-    # of the excited state on each site. In other words, we create
-    #
-    #   \sum_i Ψ[i] σ^+ |0000...>
-    #
-    # The MPS is created with a single tensor: A(i,s,j)
-    # The input index "i" can take two values, [0,1]. If it is '0'
-    # it means we have not applied any σ^+ anywhere else, and we can
-    # excite a spin here. Therefore, we have two possible values:
-    #
-    #   A(0,0,0) = 1.0
-    #   A(0,1,1) = ψ[n] (n=given site)
-    #
-    # If i=1, then we cannot excite any further spin and
-    #   A(1,0,1) = 1.0
-    #
-    # All other elements are zero. Of course, we have to impose
-    # boundary conditions that the first site only has A(0,s,j)
-    # and the last site only has A(i,s,1) (at least one spin has
-    # been excited)
-    #
+def spin_wave(state: VectorLike) -> MPS:
+    """:class:`MPS` representing a spin-wave state with one excitation.
+
+    The `state` is a wavepacket with `N` elements, representing the weights
+    of the quantum excitation on each of the `N` qubits or spins. More
+    precisely, `spin_wave(f)` represents
+    :math:`\\sum_{i=0}^{N-1} f[i] \\sigma^+ |000\\ldots\\rangle`
+    """
     ψ = np.array(state)
     data = [ψ] * ψ.size
     for n in range(0, ψ.size):
@@ -86,9 +87,10 @@ def wavepacket(state: npt.ArrayLike) -> MPS:
 
 
 def graph(n: int) -> MPS:
-    """Create a one-dimensional graph state of `n` qubits."""
+    """Create an :class:`MPS` for a one-dimensional graph state with `n` qubits."""
     # Choose entangled pair state as : |00>+|11>
-    # Apply Hadamard H on the left virtual spins (which are the right spins of the entangled bond pairs)
+    # Apply Hadamard H on the left virtual spins
+    # (which are the right spins of the entangled bond pairs)
     assert n > 1
     H = np.array([[1, 1], [1, -1]])
     # which gives |0>x(|0>+|1>)+|1>x(|0>-|1>) = |00>+|01>+|10>-|11>
@@ -104,12 +106,8 @@ def graph(n: int) -> MPS:
     return MPS(data)
 
 
-# open boundary conditions
-# free virtual spins at both ends are taken to be zero
-
-
 def AKLT(n: int) -> MPS:
-    """Return an AKL state with `n` spin-1 particles."""
+    """Create an :class:`MPS` for the AKLT spin-1 state with `n` sites."""
     assert n > 1
     # Choose entangled pair state as : |00>+|11>
     # Apply i * Pauli Y matrix on the left virtual spins (which are the right spins of the entangled bond pairs)
@@ -131,15 +129,35 @@ def AKLT(n: int) -> MPS:
     return MPS(data)
 
 
-def random(
+def random_mps(
     d: int,
     N: int,
     D: int = 1,
     truncate: bool = True,
     rng: Optional[np.random.Generator] = None,
 ) -> MPS:
-    """Create a random state with 'N' elements of dimension 'd' and bond
-    dimension 'D'."""
+    """Create a random state with `N` elements of dimension `d` and bond
+    dimension `D`.
+
+    Parameters
+    ----------
+    d : int
+        The dimension of each quantum system
+    N : int
+        The number of quantum systems in this :class:`MPS`
+    D : int, default = 1
+        The maximum bond dimension
+    truncate : bool, default = True
+        Do not reach `D` for tensors that do not require it.
+    rng : np.random.Generator, default = np.random.default_rng()
+        Random number generator used to create the state. Provide a seeded
+        generator to ensure reproducibility
+
+    Returns
+    -------
+    MPS
+        A random matrix-product state.
+    """
     mps: list[np.ndarray] = [np.ndarray(())] * N
     if rng is None:
         rng = np.random.default_rng()
@@ -156,6 +174,14 @@ def random(
     return MPS(mps)
 
 
+def random(*args, **kwdargs) -> MPS:
+    """Deprecated version of :func:`random_mps`."""
+    warnings.warn(
+        "method norm2 is deprecated, use norm_squared", category=DeprecationWarning
+    )
+    return random_mps(*args, **kwdargs)
+
+
 def gaussian(n: int, x0: float, w0: float, k0: float) -> MPS:
     #
     # Return a W state with `n` components in MPS form or
@@ -163,4 +189,4 @@ def gaussian(n: int, x0: float, w0: float, k0: float) -> MPS:
     #
     xx = np.arange(n)
     coefs = np.exp(-((xx - x0) ** 2) / w0**2 + 1j * k0 * xx)
-    return wavepacket(coefs / np.linalg.norm(coefs))
+    return spin_wave(coefs / np.linalg.norm(coefs))
