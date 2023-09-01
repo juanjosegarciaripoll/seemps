@@ -1,3 +1,4 @@
+from __future__ import annotations
 import numpy as np
 from .typing import *
 import copy
@@ -6,14 +7,14 @@ from . import truncate
 from .tools import log, InvalidOperation
 
 
-def mpo_multiply_tensor(A, B):
+def _mpo_multiply_tensor(A, B):
     C = np.einsum("aijb,cjd->acibd", A, B)
     s = C.shape
     return C.reshape(s[0] * s[1], s[2], s[3] * s[4])
 
 
 class MPO(array.TensorArray):
-    """MPO (Matrix Product Operator) class.
+    """Matrix Product Operator class.
 
     This implements a bare-bones Matrix Product Operator object with open
     boundary conditions. The tensors have four indices, A[α,i,j,β], where
@@ -22,11 +23,10 @@ class MPO(array.TensorArray):
 
     Parameters
     ----------
-    data      -- A list of the tensors that form the MPO
-    simplify  -- Use the simplification algorithm after applying the MPO
-                 Defaults to False
-    maxsweeps, tolerance, normalize, max_bond_dimension -- arguments used by
-                 the simplification routine, if simplify is True.
+    data: list[Tensor4]
+        List of four-legged tensors forming the structure.
+    strategy: Strategy, default = DEFAULT_STRATEGY
+        Truncation strategy for algorithms.
     """
 
     strategy: Strategy
@@ -38,46 +38,30 @@ class MPO(array.TensorArray):
         assert data[0].shape[0] == data[-1].shape[-1] == 1
         self.strategy = strategy
 
-    def __mul__(self, n: Weight) -> "MPO":
-        """Multiply an MPO quantum state by an scalar n (MPO * n)
-
-        Parameters
-        ----------
-        n          -- Scalar to multiply the MPO by.
-
-        Output
-        ------
-        mpo -- New mpo.
-        """
+    def __mul__(self, n: Weight) -> MPO:
+        """Multiply an MPO by a scalar `n * self`"""
         if isinstance(n, (float, complex)):
             mpo_mult = copy.deepcopy(self)
             mpo_mult._data[0] = n * mpo_mult._data[0]
             return mpo_mult
         raise InvalidOperation("*", self, n)
 
-    def __rmul__(self, n: Weight) -> "MPO":
-        """Multiply an MPO quantum state by an scalar n (n * MPO).
-
-        Parameters
-        ----------
-        n          -- Scalar to multiply the MPO by.
-
-        Output
-        ------
-        mpo -- New mpo.
-        """
+    def __rmul__(self, n: Weight) -> MPO:
+        """Multiply an MPO by a scalar `self * self`"""
         if isinstance(n, (float, complex)):
             mpo_mult = copy.deepcopy(self)
             mpo_mult._data[0] = n * mpo_mult._data[0]
             return mpo_mult
         raise InvalidOperation("*", n, self)
 
+    # TODO: Rename to physical_dimensions()
     def dimensions(self) -> list[int]:
-        """Return the local dimensions of the MPO."""
+        """Return the physical dimensions of the MPO."""
         return [A.shape[1] for A in self._data]
 
+    # TODO: Rename to to_matrix()
     def tomatrix(self) -> Operator:
-        """Return the matrix representation of this MPO."""
+        """Convert this MPO to a dense or sparse matrix."""
         D = 1  # Total physical dimension so far
         out = np.array([[[1.0]]])
         for A in self._data:
@@ -93,8 +77,24 @@ class MPO(array.TensorArray):
         strategy: Optional[Strategy] = None,
         simplify: Optional[bool] = None,
     ) -> MPS:
-        """Implement multiplication A @ b between an MPO 'A' and
-        a Matrix Product State 'b'."""
+        """Implement multiplication `A @ b` between a matrix-product operator
+        `A` and a matrix-product state `b`.
+
+        Parameters
+        ----------
+        b : MPS | MPSSum
+            Transformed state.
+        strategy : Strategy, optional
+            Truncation strategy, defaults to DEFAULT_STRATEGY
+        simplify : bool, optional
+            Whether to simplify the state after the contraction.
+            Defaults to `strategy.get_simplify_flag()`
+
+        Returns
+        -------
+        CanonicalMPS
+            The result of the contraction.
+        """
         # TODO: Remove implicit conversion of MPSSum to MPS
         if isinstance(b, MPSSum):
             state: MPS = b.toMPS(strategy=strategy)
@@ -110,7 +110,7 @@ class MPO(array.TensorArray):
         log(f"Total error before applying MPO {state.error()}")
         err = 0.0
         state = MPS(
-            [mpo_multiply_tensor(A, B) for A, B in zip(self._data, state._data)],
+            [_mpo_multiply_tensor(A, B) for A, B in zip(self._data, state._data)],
             error=state.error(),
         )
         if strategy.get_simplify_flag():
@@ -125,8 +125,7 @@ class MPO(array.TensorArray):
         return state
 
     def __matmul__(self, b: Union[MPS, MPSSum]) -> MPS:
-        """Implement multiplication A @ b between an MPO 'A' and
-        a Matrix Product State 'b'."""
+        """Implement multiplication `self @ b`."""
         if isinstance(b, (MPS, MPSSum)):
             return self.apply(b)
         raise InvalidOperation("@", self, b)
@@ -140,19 +139,26 @@ class MPO(array.TensorArray):
         L: int,
         sites: Optional[Iterable[int]] = None,
         dimensions: Union[int, list[int]] = 2,
-    ) -> "MPO":
+    ) -> MPO:
         """Enlarge an MPO so that it acts on a larger Hilbert space with 'L' sites.
 
         Parameters
         ----------
-        L          -- The new size
-        dimensions -- If it is an integer, it is the dimension of the new sites.
-                      If it is a list, it is the dimension of all sites.
-        sites      -- Where to place the tensors of the original MPO.
+        L : int
+            The new size of the MPO. Must be strictly larger than `self.size`.
+        sites : Iterable[int], optional
+            Sequence of integers describing the sites that are new in the
+            range `[0,L)`. All other sites are filled in order with the content
+            from this MPS.
+        dimensions : Union[int, list[int]], default = 2
+            Dimension of the added sites. It can be the same integer or a list
+            of integers with the same length as `sites`.
 
-        Output
-        ------
-        mpo        -- A new MPO.
+
+        Returns
+        -------
+        MPO
+            Extended MPO.
         """
         assert L >= self.size
         if isinstance(dimensions, list):
@@ -178,17 +184,18 @@ class MPO(array.TensorArray):
 
 
 class MPOList(object):
-    """MPO (Matrix Product Operator) list.
+    """Sequence of matrix-product operators.
 
-    This implements a list of MPOs that are applied sequentially.
+    This implements a list of MPOs that are applied sequentially. It can impose
+    its own truncation or simplification strategy on top of the one provided by
+    the individual operators.
 
     Parameters
     ----------
-    mpos  -- A list of the MPOs
-    simplify  -- Use the simplification algorithm after applying the MPO
-                 Defaults to False
-    maxsweeps, tolerance, normalize, max_bond_dimension -- arguments used by
-                 the simplification routine, if simplify is True.
+    mpos: list[MPO]
+        Operators in this sequence, to be applied from mpos[0] to mpos[-1]
+    strategy: Strategy, optional
+        Truncation and simplification strategy, defaults to DEFAULT_STRATEGY
     """
 
     __array_priority__ = 10000
@@ -200,51 +207,52 @@ class MPOList(object):
         self.mpos = mpos
         self.strategy = strategy
 
-    def __mul__(self, n: Weight) -> "MPOList":
-        """Multiply an MPOList quantum state by an scalar n (MPOList * n).
-
-        Parameters
-        ----------
-        n          -- Scalar to multiply the MPOList by.
-
-        Output
-        ------
-        mpo -- New mpo.
-        """
+    def __mul__(self, n: Weight) -> MPOList:
+        """Multiply an `n * self` by scalar `n`."""
         if isinstance(n, (float, complex)):
             return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
         raise InvalidOperation("*", self, n)
 
-    def __rmul__(self, n: Weight) -> "MPOList":
-        """Multiply an MPOList quantum state by an scalar n (n * MPOList).
-
-        Parameters
-        ----------
-        n          -- Scalar to multiply the MPOList by.
-
-        Output
-        ------
-        mpo -- New mpo.
-        """
+    def __rmul__(self, n: Weight) -> MPOList:
+        """Multiply an `self * n` by scalar `n`."""
         if isinstance(n, (float, complex)):
             return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
         raise InvalidOperation("*", n, self)
 
+    # TODO: Rename to to_matrix()
     def tomatrix(self) -> Operator:
-        """Return the matrix representation of this MPO."""
+        """Convert this MPO to a dense or sparse matrix."""
         A = self.mpos[0].tomatrix()
         for mpo in self.mpos[1:]:
             A = A @ mpo.tomatrix()
         return A
 
+    # TODO: Describe how `strategy` and simplify act as compared to
+    # the values provided by individual operators.
     def apply(
         self,
         b: Union[MPS, MPSSum],
         strategy: Optional[Strategy] = None,
         simplify: Optional[bool] = None,
     ) -> MPS:
-        """Implement multiplication A @ b between an MPO 'A' and
-        a Matrix Product State 'b'."""
+        """Implement multiplication `A @ b` between a matrix-product operator
+        `A` and a matrix-product state `b`.
+
+        Parameters
+        ----------
+        b : MPS | MPSSum
+            Transformed state.
+        strategy : Strategy, optional
+            Truncation strategy, defaults to DEFAULT_STRATEGY
+        simplify : bool, optional
+            Whether to simplify the state after the contraction.
+            Defaults to `strategy.get_simplify_flag()`
+
+        Returns
+        -------
+        CanonicalMPS
+            The result of the contraction.
+        """
         state: MPS
         if isinstance(b, MPSSum):
             state = b.toMPS()
@@ -270,27 +278,19 @@ class MPOList(object):
         return state
 
     def __matmul__(self, b: Union[MPS, MPSSum]) -> MPS:
-        """Implement multiplication A @ b between an MPO 'A' and
-        a Matrix Product State 'b'."""
+        """Implement multiplication `self @ b`."""
         if isinstance(b, (MPS, MPSSum)):
             return self.apply(b)
         raise InvalidOperation("@", self, b)
 
     def extend(
         self, L: int, sites: Optional[list[int]] = None, dimensions: int = 2
-    ) -> "MPOList":
+    ) -> MPOList:
         """Enlarge an MPOList so that it acts on a larger Hilbert space with 'L' sites.
 
-        Parameters
-        ----------
-        L          -- The new size
-        dimensions -- If it is an integer, it is the dimension of the new sites.
-                      If it is a list, it is the dimension of all sites.
-        sites      -- Where to place the tensors of the original MPO.
-
-        Output
-        ------
-        mpo        -- A new MPOList.
+        See also
+        --------
+        :py:meth:`MPO.extend`
         """
         return MPOList(
             [mpo.extend(L, sites=sites, dimensions=dimensions) for mpo in self.mpos],
