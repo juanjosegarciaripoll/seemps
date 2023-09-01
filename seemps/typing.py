@@ -2,17 +2,43 @@ import numpy as np
 from numpy.typing import NDArray, ArrayLike
 import scipy.sparse  # type: ignore
 from numbers import Complex, Real
-from typing import Sequence, Iterator, Iterable, Optional, Union, overload, TypeVar
+from typing import (
+    Sequence,
+    Iterator,
+    Iterable,
+    Optional,
+    TypeAlias,
+    Union,
+    overload,
+    TypeVar,
+)
 
-Weight = Union[float, complex]
-Unitary = NDArray
+Weight: TypeAlias = Union[float, complex]
+"""A real or complex number."""
 
-Operator = Union[NDArray, scipy.sparse.sparray]
-DenseOperator = NDArray
-Vector = NDArray
-VectorLike = ArrayLike
-Tensor3 = NDArray
-Tensor4 = NDArray
-Environment = NDArray
+Unitary: TypeAlias = NDArray
+"""Unitary matrix in :class:`numpy.ndarray` dense format."""
 
-MPSLike = Sequence[Tensor3]
+Operator: TypeAlias = Union[NDArray, scipy.sparse.sparray]
+"""An operator, either in :class:`np.ndarray` or sparse matrix format."""
+
+DenseOperator: TypeAlias = NDArray
+"""An operator in :class:`numpy.ndarray` format."""
+
+Vector: TypeAlias = NDArray
+"""A one-dimensional :class:`numpy.ndarray` representing a wavefunction."""
+
+VectorLike: TypeAlias = ArrayLike
+"""Any Python type that can be coerced to `Vector` type."""
+
+Tensor3: TypeAlias = NDArray
+""":class:`numpy.ndarray` tensor with three indices."""
+
+Tensor4: TypeAlias = NDArray
+""":class:`numpy.ndarray` tensor with four indices."""
+
+Environment: TypeAlias = NDArray
+"""Left or right environment represented as tensor."""
+
+MPSLike: TypeAlias = Sequence[Tensor3]
+"""Any object coercible to :class:`MPS`."""
