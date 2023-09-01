@@ -1,4 +1,3 @@
-import unittest
 from .tools import *
 from seemps.state import (
     DEFAULT_STRATEGY,
@@ -7,7 +6,7 @@ from seemps.state import (
 from seemps.state.canonical_mps import _update_in_canonical_form, _canonicalize
 
 
-class TestCanonicalForm(unittest.TestCase):
+class TestCanonicalForm(TestCase):
     def test_local_update_canonical(self):
         #
         # We verify that _update_in_canonical_form() leaves a tensor that
@@ -47,7 +46,7 @@ class TestCanonicalForm(unittest.TestCase):
                 #
                 # Both states produce the same wavefunction
                 #
-                self.assertTrue(similar(ξ.to_vector(), Ψ.to_vector()))
+                self.assertSimilar(ξ.to_vector(), Ψ.to_vector())
 
         run_over_random_mps(ok)
 

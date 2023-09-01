@@ -1,9 +1,8 @@
-import unittest
 from seemps.tools import *
 from .tools import *
 
 
-class TestTools(unittest.TestCase):
+class TestTools(TestCase):
     def test_random_isometry(self):
         for N in range(1, 10):
             for M in range(1, 10):

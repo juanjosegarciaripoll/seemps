@@ -1,4 +1,3 @@
-import unittest
 from seemps.state import CanonicalMPS
 from seemps.expectation import *
 from .tools import *
@@ -11,7 +10,7 @@ def bit2state(b):
         return [1, 0]
 
 
-class TestExpectation(unittest.TestCase):
+class TestExpectation(TestCase):
     def test_scprod_basis(self):
         #
         # Test that scprod() can be used to project onto basis states
@@ -101,7 +100,7 @@ class TestExpectation(unittest.TestCase):
             for _ in range(10):
                 # We create a random MPS
                 ψwave = random_wavefunction(nbits)
-                ψmps = seemps.state.wavepacket(ψwave)
+                ψmps = seemps.state.spin_wave(ψwave)
                 ni = all_expectation1(ψmps, O)
                 for i in range(nbits):
                     si = expectation1(ψmps, O, i)

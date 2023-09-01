@@ -1,4 +1,3 @@
-import unittest
 import numpy as np
 from seemps.state import MPS, MPSSum
 from seemps.state.array import TensorArray
@@ -135,7 +134,3 @@ class TestMPSOperations(MPSStatesFixture):
         factor = 1.0 + 3.0j
         A = MPS(self.inhomogeneous_state)
         self.assertAlmostEqual(abs(factor) * A.norm(), (factor * A).norm())
-
-
-if __name__ == "__main__":
-    unittest.main()

@@ -1,10 +1,10 @@
 import numpy as np
-import unittest
+from .tools import *
 from seemps.tools import *
 from seemps.state import *
 
 
-class TestSampleStates(unittest.TestCase):
+class TestSampleStates(TestCase):
     def test_product_state(self):
         a = np.array([1.0, 7.0])
         b = np.array([0.0, 1.0, 3.0])
