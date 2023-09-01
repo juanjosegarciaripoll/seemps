@@ -1,3 +1,4 @@
+from __future__ import annotations
 import copy
 import math
 import numpy as np
@@ -14,18 +15,19 @@ class MPS(array.TensorArray):
     """MPS (Matrix Product State) class.
 
     This implements a bare-bones Matrix Product State object with open
-    boundary conditions. The tensors have three indices, `A[α,i,β]`, where
-    `α,β` are the internal labels and `i` is the physical state of the given
+    boundary conditions. The tensors have three indices, `A[α,d,β]`, where
+    `α,β` are the internal labels and `d` is the physical state of the given
     site.
 
     Parameters
     ----------
-    data    -- A list of tensors that form the MPS. The class assumes they
-               have three legs and are well formed--i.e. the bond dimensions
-               of neighboring sites match.
-    error   -- Accumulated error of the simplifications of the MPS.
-    maxsweeps, tolerance, normalize, max_bond_dimension -- arguments used by
-                 the simplification routine, if simplify is True.
+    data : Iterable[Tensor3]
+        Sequence of three-legged tensors `A[α,si,β]`. The dimensions are not
+        verified for consistency.
+    error : float, default=0.0
+        Accumulated truncation error in the previous tensors.
+    strategy : Strategy, default=DEFAULT_STRATEGY
+        Default truncation strategy when operating on this state
     """
 
     _error: float
@@ -48,18 +50,19 @@ class MPS(array.TensorArray):
         self.strategy = strategy
 
     def dimension(self) -> int:
-        """Return the total size of the Hilbert space in which this MPS lives."""
+        """Hilbert space dimension of this quantum system."""
         return math.prod(self.dimensions())
 
     def physical_dimensions(self) -> list[int]:
+        """List of physical dimensions for the quantum subsystems."""
         return list(a.shape[1] for a in self._data)
 
     def bond_dimensions(self) -> list[int]:
+        """List of bond dimensions for the matrix product state."""
         return list(a.shape[0] for a in self._data[:-1]) + [self._data[-1].shape[-1]]
 
     def to_vector(self) -> Vector:
-        """Return one-dimensional complex vector of dimension() elements, with
-        the complete wavefunction that is encoded in the MPS."""
+        """Convert this MPS to a state vector."""
         return _mps2vector(self._data)
 
     @classmethod
@@ -69,59 +72,52 @@ class MPS(array.TensorArray):
         dimensions: Sequence[int],
         strategy: Strategy = DEFAULT_STRATEGY,
         normalize: bool = True,
-        **kwdargs
+        **kwdargs,
     ) -> "MPS":
+        """Create a matrix-product state from a state vector.
+
+        Parameters
+        ----------
+        ψ : VectorLike
+            Real or complex vector of a wavefunction.
+        dimensions : Sequence[int]
+            Sequence of integers representing the dimensions of the
+            quantum systems that form this state.
+        strategy : Strategy, default = DEFAULT_STRATEGY
+            Default truncation strategy for algorithms working on this state.
+        normalize : bool, default = True
+            Whether the state is normalized to compensate truncation errors.
+        ψ: VectorLike :
+
+        Returns
+        -------
+        MPS
+            A valid matrix-product state approximating this state vector.
+        """
         return MPS(vector2mps(ψ, dimensions, strategy, normalize))
 
-    def __add__(self, φ: Union["MPS", "MPSSum"]) -> "MPSSum":
-        """Add an MPS or an MPSSum to the MPS.
+    def __add__(self, state: Union["MPS", "MPSSum"]) -> "MPSSum":
+        """Represent `self + state` as :class:`.MPSSum`."""
+        if isinstance(state, MPS):
+            return MPSSum([1.0, 1.0], [self, state], self.strategy)
+        if isinstance(state, MPSSum):
+            return MPSSum([1.0] + state.weights, [self] + state.states, self.strategy)
+        raise InvalidOperation("+", self, state)
 
-        Parameters
-        ----------
-        φ    -- MPS or MPSSum object.
-
-        Output
-        ------
-        mps_list    -- New MPSSum.
-        """
-        if isinstance(φ, MPS):
-            return MPSSum([1.0, 1.0], [self, φ], self.strategy)
-        if isinstance(φ, MPSSum):
-            return MPSSum([1.0] + φ.weights, [self] + φ.states, self.strategy)
-        raise InvalidOperation("+", self, φ)
-
-    def __sub__(self, φ: Union["MPS", "MPSSum"]) -> "MPSSum":
-        """Subtract an MPS or an MPSSum from the MPS.
-
-        Parameters
-        ----------
-        φ    -- MPS or MPSSum object.
-
-        Output
-        ------
-        mps_list    -- New MPSSum.
-        """
-        if isinstance(φ, MPS):
-            return MPSSum([1, -1], [self, φ], self.strategy)
-        if isinstance(φ, MPSSum):
+    def __sub__(self, state: Union["MPS", "MPSSum"]) -> "MPSSum":
+        """Represent `self - state` as :class:`.MPSSum`"""
+        if isinstance(state, MPS):
+            return MPSSum([1, -1], [self, state], self.strategy)
+        if isinstance(state, MPSSum):
             return MPSSum(
-                [1] + list((-1) * np.asarray(φ.weights)),
-                [self] + φ.states,
+                [1] + list((-1) * np.asarray(state.weights)),
+                [self] + state.states,
                 self.strategy,
             )
-        raise InvalidOperation("-", self, φ)
+        raise InvalidOperation("-", self, state)
 
     def __mul__(self, n: Weight) -> "MPS":
-        """Multiply an MPS quantum state by a scalar n (MPS * n)
-
-        Parameters
-        ----------
-        n    -- Scalar to multiply the MPS by.
-
-        Output
-        ------
-        mps    -- New mps.
-        """
+        """Compute `n * self` where `n` is a scalar."""
         if isinstance(n, (float, complex)):
             mps_mult = copy.deepcopy(self)
             mps_mult._data[0] = n * mps_mult._data[0]
@@ -130,16 +126,7 @@ class MPS(array.TensorArray):
         raise InvalidOperation("*", self, n)
 
     def __rmul__(self, n: Weight) -> "MPS":
-        """Multiply an MPS quantum state by a scalar n (n * MPS).
-
-        Parameters
-        ----------
-        n    -- Scalar to multiply the MPS by.
-
-        Output
-        ------
-        mps    -- New mps.
-        """
+        """Compute `self * n`, where `n` is a scalar."""
         if isinstance(n, (float, complex)):
             mps_mult = copy.deepcopy(self)
             mps_mult._data[0] = n * mps_mult._data[0]
@@ -148,23 +135,32 @@ class MPS(array.TensorArray):
         raise InvalidOperation("*", n, self)
 
     def norm2(self) -> float:
-        """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
+        """Deprecated alias for :py:meth:`norm_squared`."""
         warnings.warn(
             "method norm2 is deprecated, use norm_squared", category=DeprecationWarning
         )
         return self.norm_squared()
 
     def norm_squared(self) -> float:
-        """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
+        """Norm-2 squared :math:`\\Vert{\psi}\\Vert^2` of this MPS."""
         return abs(scprod(self, self))
 
     def norm(self) -> float:
-        """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
+        """Norm-2 :math:`\\Vert{\psi}\\Vert^2` of this MPS."""
         return np.sqrt(abs(scprod(self, self)))
 
     def expectation1(self, O: Operator, site: int) -> Weight:
-        """Return the expectation value of `O` acting on the `n`-th
-        site of the MPS. See `mps.expectation.expectation1()`."""
+        """Expectation value of local operator `O` acting on given `site`.
+        Returns a real or complex number.
+
+        Parameters
+        ----------
+        O : Operator
+            The observable whose expectation value we compute. It can be
+            a Numpy 2-dimensional tensor or sparse matrix.
+        site : int
+            A site in the `range(0, self.size)`
+        """
         ρL = self.left_environment(site)
         A = self[site]
         OL = update_left_environment(A, A, ρL, operator=O)
@@ -174,8 +170,8 @@ class MPS(array.TensorArray):
     def expectation2(
         self, Opi: Operator, Opj: Operator, i: int, j: Optional[int] = None
     ) -> Weight:
-        """Return the expectation value of `Opi` and `Opj` acting
-        on the sites `i` and `j`. See `mps.expectation.expectation2()`"""
+        """Correlation between two observables `Opi` and `Opj` acting
+        on sites `i` and `j`."""
         if j is None:
             j = i + 1
         elif j == i:
@@ -194,8 +190,21 @@ class MPS(array.TensorArray):
         return join_environments(OQL, self.right_environment(j))
 
     def all_expectation1(self, operator: Union[Operator, list[Operator]]) -> Vector:
-        """Return all expectation values of `operator` acting on all possible
-        sites of the MPS. See `mps.expectation.all_expectation1()`."""
+        """Vector of expectation values of the given operator acting on all
+        possible sites of the MPS.
+
+        Parameters
+        ----------
+        operator : Operator | list[Operator]
+            If `operator` is an observable, it is applied on each possible site.
+            If it is a list, the expectation value of `operator[i]` is computed
+            on the i-th site.
+
+        Returns
+        -------
+        Vector
+            Numpy array of expectation values.
+        """
         L = self.size
         ρ = begin_environment()
         allρR: list[Environment] = [ρ] * L
@@ -220,25 +229,50 @@ class MPS(array.TensorArray):
         return np.array(output)
 
     def left_environment(self, site: int) -> Environment:
+        """Environment matrix for systems to the left of `site`."""
         ρ = begin_environment()
         for A in self._data[:site]:
             ρ = update_left_environment(A, A, ρ)
         return ρ
 
     def right_environment(self, site: int) -> Environment:
+        """Environment matrix for systems to the right of `site`."""
         ρ = begin_environment()
         for A in self._data[-1:site:-1]:
             ρ = update_right_environment(A, A, ρ)
         return ρ
 
     def error(self) -> float:
-        """Return any recorded norm-2 truncation errors in this state. More
-        precisely, ‖exact - actual‖^2."""
+        """Upper bound of the accumulated truncation error on this state.
+
+        If this quantum state results from `N` steps in which we have obtained
+        truncation errors :math:`\\delta_i`, this function returns the estimate
+        :math:`\\sqrt{\\sum_{i}\\delta_i^2}`.
+
+        Returns
+        -------
+        float
+            Upper bound for the actual error when approximating this state.
+        """
         return self._error
 
     def update_error(self, delta: float) -> float:
-        """Update an estimate of the norm-2 truncation errors. We use the
-        triangle inequality to guess an upper bound."""
+        """Register an increase in the truncation error.
+
+        Parameters
+        ----------
+        delta : float
+            Error increment in norm-2
+
+        Returns
+        -------
+        float
+            Accumulated upper bound of total truncation error.
+
+        See also
+        --------
+        :py:meth:`error` : Total accumulated error after this update.
+        """
         self._error = (np.sqrt(self._error) + np.sqrt(delta)) ** 2
         return self._error
 
@@ -256,14 +290,31 @@ class MPS(array.TensorArray):
 
         Parameters
         ----------
-        L          -- The new size
-        dimensions -- If it is an integer, it is the dimension of the new sites.
-                      If it is a list, it is the dimension of all sites.
-        sites      -- Where to place the tensors of the original MPO.
+        L : int
+            The new size of the MPS. Must be strictly larger than `self.size`.
 
-        Output
-        ------
-        mpo        -- A new MPO.
+        sites : Iterable[int], optional
+            Sequence of integers describing the sites that are new in the
+            range `[0,L)`. All other sites are filled in order with the content
+            from this MPS.
+        dimensions : Union[int, list[int]], default = 2
+            Dimension of the added sites. It can be the same integer or a list
+            of integers with the same length as `sites`.
+
+        Returns
+        -------
+        MPS
+            The extended MPS.
+
+        Examples
+        --------
+        >>> import seemps.state
+        >>> mps = seemps.state.random(2, 10)
+        >>> mps.physical_dimensions()
+        [2, 2, 2, 2, 2, 2, 2, 2, 2, 2]
+        >>> mps = mps.extend(12, [1, 3], 3)
+        >>> mps.physical_dimensions()
+        [3, 2, 3, 2, 3, 3, 3, 3, 3, 3, 3, 3]
         """
         assert L >= self.size
         if isinstance(dimensions, int):
@@ -289,7 +340,7 @@ class MPS(array.TensorArray):
         return MPS(data, strategy=self.strategy)
 
 
-def _mps2vector(data: list[np.ndarray]) -> np.ndarray:
+def _mps2vector(data: list[Tensor3]) -> Vector:
     #
     # Input:
     #  - data: list of tensors for the MPS (unchecked)
@@ -309,16 +360,24 @@ def _mps2vector(data: list[np.ndarray]) -> np.ndarray:
 
 
 class MPSSum:
-    """MPSSum class.
+    """Class representing a weighted sum (or difference) of two or more :class:`MPS`.
 
-    Stores the MPS as a list  for its future combination when an MPO acts on it.
+    This class is an intermediate representation for the linear combination of
+    MPS quantum states. Assume that :math:`\\psi, \\phi` and :math:`\\xi` are
+    MPS and :math:`a, b, c` some real or complex numbers. The addition
+    :math:`a \\psi - b \\phi + c \\xi` can be stored as
+    `MPSSum([a, -b, c], [ψ, ϕ, ξ])`.
+
 
     Parameters
     ----------
-    weights    -- weights of the linear combination of MPS.
-    states    --  states of the linear combination of MPS.
-    maxsweeps, tolerance, normalize, max_bond_dimension -- arguments used by
-                 the simplification routine, if simplify is True.
+    weights : list[Weight]
+        Real or complex numbers representing the weights of the linear combination.
+    states : list[MPS]
+        List of matrix product states weighted.
+    strategy : Strategy, default = DEFAULT_STRATEGY
+        Truncation strategy for later operations, or when converting this sum
+        to a real MPS.
     """
 
     weights: list[Weight]
@@ -341,92 +400,72 @@ class MPSSum:
         self.states = states
         self.strategy = strategy
 
-    def __add__(self, φ: Union[MPS, "MPSSum"]) -> "MPSSum":
-        """Add an MPS or an MPSSum to the MPSSum.
-
-        Parameters
-        ----------
-        φ    -- MPS or MPSSum object.
-
-        Output
-        ------
-        mps_list    -- New MPSSum.
-        """
-        if isinstance(φ, MPS):
+    def __add__(self, state: Union[MPS, "MPSSum"]) -> "MPSSum":
+        """Add `self + state`, incorporating it to the lists."""
+        if isinstance(state, MPS):
             return MPSSum(
                 self.weights + [1.0],
-                self.states + [φ],
+                self.states + [state],
                 self.strategy,
             )
-        elif isinstance(φ, MPSSum):
+        elif isinstance(state, MPSSum):
             return MPSSum(
-                self.weights + φ.weights,
-                self.states + φ.states,
+                self.weights + state.weights,
+                self.states + state.states,
                 self.strategy,
             )
-        raise InvalidOperation("+", self, φ)
+        raise InvalidOperation("+", self, state)
 
-    def __sub__(self, φ: Union[MPS, "MPSSum"]) -> "MPSSum":
-        """Subtract an MPS or an MPSSum from the MPSSum.
-
-        Parameters
-        ----------
-        φ    -- MPS or MPSSum object.
-
-        Output
-        ------
-        mps_list    -- New MPSSum.
-        """
-        if isinstance(φ, MPS):
-            return MPSSum(self.weights + [-1], self.states + [φ], self.strategy)
-        if isinstance(φ, MPSSum):
+    def __sub__(self, state: Union[MPS, "MPSSum"]) -> "MPSSum":
+        """Subtract `self - state`, incorporating it to the lists."""
+        if isinstance(state, MPS):
+            return MPSSum(self.weights + [-1], self.states + [state], self.strategy)
+        if isinstance(state, MPSSum):
             return MPSSum(
-                self.weights + [-w for w in φ.weights],
-                self.states + φ.states,
+                self.weights + [-w for w in state.weights],
+                self.states + state.states,
                 self.strategy,
             )
-        raise InvalidOperation("-", self, φ)
+        raise InvalidOperation("-", self, state)
 
     def __mul__(self, n: Weight) -> "MPSSum":
-        """Multiply an MPSSum quantum state by an scalar n (MPSSum * n)
-
-        Parameters
-        ----------
-        n    -- Scalar to multiply the MPSSum by.
-
-        Output
-        ------
-        mps    -- New mps.
-        """
+        """Rescale the linear combination `n * self` for scalar `n`."""
         if isinstance(n, (float, complex)):
             return MPSSum([n * w for w in self.weights], self.states, self.strategy)
         raise InvalidOperation("*", self, n)
 
     def __rmul__(self, n: Weight) -> "MPSSum":
-        """Multiply an MPSSum quantum state by an scalar n (n * MPSSum).
-
-        Parameters
-        ----------
-        n    -- Scalar to multiply the MPSSum by.
-
-        Output
-        ------
-        mps    -- New mps.
-        """
+        """Rescale the linear combination `self * n` for scalar `n`."""
         if isinstance(n, (float, complex)):
             return MPSSum([n * w for w in self.weights], self.states, self.strategy)
         raise InvalidOperation("*", n, self)
 
-    def to_vector(self) -> np.ndarray:
-        """Return one-dimensional complex vector of dimension() elements, with
-        the complete wavefunction that is encoded in the MPS."""
-        return np.asarray(
-            sum(wa * A.to_vector() for wa, A in zip(self.weights, self.states))
-        )
+    def to_vector(self) -> Vector:
+        """Return the wavefunction of this quantum state."""
+        return sum(wa * A.to_vector() for wa, A in zip(self.weights, self.states))
 
+    # TODO: Rename toMPS -> to_MPS
     def toMPS(
         self, normalize: Optional[bool] = None, strategy: Optional[Strategy] = None
     ) -> MPS:
+        """Approximate the linear combination with a new :class:`MPS`.
+
+        This routine applies the :func:`~seemps.truncate.simplify` algorithm with
+        the given truncation strategy, optionally normalizing the state. The
+        result is a new :class:`MPS` with some approximation error.
+
+        Parameters
+        ----------
+        normalize : bool, default = None
+            Normalize the state after performing the approximation.
+        strategy : Strategy, default = DEFAULT_STRATEGY
+            Parameters for the simplificaiton and truncation algorithms
+
+        Returns
+        -------
+        MPS
+            Quantum state approximating this sum.
+        """
         from ..truncate.combine import combine
 
         if strategy is None:
