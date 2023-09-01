@@ -51,7 +51,7 @@ class MPS(array.TensorArray):
 
     def dimension(self) -> int:
         """Hilbert space dimension of this quantum system."""
-        return math.prod(self.dimensions())
+        return math.prod(self.physical_dimensions())
 
     def physical_dimensions(self) -> list[int]:
         """List of physical dimensions for the quantum subsystems."""
@@ -442,7 +442,7 @@ class MPSSum:
 
     def to_vector(self) -> Vector:
         """Return the wavefunction of this quantum state."""
-        return sum(wa * A.to_vector() for wa, A in zip(self.weights, self.states))
+        return sum(wa * A.to_vector() for wa, A in zip(self.weights, self.states))  # type: ignore
 
     # TODO: Rename toMPS -> to_MPS
     def toMPS(
