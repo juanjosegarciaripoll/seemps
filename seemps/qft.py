@@ -11,12 +11,18 @@ def qft_mpo(N: int, sign: int = -1, **kwargs) -> MPOList:
 
     Parameters
     ----------
-    N         -- Number of qubits in a quantum register
-    kwargs   -- All other arguments accepted by MPO
+    N : int
+        Number of qubits in the MPO.
+    sign : int, default = -1
+        Sign (+1 or -1) in the exponent of the transform. Defaults to
+        the sign of the direct quantum Fourier transform.
+    **kwargs :
+        Other arguments accepted by :class:`MPO`
 
-    Output
-    ------
-    mpolist   -- An MPOList object that can be applied `@` to an MPS.
+    Returns
+    -------
+    MPOList
+        A sequence of :class:`MPO` that implements the transform.
     """
 
     def fix_last(mpo_list):
@@ -54,32 +60,99 @@ def qft_mpo(N: int, sign: int = -1, **kwargs) -> MPOList:
 
 
 def iqft_mpo(N: int, **kwargs) -> MPOList:
-    """Implement the inverse of the qft_mpo() operator."""
+    """:class:`MPOList` implementing the inverse quantum Fourier transform.
+
+    Parameters
+    ----------
+    N : int
+        Number of qubits in the MPO.
+    **kwargs :
+        Other arguments accepted by :class:`MPO`
+
+
+    Returns
+    -------
+    MPOList
+        A sequence of :class:`MPO` that implements the transform.
+    """
     return qft_mpo(N, +1, **kwargs)
 
 
-def qft(Ψmps: MPS, **kwargs) -> MPS:
+def qft(state: MPS, **kwargs) -> MPS:
     """Apply the quantum Fourier transform onto a quantum register
-    of qubits encoded in the matrix product state 'Ψ'"""
-    return qft_mpo(len(Ψmps), sign=-1, **kwargs).apply(Ψmps)
+    of qubits encoded in the matrix-product 'state'.
+
+    Parameters
+    ----------
+    state : MPS
+        Quantum register to transform
+    **kwargs :
+        Arguments accepted by :class:`MPO`
+
+    Returns
+    -------
+    MPS
+        Transformed quantum state after application of operators.
+    """
+    return qft_mpo(len(state), sign=-1, **kwargs).apply(state)
 
 
-def iqft(Ψmps: MPS, **kwargs) -> MPS:
+def iqft(state: MPS, **kwargs) -> MPS:
     """Apply the inverse quantum Fourier transform onto a quantum register
-    of qubits encoded in the matrix product state 'Ψ'"""
-    return qft_mpo(len(Ψmps), sign=+1, **kwargs).apply(Ψmps)
+    of qubits encoded in the matrix-product 'state'.
+
+    Parameters
+    ----------
+    state : MPS
+        Quantum register to transform
+    **kwargs :
+        Arguments accepted by :class:`MPO`
+
+    Returns
+    -------
+    MPS
+        Transformed quantum state after application of operators.
+    """
+    return qft_mpo(len(state), sign=+1, **kwargs).apply(state)
 
 
-def qft_flip(Ψmps: MPS) -> MPS:
+def qft_flip(state: MPS) -> MPS:
     """Swap the qubits in the quantum register, to fix the reversal
-    suffered during the quantum Fourier transform."""
+    suffered during the quantum Fourier transform.
+
+    Parameters
+    ----------
+    state : MPS
+        Transformed state
+
+    Returns
+    -------
+    MPS
+        State with qubits reversed.
+    """
     return MPS(
-        [np.moveaxis(A, [0, 1, 2], [2, 1, 0]) for A in reversed(Ψmps)],
-        error=Ψmps.error(),
+        [np.moveaxis(A, [0, 1, 2], [2, 1, 0]) for A in reversed(state)],
+        error=state.error(),
     )
 
 
 def qft_wavefunction(Ψ: Vector) -> Vector:
+    """Implement the QFT on a state vector.
+
+    This routine uses :func:`numpy.fft.fft` and is provided here as a
+    convenience, so that the user can compare the action of the QFT on an
+    MPS and on a vector.
+
+    Parameters
+    ----------
+    Ψ : Vector
+        A wavefunction in :class:`numpy.ndarray` format.
+
+    Returns
+    -------
+    Vector
+        Transformed state.
+    """
     return np.fft.fft(Ψ) / np.sqrt(Ψ.size)
 
 
@@ -91,16 +164,20 @@ def qft_nd_mpo(
 
     Parameters
     ----------
-    sites     -- Sites on which to apply the QFT, in order of decreasing
-                 significance.
-    N         -- Number of qubits in a quantum register.
-                 Defaults to `max(sites)+1`.
-    sign      -- Sign of the FFT (defaults to -1, direct FFT)
-    kwargs   -- All other arguments accepted by `MPO`
+    sites : list[int]
+        List of qubits on which the transform acts
+    N : int, default = len(sites)
+        Number of qubits in the register.
+    sign : int, default = -1
+        Sign (+1 or -1) in the exponent of the transform. Defaults to
+        the sign of the direct quantum Fourier transform.
+    **kwargs :
+        Other arguments accepted by :class:`MPO`
 
-    Output
-    ------
-    mpolist   -- An MPOList object that can be applied `@` to an MPS.
+    Returns
+    -------
+    MPOList
+        A sequence of :class:`MPO` that implements the transform.
     """
     if N is None:
         N = max(sites) + 1
@@ -155,5 +232,24 @@ def qft_nd_mpo(
 
 
 def iqft_nd_mpo(sites: list[int], N: Optional[int] = None, **kwargs) -> MPOList:
-    """Implement the inverse of the qft_nd_mpo() operator."""
+    """Create an MPOList object representing the inverse Quantum Fourier Transform
+    for subset of qubits in a quantum register with `N` qubits.
+
+    Parameters
+    ----------
+    sites : list[int]
+        List of qubits on which the transform acts
+    N : int, default = len(sites)
+        Number of qubits in the register.
+    sign : int, default = -1
+        Sign (+1 or -1) in the exponent of the transform. Defaults to
+        the sign of the direct quantum Fourier transform.
+    **kwargs :
+        Other arguments accepted by :class:`MPO`
+
+    Returns
+    -------
+    MPOList
+        A sequence of :class:`MPO` that implements the transform.
+    """
     return qft_nd_mpo(sites, N=N, sign=+1, **kwargs)
