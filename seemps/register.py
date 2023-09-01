@@ -14,13 +14,21 @@ def qubo_mpo(
 
     Parameters
     ----------
-    J        -- Matrix of interactions, or None
-    h        -- Magnetic field, or None
-    kwdargs  -- Extra arguments for MPO()
+    J : Optional[Operator] :
+        (Default value = None)
+    h : Optional[Vector] :
+        (Default value = None)
+    **kwdargs :
+        
+    J: Optional[Operator] :
+         (Default value = None)
+    h: Optional[Vector] :
+         (Default value = None)
 
-    Output
-    ------
-    mpo      -- An object of type MPO
+    Returns
+    -------
+
+    
     """
     if J is None:
         #
@@ -73,14 +81,25 @@ def qubo_exponential_mpo(
 
     Parameters
     ----------
-    J        -- Matrix of interactions, or None
-    h        -- Magnetic field, or None
-    beta     -- Factor, defaults to -1.0
-    kwdargs  -- Extra arguments for MPO()
+    J : Optional[Operator] :
+        (Default value = None)
+    h : Optional[Vector] :
+        (Default value = None)
+    beta : float :
+        (Default value = -1.0)
+    **kwdargs :
+        
+    J: Optional[Operator] :
+         (Default value = None)
+    h: Optional[Vector] :
+         (Default value = None)
+    beta: float :
+         (Default value = -1.0)
 
-    Output
-    ------
-    mpo      -- An object of type MPO or MPOList
+    Returns
+    -------
+
+    
     """
     if J is None:
         #
@@ -127,19 +146,60 @@ def wavefunction_product(
     with the nonlinear transformation <s|ψξ> = ψ(s)ξ(s)|s> or
     <s|ψ*ξ> = ψ*(s)ξ(s)|s>
 
-    Arguments
-    ---------
-    ψ, ξ      -- Two MPS or CanonicalMPS.
-    conjugate -- Conjugate ψ or not.
-    simplify  -- Simplify the state afterwards or not.
-    kwdargs   -- Arguments to simplify() if simplify is True.
+    Parameters
+    ----------
+    ψ :
+        ξ
+    conjugate :
+        Conjugate ψ or not
+    simplify :
+        Simplify the state afterwards or not
+    kwdargs :
+        Arguments to simplify
+    Output :
+        
+    mps :
+        The MPS product ψξ or ψ
+    ψ : MPS :
+        
+    ξ : MPS :
+        
+    conjugate : bool :
+        (Default value = False)
+    simplify : bool :
+        (Default value = True)
+    **kwdargs :
+        
+    ψ: MPS :
+        
+    ξ: MPS :
+        
+    conjugate: bool :
+         (Default value = False)
+    simplify: bool :
+         (Default value = True)
 
-    Output
-    ------
-    mps       -- The MPS product ψξ or ψ*ξ.
+    Returns
+    -------
+
+    
     """
 
     def combine(A, B):
+        """
+
+        Parameters
+        ----------
+        A :
+            
+        B :
+            
+
+        Returns
+        -------
+
+        
+        """
         # Combine both tensors
         a, d, b = A.shape
         c, d, e = B.shape
@@ -164,7 +224,7 @@ def twoscomplement(
 ) -> MPO:
     """Return an MPO that performs a two's complement of the selected qubits
     depending on a 'control' qubit in a register with L qubits.
-
+    
     Arguments
     ---------
     L       -- Real size of register
@@ -173,9 +233,27 @@ def twoscomplement(
     sites   -- The qubits involved in the MPO. Defaults to range(L).
     kwdargs -- Arguments for MPO.
 
+    Parameters
+    ----------
+    L : int :
+        
+    control : int :
+        (Default value = 0)
+    sites : Optional[Iterable[int]] :
+        (Default value = None)
+    **kwdargs :
+        
+    L: int :
+        
+    control: int :
+         (Default value = 0)
+    sites: Optional[Iterable[int]] :
+         (Default value = None)
+
     Returns
     -------
-    mpo     -- An MPO object
+
+    
     """
 
     if sites is not None:
