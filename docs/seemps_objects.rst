@@ -10,4 +10,5 @@ Quantum objects
 
    seemps_objects_mps
    seemps_objects_sum
+   seemps_objects_hamiltonians
    seemps_objects_mpo

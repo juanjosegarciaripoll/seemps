@@ -3,9 +3,23 @@ from .typing import *
 from math import sqrt
 from .tools import σx, σy, σz
 import scipy.sparse as sp  # type: ignore
+from abc import abstractmethod
 
 
 class NNHamiltonian(object):
+    """Abstract class representing a Hamiltonian for a 1D system with
+    nearest-neighbor interactions.
+
+    The Hamiltonian is assumed to have the structure
+
+    .. math::
+        H = \\sum_{i=0}^{N-2} h_{i,i+1}
+
+    where each :math:`h_{i,i+1}` is a matrix acting on two quantum
+    subsystems. Descendents from this class must implement both the
+    :py:meth:`dimension` and :py:meth:`interaction_term` methods.
+    """
+
     size: int
     constant: bool
 
@@ -17,22 +31,41 @@ class NNHamiltonian(object):
         self.size = size
         self.constant = False
 
-    def dimension(self, site: int) -> int:
-        #
-        # Return the dimension of the local Hilbert space
-        #
-        return 0
+    @abstractmethod
+    def dimension(self, i: int) -> int:
+        """Return the physical dimension of the `i`-th quantum system."""
+        pass
 
-    def interaction_term(self, site: int, t=0.0) -> Operator:
-        #
-        # Return the interaction between sites (site,site+1)
-        #
+    def interaction_term(self, i: int, t: float = 0.0) -> Operator:
+        """Return the Operator acting on sites `i` and `i+1`.
+
+        Parameters
+        ----------
+        i : int
+            Index into the range `[0, self.size-1)`
+        t : float
+            Time at which this interaction matrix is computed
+
+        Returns
+        -------
+        Operator
+            Some type of matrix in tensor or sparse-matrix form.
+        """
         return 0
 
     def tomatrix(self, t: float = 0.0) -> Operator:
-        """Return a sparse matrix representing the NNHamiltonian on the
-        full Hilbert space."""
+        """Compute the sparse matrix for this Hamiltonian at time `t`.
 
+        Parameters
+        ----------
+        t : float, default = 0.0
+            Time at which the matrix is computed
+
+        Returns
+        -------
+        Operator
+            Matrix in either dense or sparse representation.
+        """
         # dleft is the dimension of the Hilbert space of sites 0 to (i-1)
         # both included
         dleft = 1
@@ -50,8 +83,22 @@ class NNHamiltonian(object):
 
 
 class ConstantNNHamiltonian(NNHamiltonian):
+    """Nearest-neighbor 1D Hamiltonian with constant terms.
+
+    Parameters
+    ----------
+    size: int
+        Number of quantum systems that this model is formed of.
+    dimension: int | list[int]
+        Either an integer denoting the dimension for all quantum subsystems,
+        or a list of dimensions for each of the `size` objects.
+    """
+
     dimensions: list[int]
+    """List of dimensions of the quantum system."""
+
     interactions: list[Operator]
+    """List of operators :math:`h_{i,i+1}`."""
 
     def __init__(self, size: int, dimension: Union[int, list[int]]):
         #
@@ -73,6 +120,20 @@ class ConstantNNHamiltonian(NNHamiltonian):
         ]
 
     def add_local_term(self, site: int, operator: Operator) -> "ConstantNNHamiltonian":
+        """Upgrade this Hamiltonian with a local term acting on `site`.
+
+        Parameters
+        ----------
+        site : int
+            The site on which this operator acts.
+        operator : Operator
+            The operator in dense or sparse form
+
+        Returns
+        -------
+        ConstantNNHamiltonian
+            This same object, modified to account for this extra term.
+        """
         #
         # Set the local term acting on the given site
         #
@@ -94,34 +155,63 @@ class ConstantNNHamiltonian(NNHamiltonian):
         return self
 
     def add_interaction_term(
-        self, site, op1: Operator, op2: Optional[Operator] = None
+        self, i: int, op1: Operator, op2: Optional[Operator] = None
     ) -> "ConstantNNHamiltonian":
         """Add an interaction term to this Hamiltonian, acting in 'site' and 'site+1'.
         If 'op2' is None, then 'op1' is interpreted as an operator acting on both
         sites in matrix form. If 'op1' and 'op2' are both provided, the operator
-        is np.kron(op1, op2)."""
-        if site < 0 or site >= self.size - 1:
+        is np.kron(op1, op2).
+
+        Parameters
+        ----------
+        site : int
+            First site of two (`site` and `site+1`) on which this interaction
+            term acts.
+        op1 : Operator
+        op2 : Operator, optional
+            (Default value = None)
+            If `op2` is not supplied, then `op1` is the complete Hamiltonian
+            :math:`h_{i,i+1}`. Otherwise, the Hamiltonian is the Kronecker
+            product of `op1` and `op2`
+
+        Returns
+        -------
+        ConstantNNHamiltonian
+            This same object.
+        """
+        if i < 0 or i >= self.size - 1:
             raise IndexError("Site {site} out of bounds in add_interaction_term()")
         H12 = op1 if op2 is None else sp.kron(op1, op2)
         if (
             H12.ndim != 2
             or H12.shape[0] != H12.shape[1]
-            or H12.shape[1] != self.dimension(site) * self.dimension(site + 1)
+            or H12.shape[1] != self.dimension(i) * self.dimension(i + 1)
         ):
             raise Exception(f"Invalid operators supplied to add_interaction_term()")
-        self.interactions[site] = self.interactions[site] + H12
+        self.interactions[i] = self.interactions[i] + H12
         return self
 
-    def dimension(self, site) -> int:
-        return self.dimensions[site]
+    def dimension(self, i) -> int:
+        return self.dimensions[i]
 
-    def interaction_term(self, site: int, t: float = 0.0) -> Operator:
-        return self.interactions[site]
+    def interaction_term(self, i: int, t: float = 0.0) -> Operator:
+        """Return the same interaction term for sites `i` and `i+1`."""
+        return self.interactions[i]
 
 
 class ConstantTIHamiltonian(ConstantNNHamiltonian):
     """Translationally invariant Hamiltonian with constant nearest-neighbor
-    interactions"""
+    interactions.
+
+    Parameters
+    ----------
+    size: int
+        Number of subsystems on which this Hamiltonian acts.
+    interaction: Operator, optional
+        Matrix for nearest-neighbor interactions
+    local_term: Operator, optional
+        Possible additional local term acting on each subsystem.
+    """
 
     def __init__(
         self,
@@ -129,17 +219,6 @@ class ConstantTIHamiltonian(ConstantNNHamiltonian):
         interaction: Optional[Operator] = None,
         local_term: Optional[Operator] = None,
     ):
-        """Construct a translationally invariant, constant Hamiltonian with open
-        boundaries and fixed interactions.
-
-        Arguments:
-        size        -- Number of sites in the model
-        interaction -- Two-body operator in matrix form
-        local_term  -- operator acting on every site (optional)
-
-        Returns:
-        H           -- ConstantNNHamiltonian
-        """
         if local_term is not None:
             dimension = len(local_term)
         elif interaction is not None:
@@ -157,7 +236,13 @@ class ConstantTIHamiltonian(ConstantNNHamiltonian):
 
 class HeisenbergHamiltonian(ConstantTIHamiltonian):
     """Nearest-neighbor Hamiltonian with constant Heisenberg interactions
-    over 'size' S=1/2 spins."""
+    over 'size' S=1/2 spins.
+
+    Parameters
+    ----------
+    size: int
+        Number of spins on which this Hamiltonian operates.
+    """
 
     def __init__(self, size: int):
         return super().__init__(
