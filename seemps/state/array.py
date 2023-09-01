@@ -12,18 +12,18 @@ class TensorArray(Sequence[NDArray]):
     object is cloned. Two TensorArray's can share the same tensors and be
     destructively modified.
 
-    Attributes:
-    size = number of tensors in the array
+    Parameters
+    ----------
+    data: Iterable[NDArray]
+        Any sequence of tensors that can be stored in this object. They are
+        not checked to have the right number of dimensions. This sequence is
+        cloned to avoid nasty side effects when destructively modifying it.
     """
 
     _data: list[np.ndarray]
     size: int
 
     def __init__(self, data: Iterable[NDArray]):
-        """Create a new TensorArray from a list of tensors. `data` is an
-        iterable object, such as a list or other sequence. The list is cloned
-        before storing it into this object, so as to avoid side effects when
-        destructively modifying the array."""
         self._data = list(A for A in data)
         self.size = len(self._data)
 
@@ -63,7 +63,5 @@ class TensorArray(Sequence[NDArray]):
         return self.size
 
     def copy(self: _T) -> _T:
-        """Return a fresh new TensorArray that shares the same tensor as its
-        sibling, but which can be destructively modified without affecting it.
-        """
+        """Shallow-copy this object and its list of tensors."""
         return self.__copy__()
