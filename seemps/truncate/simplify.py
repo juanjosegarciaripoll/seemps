@@ -1,5 +1,7 @@
 from typing import Optional
 import numpy as np
+
+from seemps.state.core import MAX_BOND_DIMENSION
 from .. import state
 from ..state import (
     DEFAULT_TOLERANCE,
@@ -19,6 +21,8 @@ from ..expectation import (
 
 
 class AntilinearForm:
+    """ """
+
     #
     # This class is an object that formally implements <ϕ|ψ> with an argument
     # ϕ that may change and be updated over time.
@@ -52,6 +56,7 @@ class AntilinearForm:
         self.center = center
 
     def tensor1site(self):
+        """ """
         #
         # Return the tensor that represents the LinearForm at the 'center'
         # site of the MPS
@@ -63,6 +68,18 @@ class AntilinearForm:
         return np.einsum("li,ijk,kn->ljn", L, C, R)
 
     def tensor2site(self, direction):
+        """
+
+        Parameters
+        ----------
+        direction :
+
+
+        Returns
+        -------
+
+
+        """
         #
         # Return the tensor that represents the LinearForm using 'center'
         # and 'center+/-1'
@@ -82,6 +99,18 @@ class AntilinearForm:
         return mydot(LA, BR)  # np.einsum("ljk,kmo->ljmo", LA, BR)
 
     def update(self, direction):
+        """
+
+        Parameters
+        ----------
+        direction :
+
+
+        Returns
+        -------
+
+
+        """
         #
         # We have updated 'ϕ' (the bra), which is now centered on a different point.
         # We have to recompute the environments.
@@ -109,24 +138,60 @@ def simplify(
     direction: int = +1,
     tolerance: float = DEFAULT_TOLERANCE,
     normalize: bool = True,
-    max_bond_dimension: Optional[int] = None,
+    max_bond_dimension: int = MAX_BOND_DIMENSION,
 ) -> tuple[MPS, float, int]:
     """Simplify an MPS ψ transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
 
-    Arguments:
+    Parameters
     ----------
-    ψ         -- state to approximate
-    direction -- +1/-1 for the direction of the first sweep
-    maxsweeps -- maximum number of sweeps to run
-    tolerance -- relative tolerance when splitting the tensors
-    max_bond_dimension -- maximum bond dimension (defaults to None, which is ignored)
+    ψ :
+        state to approximate
+    direction :
 
-    Output
-    ------
-    φ         -- CanonicalMPS approximation to the state ψ
-    error     -- error made in the approximation, as $‖φ/‖φ‖ - ψ/‖ψ‖‖^2$
-    direction -- direction that the next sweep would be
+    maxsweeps :
+        maximum number of sweeps to run
+    tolerance :
+        relative tolerance when splitting the tensors
+    max_bond_dimension :
+        maximum bond dimension
+    Output :
+
+    φ :
+        CanonicalMPS approximation to the state ψ
+    error :
+        error made in the approximation
+    direction :
+        direction that the next sweep would be
+    ψ : MPS :
+
+    maxsweeps : int :
+        (Default value = 4)
+    direction : int :
+        (Default value = +1)
+    tolerance : float :
+        (Default value = DEFAULT_TOLERANCE)
+    normalize : bool :
+        (Default value = True)
+    max_bond_dimension : Optional[int] :
+        (Default value = None)
+    ψ: MPS :
+
+    maxsweeps: int :
+         (Default value = 4)
+    direction: int :
+         (Default value = +1)
+    tolerance: float :
+         (Default value = DEFAULT_TOLERANCE)
+    normalize: bool :
+         (Default value = True)
+    max_bond_dimension: Optional[int] :
+         (Default value = None)
+
+    Returns
+    -------
+
+
     """
     size = ψ.size
     start = 0 if direction > 0 else size - 1
