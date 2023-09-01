@@ -1,6 +1,6 @@
 .. current_module: seemps
 
-.. _mps_classes:
+.. _mps_sum_class:
 
 ***************
 MPS combination
