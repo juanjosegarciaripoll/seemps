@@ -49,7 +49,13 @@ class MPS(array.TensorArray):
 
     def dimension(self) -> int:
         """Return the total size of the Hilbert space in which this MPS lives."""
-        return math.prod([a.shape[1] for a in self._data])
+        return math.prod(self.dimensions())
+
+    def physical_dimensions(self) -> list[int]:
+        return list(a.shape[1] for a in self._data)
+
+    def bond_dimensions(self) -> list[int]:
+        return list(a.shape[0] for a in self._data[:-1]) + [self._data[-1].shape[-1]]
 
     def to_vector(self) -> Vector:
         """Return one-dimensional complex vector of dimension() elements, with
