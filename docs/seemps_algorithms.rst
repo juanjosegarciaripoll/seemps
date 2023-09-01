@@ -11,7 +11,7 @@ Expectation values
 
 The following are the main routines to compute scalar products and expectation values. The classes MPS and CanonicalMPS provide additional convenience methods with similar names.
 
-.. automodule:: mps.expectation
+.. automodule:: seemps.expectation
    :members: scprod, expectation1, expectation2, all_expectation1
 
 
@@ -20,8 +20,8 @@ The following are the main routines to compute scalar products and expectation v
 MPS simplification
 ------------------
 
-.. autofunction:: mps.truncate.simplify
+.. autofunction:: seemps.truncate.simplify
 
-.. autofunction:: mps.truncate.combine
+.. autofunction:: seemps.truncate.combine
 
 

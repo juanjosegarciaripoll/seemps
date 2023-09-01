@@ -9,10 +9,10 @@ Fundamental objects
 MPS classes
 -----------
 
-.. autoclass:: mps.state.MPS
+.. autoclass:: seemps.state.MPS
    :members:
 
-.. autoclass:: mps.state.CanonicalMPS
+.. autoclass:: seemps.state.CanonicalMPS
    :members:
 
 .. _mpo-classes:
@@ -20,8 +20,8 @@ MPS classes
 MPO objects
 -----------
 
-.. autoclass:: mps.mpo.MPO
+.. autoclass:: seemps.mpo.MPO
    :members:
 
-.. autoclass:: mps.mpo.MPOList
+.. autoclass:: seemps.mpo.MPOList
    :members:

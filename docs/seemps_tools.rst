@@ -9,19 +9,19 @@ Other tools
 Sample states
 -------------
 
-.. autofunction:: mps.state.GHZ
+.. autofunction:: seemps.state.GHZ
 
-.. autofunction:: mps.state.graph
+.. autofunction:: seemps.state.graph
 
-.. autofunction:: mps.state.AKLT
+.. autofunction:: seemps.state.AKLT
 
-.. autofunction:: mps.state.random
+.. autofunction:: seemps.state.random
 
 .. _sample_ops:
 
 Sample operators
 ----------------
 
-** autofunction:: mps.tools.creation
+.. autofunction:: seemps.tools.creation
 
-** autofunction:: mps.tools.annihilation
+.. autofunction:: seemps.tools.annihilation

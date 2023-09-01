@@ -11,7 +11,7 @@ The MPS is a convenient representation to store, manipulate and interrogate a qu
 Fourier transforms
 ------------------
 
-.. automodule:: mps.qft
+.. automodule:: seemps.qft
    :members: qft, iqft, qft_mpo, iqft_mpo, qft_flip, qft_nd_mpo, iqft_nd_mpo
 
 
@@ -20,5 +20,5 @@ Fourier transforms
 Other transformations
 ---------------------
 
-.. automodule:: mps.register
+.. automodule:: seemps.register
    :members:

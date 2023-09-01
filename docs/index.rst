@@ -14,6 +14,7 @@ Welcome to SeeMPS's documentation!
    seemps_objects
    seemps_algorithms
    seemps_register
+   seemps_hdf5
    seemps_tools
 
 Indices and tables

@@ -36,9 +36,13 @@ release = seemps.version.number
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
-    "recommonmark",  # For Markdown
+    "numpydoc",  # Numpy documentation strings
     "sphinx.ext.autodoc",  # For using strings from classes/functions
     "sphinx.ext.mathjax",  # For using equations
+    "sphinx_design",
+    "sphinx.ext.doctest",
+    "sphinx.ext.autosummary",
+    "sphinx.ext.viewcode",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -49,65 +53,23 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", ".ipynb_checkpoints"]
 
-# -- Markdown parsing of docstrings -----------------------------------------
-
-import commonmark
-import re
-
-is_line = re.compile(r"^[-]+$")
-var_name = re.compile(r"(?P<name>[^ ]*(,[ ]*[^ ]*)*)[ ]*--[ ]*(?P<desc>.*)")
-
-
-def docstring(app, what, name, obj, options, lines):
-    text = []
-    in_arg = False
-    arg_txt = ""
-    arg_name = None
-    for l in lines:
-        if arg_name:
-            if len(l) and l[0] == " ":
-                # Continues argument description
-                arg_txt += " " + l.strip()
-                continue
-            text.append("* `" + arg_name + "`: " + arg_txt)
-            arg_name = None
-        if is_line.match(l):
-            continue
-        arg_name = var_name.match(l)
-        if arg_name:
-            arg_txt = arg_name.group("desc")
-            arg_name = arg_name.group("name")
-            print((arg_txt, arg_name))
-        else:
-            text.append(l)
-    if arg_name:
-        text.append("* `" + arg_name + "`: " + arg_txt)
-    md = "\n".join(text)
-    ast = commonmark.Parser().parse(md)
-    rst = commonmark.ReStructuredTextRenderer().render(ast)
-    lines.clear()
-    for line in rst.splitlines():
-        line = re.sub(r"\$(?P<eqn>[^$]*)\$", r":math:`\1`", line)
-        print(line)
-        lines.append(line)
-
-
-def setup(app):
-    app.connect("autodoc-process-docstring", docstring)
-
-
 # This is needed to fix readthedocs
 master_doc = "index"
 
+numpydoc_xref_param_type = True
+
+autodoc_typehints = "none"
+autodoc_type_aliases = {
+    "Operator": "Operator",
+    "Vector": "Vector",
+    "VectorLike": "VectorLike",
+    "python:list": "list",
+    "Weight": "Weight",
+}
 
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "bizstyle"
-
-# Add any paths that contain custom static files (such as style sheets) here,
-# relative to this directory. They are copied after the builtin static files,
-# so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ["_static"]
+html_theme = "pydata_sphinx_theme"
