@@ -7,6 +7,8 @@ import enum
 cdef extern from "limits.h":
     cdef int INT_MAX
 
+MAX_BOND_DIMENSION = INT_MAX
+
 class Truncation:
     DO_NOT_TRUNCATE = 0
     RELATIVE_SINGULAR_VALUE = 1

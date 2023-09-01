@@ -1,5 +1,7 @@
 from ..typing import Optional, Vector
 
+MAX_BOND_DIMENSION: int
+
 class Truncation:
     DO_NOT_TRUNCATE = 0
     RELATIVE_SINGULAR_VALUE = 1
@@ -11,7 +13,7 @@ class Strategy:
         self: Strategy,
         method: int = 1,
         tolerance: float = 1e-8,
-        max_bond_dimension: int = 0x8fffffff,
+        max_bond_dimension: int = 0x8FFFFFFF,
         max_sweeps: int = 16,
         normalize: bool = False,
         simplify: bool = False,
