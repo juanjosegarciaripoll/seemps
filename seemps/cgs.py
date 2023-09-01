@@ -13,22 +13,29 @@ def cgs(
     maxiter: int = 100,
     tolerance: float = DEFAULT_TOLERANCE,
 ) -> tuple[MPS, float]:
-    """Given the MPO `A` and the MPS `b`, estimate another MPS that
-    solves the linear system of equations A * ψ = b, using the
-    conjugate gradient system.
+    """Approximate solution of :math:`A \\psi = b`.
+
+    Given the :class:`MPO` `A` and the :class:`MPS` `b`, use the conjugate
+    gradient method to estimate another MPS that solves the linear system of
+    equations :math:`A \\psi = b`.
 
     Parameters
     ----------
-    A         -- Linear MPO
-    b         -- Right-hand side of the equation
-    maxiter   -- Maximum number of iterations
-    tolerance -- Truncation tolerance and also error tolerance
-    max_bond_dimension -- None (ignore) or maximum bond dimension
+    A : MPO
+        Matrix product state that will be inverted
+    b : MPS
+        Right-hand side of the equation
+    maxiter : int, default = 100
+        Maximum number of iterations
+    tolerance : float, default = DEFAULT_TOLERANCE
+        Truncation tolerance and error tolerance for the algorithm.
 
-    Output
-    ------
-    ψ         -- Approximate solution to A ψ = b
-    error     -- norm square of the residual, ||r||^2
+    Results
+    -------
+    MPS
+        Approximate solution to :math:`A ψ = b`
+    float
+        Norm square of the residual :math:`\\Vert{A \\psi - b}\\Vert^2`
     """
     normb = scprod(b, b).real
     r = b
