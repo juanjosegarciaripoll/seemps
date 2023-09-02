@@ -58,9 +58,24 @@ def join_environments(ρL: Environment, ρR: Environment) -> Weight:
     return np.trace(np.dot(ρL, ρR))
 
 
-def scprod(ϕ: MPSLike, ψ: MPSLike) -> Weight:
-    """Compute the scalar product between matrix product states <ϕ|ψ>."""
+def scprod(bra: MPSLike, ket: MPSLike) -> Weight:
+    """Compute the scalar product between matrix product states
+    :math:`\\langle\\xi|\\psi\\rangle`.
+
+    Parameters
+    ----------
+    bra : MPS
+        Matrix-product state for the bra :math:`\\xi`
+    ket : MPS
+        Matrix-product state for the ket :math:`\\psi`
+
+    Returns
+    -------
+    float | complex
+        Scalar product.
+    """
     ρ: Environment = begin_environment()
-    for ϕi, ψi in zip(ϕ, ψ):
-        ρ = update_left_environment(ϕi, ψi, ρ)
+    # TODO: Verify if the order of Ai and Bi matches being bra and ket
+    for Ai, Bi in zip(bra, ket):
+        ρ = update_left_environment(Ai, Bi, ρ)
     return end_environment(ρ)

@@ -150,16 +150,22 @@ class MPS(array.TensorArray):
         return np.sqrt(abs(scprod(self, self)))
 
     def expectation1(self, O: Operator, site: int) -> Weight:
-        """Expectation value of local operator `O` acting on given `site`.
-        Returns a real or complex number.
+        """Compute the expectation value :math:`\\langle\\psi|O_i|\\psi\\rangle`
+        of an operator O acting on the `i`-th site
 
         Parameters
         ----------
+        state : MPS
+            Quantum state :math:`\\psi` used to compute the expectation value.
         O : Operator
-            The observable whose expectation value we compute. It can be
-            a Numpy 2-dimensional tensor or sparse matrix.
-        site : int
-            A site in the `range(0, self.size)`
+            Local observable acting onto the `i`-th subsystem
+        i : int
+            Index of site, in the range `[0, state.size)`
+
+        Returns
+        -------
+        float | complex
+            Expectation value.
         """
         ρL = self.left_environment(site)
         A = self[site]
@@ -170,8 +176,24 @@ class MPS(array.TensorArray):
     def expectation2(
         self, Opi: Operator, Opj: Operator, i: int, j: Optional[int] = None
     ) -> Weight:
-        """Correlation between two observables `Opi` and `Opj` acting
-        on sites `i` and `j`."""
+        """Compute the expectation value :math:`\\langle\\psi|O_i Q_j|\\psi\\rangle`
+        of two operators `O` and `Q` acting on the `i`-th and `j`-th subsystems.
+
+        Parameters
+        ----------
+        state : MPS
+            Quantum state :math:`\\psi` used to compute the expectation value.
+        O, Q : Operator
+            Local observables
+        i : int
+        j : int, default=`i+1`
+            Indices of sites, in the range `[0, state.size)`
+
+        Returns
+        -------
+        float | complex
+            Expectation value.
+        """
         if j is None:
             j = i + 1
         elif j == i:

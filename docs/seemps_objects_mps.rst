@@ -14,11 +14,12 @@ If :math:`\Psi` is a quantum state with `N` components, a MPS representation
 would look as follows
 
 .. math::
-    |\Psi\rangle = \sum_{\vec{s},\vec{\alpha}} A_{\alpha_i, s_i, \alpha_{i+1}}
-    |s_1,s_2,\ldots, s_N\rangle
+    |\Psi\rangle = \sum_{\vec{i},\vec{\alpha}}
+    \prod_{n=1}^N A_{\alpha_n, i_n, \alpha_{n+1}}
+    |i_1,i_2,\ldots, i_N\rangle
 
-Here, the :math:`s_i` are indices labelling the quantum states of the respective
-subsystems, while the :math:`\alpha_i` are integer indices connecting
+Here, the :math:`i_n` are indices labelling the quantum states of the respective
+subsystems, while the :math:`\alpha_n` are integer indices connecting
 (correlating) neigboring quantum systems. The former are usually labeled the
 "physical" indices, while the latter are declared "virtual" indices.
 

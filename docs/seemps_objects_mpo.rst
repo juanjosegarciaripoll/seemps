@@ -57,7 +57,7 @@ Matrix-product operators can be applied onto matrix-product states, producing
 new states. We offer two functions for this. The first one is the
 :py:meth:`seemps.MPO.apply`, which offers a lot of control on the contraction
 and later simplification of the MPS (see
-:doc:`simplification algorithm <seemps_algorithms.rst>`). The other alternative
+:doc:`simplification algorithm <seemps_algorithms>`). The other alternative
 is the matrix multiplication operator `@`, which relies on the strategy
 stored in the state for contraction and simplification.
 
@@ -69,7 +69,7 @@ stored in the state for contraction and simplification.
     ~seemps.MPO.__matmul__
     ~seemps.MPOList.__matmul__
 
-.. admonitions:: python
+.. highlight:: python
 
 As an example, consider the application of a quantum Fourier transform onto a
 random MPS::
