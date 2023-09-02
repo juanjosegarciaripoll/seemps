@@ -43,6 +43,7 @@ extensions = [
     "sphinx.ext.doctest",
     "sphinx.ext.autosummary",
     "sphinx.ext.viewcode",
+    "sphinx.ext.intersphinx",  # Link to other project's doc.
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -57,6 +58,8 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store", ".ipynb_checkpoints"]
 master_doc = "index"
 
 numpydoc_xref_param_type = True
+numpydoc_show_class_members = False  # https://stackoverflow.com/a/34604043/5201771
+numpydoc_attributes_as_param_list = False
 
 autodoc_typehints = "none"
 autodoc_type_aliases = {
@@ -65,6 +68,12 @@ autodoc_type_aliases = {
     "VectorLike": "VectorLike",
     "python:list": "list",
     "Weight": "Weight",
+}
+
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "numpy": ("https://www.numpy.org/devdocs", None),
+    "scipy": ("https://scipy.github.io/devdocs", None),
 }
 
 # -- Options for HTML output -------------------------------------------------
