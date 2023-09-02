@@ -1,15 +1,12 @@
-from typing import Optional
 import numpy as np
-
-from seemps.state.core import MAX_BOND_DIMENSION
-from .. import state
+from ..typing import *
+from ..state.core import MAX_BOND_DIMENSION
 from ..state import (
     DEFAULT_TOLERANCE,
     Truncation,
     Strategy,
     MPS,
     CanonicalMPS,
-    DEFAULT_STRATEGY,
 )
 from ..tools import log, mydot
 from ..expectation import (
@@ -21,22 +18,25 @@ from ..expectation import (
 
 
 class AntilinearForm:
-    """ """
+    """Representation of a scalar product :math:`\\langle\\xi|\\psi\\rangle`
+    with capabilities for differentiation.
 
-    #
-    # This class is an object that formally implements <ϕ|ψ> with an argument
-    # ϕ that may change and be updated over time.
-    #
-    # Given a site 'n' it returns the tensor 'L' such that the contraction
-    # between 'L' and ϕ[n] is the result of the linear form."""
-    #
+    This class is an object that formally implements
+    :math:`\\langle\\xi|\\psi\\rangle` with an argument :math:`\\xi`
+    that may change and be updated over time. In particular, given a site `n`
+    it can construct the tensor `L` such that the contraction between `L`
+    and the `n`-th tensor from MPS :math:`\\xi` is the result of the linear form.
+
+    Parameters
+    ----------
+    bra, ket: MPS
+        MPS states :math:`\\xi` and :math:`\\psi` above.
+    center: int, default = 0
+        Position at which the `L` tensor is precomputed.
+    """
+
     def __init__(self, bra, ket, center=0):
         assert bra.size == ket.size
-        #
-        # At the beginning, we create the right- and left- environments for
-        # all sites to the left and to the right of 'center', which is the
-        # focus point of 'LinearForm'.
-        #
         size = bra.size
         ρ = begin_environment()
         R = [ρ] * size
@@ -55,35 +55,30 @@ class AntilinearForm:
         self.L = L
         self.center = center
 
-    def tensor1site(self):
-        """ """
-        #
-        # Return the tensor that represents the LinearForm at the 'center'
-        # site of the MPS
-        #
+    def tensor1site(self) -> Tensor3:
+        """Return the tensor representing the AntilinearForm at the
+        `self.center` site."""
         center = self.center
         L = self.L[center]
         R = self.R[center]
         C = self.ket[center]
         return np.einsum("li,ijk,kn->ljn", L, C, R)
 
-    def tensor2site(self, direction):
-        """
+    def tensor2site(self, direction: int) -> Tensor4:
+        """Return the tensor that represents the LinearForm using 'center'
+        and another site.
 
         Parameters
         ----------
-        direction :
-
+        direction : {+1, -1}
+            If positive, the tensor acts on `self.center` and `self.center+1`
+            Otherwise on `self.center` and `self.center-1`.
 
         Returns
         -------
-
-
+        Tensor4
+            Four-legged tensor representing the antilinear form.
         """
-        #
-        # Return the tensor that represents the LinearForm using 'center'
-        # and 'center+/-1'
-        #
         if direction > 0:
             i = self.center
             j = i + 1
@@ -98,23 +93,17 @@ class AntilinearForm:
         BR = mydot(B, R)  # np.einsum("kmn,no->kmo", B, R)
         return mydot(LA, BR)  # np.einsum("ljk,kmo->ljmo", LA, BR)
 
-    def update(self, direction):
-        """
+    def update(self, direction: int) -> None:
+        """Notify that the `bra` state has been changed, and that we move to
+        `self.center + direction`.
+
+        We have updated 'mps' (the bra), which is now centered on a different point.
+        We have to recompute the environments.
 
         Parameters
         ----------
-        direction :
-
-
-        Returns
-        -------
-
-
+        direction : { +1 , -1 }
         """
-        #
-        # We have updated 'ϕ' (the bra), which is now centered on a different point.
-        # We have to recompute the environments.
-        #
         prev = self.center
         if direction > 0:
             nxt = prev + 1
@@ -132,68 +121,44 @@ class AntilinearForm:
                 self.center = nxt
 
 
+# TODO: We have to rationalize all this about directions. The user should
+# not really care about it and we can guess the direction from the canonical
+# form of either the guess or the state.
 def simplify(
-    ψ: MPS,
+    state: MPS,
     maxsweeps: int = 4,
     direction: int = +1,
     tolerance: float = DEFAULT_TOLERANCE,
     normalize: bool = True,
     max_bond_dimension: int = MAX_BOND_DIMENSION,
 ) -> tuple[MPS, float, int]:
-    """Simplify an MPS ψ transforming it into another one with a smaller bond
+    """Simplify an MPS state transforming it into another one with a smaller bond
     dimension, sweeping until convergence is achieved.
 
     Parameters
     ----------
-    ψ :
-        state to approximate
-    direction :
-
-    maxsweeps :
-        maximum number of sweeps to run
-    tolerance :
-        relative tolerance when splitting the tensors
-    max_bond_dimension :
-        maximum bond dimension
-    Output :
-
-    φ :
-        CanonicalMPS approximation to the state ψ
-    error :
-        error made in the approximation
-    direction :
-        direction that the next sweep would be
-    ψ : MPS :
-
-    maxsweeps : int :
-        (Default value = 4)
-    direction : int :
-        (Default value = +1)
-    tolerance : float :
-        (Default value = DEFAULT_TOLERANCE)
-    normalize : bool :
-        (Default value = True)
-    max_bond_dimension : Optional[int] :
-        (Default value = None)
-    ψ: MPS :
-
-    maxsweeps: int :
-         (Default value = 4)
-    direction: int :
-         (Default value = +1)
-    tolerance: float :
-         (Default value = DEFAULT_TOLERANCE)
-    normalize: bool :
-         (Default value = True)
-    max_bond_dimension: Optional[int] :
-         (Default value = None)
+    state : MPS
+        State to approximate
+    direction : { +1, -1 }
+        Direction of the first sweep
+    maxsweeps : int
+        Maximum number of sweeps to run
+    tolerance : float
+        Relative tolerance when splitting the tensors. Defaults to
+        `DEFAULT_TOLERANCE`
+    max_bond_dimension : int
+        Maximum bond dimension. Defaults to `MAX_BOND_DIMENSION`
 
     Returns
     -------
-
-
+    CanonicalMPS
+        Approximation :math:`\\xi` to the state.
+    float
+        Total error in norm-2 squared :math:`\\Vert\\xi-\\psi\\Vert^2`.
+    int
+        Direction that the next sweep would be.
     """
-    size = ψ.size
+    size = state.size
     start = 0 if direction > 0 else size - 1
 
     truncation = Strategy(
@@ -202,48 +167,54 @@ def simplify(
         max_bond_dimension=max_bond_dimension,
         normalize=normalize,
     )
-    φ = CanonicalMPS(ψ, center=start, strategy=truncation)
+    mps = CanonicalMPS(state, center=start, strategy=truncation)
     if normalize:
-        φ.normalize_inplace()
+        mps.normalize_inplace()
     if max_bond_dimension == 0 and tolerance <= 0:
-        return φ, 0.0, -direction
+        return mps, 0.0, -direction
 
-    form = AntilinearForm(φ, ψ, center=start)
-    norm_ψsqr = scprod(ψ, ψ).real
-    base_error = ψ.error()
+    form = AntilinearForm(mps, state, center=start)
+    norm_state_sqr = scprod(state, state).real
+    base_error = state.error()
     err = 1.0
     log(
-        f"SIMPLIFY ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps, with tolerance {tolerance}."
+        f"SIMPLIFY state with |state|={norm_state_sqr**0.5} for {maxsweeps} sweeps, with tolerance {tolerance}."
     )
     for sweep in range(maxsweeps):
         if direction > 0:
             for n in range(0, size - 1):
-                φ.update_2site_right(form.tensor2site(direction), n, truncation)
+                mps.update_2site_right(form.tensor2site(direction), n, truncation)
                 form.update(direction)
             last = size - 1
         else:
             for n in reversed(range(0, size - 1)):
-                φ.update_2site_left(form.tensor2site(direction), n, truncation)
+                mps.update_2site_left(form.tensor2site(direction), n, truncation)
                 form.update(direction)
             last = 0
         #
         # We estimate the error
         #
-        last = φ.center
-        B = φ[last]
-        norm_φsqr = np.vdot(B, B).real
+        last = mps.center
+        B = mps[last]
+        norm_mps_sqr = np.vdot(B, B).real
         if normalize:
-            φ[last] = B = B / norm_φsqr
-            norm_φsqr = 1.0
-        scprod_φψ = np.vdot(B, form.tensor1site())
+            mps[last] = B = B / norm_mps_sqr
+            norm_mps_sqr = 1.0
+        mps_state_scprod = np.vdot(B, form.tensor1site())
         old_err = err
-        err = 2 * abs(1.0 - scprod_φψ.real / np.sqrt(norm_φsqr * norm_ψsqr))
-        log(f"sweep={sweep}, rel.err.={err}, old err.={old_err}, |φ|={norm_φsqr**0.5}")
+        err = 2 * abs(
+            1.0 - mps_state_scprod.real / np.sqrt(norm_mps_sqr * norm_state_sqr)
+        )
+        log(
+            f"sweep={sweep}, rel.err.={err}, old err.={old_err}, |mps|={norm_mps_sqr**0.5}"
+        )
         if err < tolerance or err > old_err:
             log("Stopping, as tolerance reached")
             break
         direction = -direction
-    φ._error = 0.0
-    φ.update_error(base_error)
-    φ.update_error(err)
-    return φ, err, direction
+    mps._error = 0.0
+    mps.update_error(base_error)
+    mps.update_error(err)
+    # TODO: Inconsistency between simplify() and combine(). Only the former
+    # returns a direction.
+    return mps, err, direction

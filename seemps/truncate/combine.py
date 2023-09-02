@@ -1,3 +1,4 @@
+from seemps.state.core import MAX_BOND_DIMENSION
 from ..typing import *
 import numpy as np
 from ..state import MPS, CanonicalMPS, Weight
@@ -7,17 +8,21 @@ from ..tools import log
 from .simplify import AntilinearForm
 
 
-def multi_norm_squared(α, ψ):
-    """Compute the norm-squared of the vector sum(α[i]*ψ[i])"""
-    c = 0.0
-    for i, αi in enumerate(α):
+def multi_norm_squared(weights: list[Weight], states: list[MPS]) -> float:
+    """Compute the norm-squared of the linear combination of weights and
+    states."""
+    c: float = 0.0
+    for i, wi in enumerate(weights):
         for j in range(i):
-            c += 2 * (αi.conjugate() * α[j] * scprod(ψ[i], ψ[j])).real
-        c += np.abs(αi) ** 2 * scprod(ψ[i], ψ[i]).real
+            c += 2 * (wi.conjugate() * weights[j] * scprod(states[i], states[j])).real
+        c += np.abs(wi) ** 2 * scprod(states[i], states[i]).real
     return c
 
 
 def guess_combine_state(weights: list[Weight], states: list[MPS]) -> MPS:
+    """Make an educated guess that ensures convergence of the :func:`combine`
+    algorithm."""
+
     def combine_tensors(A: Tensor3, sumA: Tensor3) -> Tensor3:
         DL, d, DR = sumA.shape
         a, d, b = A.shape
@@ -38,6 +43,9 @@ def guess_combine_state(weights: list[Weight], states: list[MPS]) -> MPS:
     return guess
 
 
+# TODO: We have to rationalize all this about directions. The user should
+# not really care about it and we can guess the direction from the canonical
+# form of either the guess or the state.
 def combine(
     weights: list[Weight],
     states: list[MPS],
@@ -45,31 +53,41 @@ def combine(
     maxsweeps: int = 4,
     direction: int = +1,
     tolerance: float = DEFAULT_TOLERANCE,
-    max_bond_dimension: Optional[int] = None,
+    max_bond_dimension: int = MAX_BOND_DIMENSION,
     normalize: bool = True,
 ) -> tuple[MPS, float]:
-    """Simplify an MPS ψ transforming it into another one with a smaller bond
-    dimension, sweeping until convergence is achieved.
+    """Approximate a linear combination of MPS :math:`\\sum_i w_i \\psi_i` by
+    another one with a smaller bond dimension, sweeping until convergence is achieved.
 
-    Arguments:
+    Parameters
     ----------
-    weights   -- N values of α
-    states    -- N MPS states
-    guess     -- An MPS, defaults to states[0]
-    direction -- +1/-1 for the direction of the first sweep
-    maxsweeps -- maximum number of sweeps to run
-    tolerance -- relative tolerance when splitting the tensors
-    max_bond_dimension -- maximum bond dimension (defaults to None, which is ignored)
+    weights : list[Weight]
+        Weights of the linear combination :math:`w_i` in list form.
+    states : list[MPS]
+        List of states :math:`\\psi_i`
+    guess : MPS, optional
+        Initial guess for the iterative algorithm
+    direction : {+1, -1}
+        Initial direction for the sweeping algorithm
+    maxsweeps : int
+        Maximum number of iterations
+    tolerance :
+        Relative tolerance when splitting the tensors
+    max_bond_dimension :
+        Maximum bond dimension
 
-    Output
-    ------
-    φ         -- CanonicalMPS approximation to the linear combination state
-    error     -- error made in the approximation
+    Returns
+    -------
+    CanonicalMPS
+        Approximation to the linear combination in canonical form
+    float
+        Total error :math:`\\Vert\\xi - \\sum_i w_i\\psi_i\\Vert^2`
     """
     if guess is None:
         guess = guess_combine_state(weights, states)
     base_error = sum(
-        np.sqrt(np.abs(α)) * np.sqrt(ψ.error()) for α, ψ in zip(weights, states)
+        np.sqrt(np.abs(weights)) * np.sqrt(state.error())
+        for weights, state in zip(weights, states)
     )
     strategy = Strategy(
         method=Truncation.RELATIVE_NORM_SQUARED_ERROR,
@@ -83,25 +101,28 @@ def combine(
     if norm_ψsqr < tolerance:
         return MPS([np.zeros((1, P.shape[1], 1)) for P in φ]), 0
     log(
-        f"COMBINE ψ with |ψ|={norm_ψsqr**0.5} for {maxsweeps} sweeps with tolerance {strategy.get_tolerance()}.\nWeights: {weights}"
+        f"COMBINE state with |state|={norm_ψsqr**0.5} for {maxsweeps} sweeps with tolerance {strategy.get_tolerance()}.\nWeights: {weights}"
     )
 
     size = φ.size
-    forms = [AntilinearForm(φ, ψ, center=start) for ψ in states]
+    forms = [AntilinearForm(φ, state, center=start) for state in states]
+    tensor: Tensor4
     for sweep in range(maxsweeps):
         if direction > 0:
             for n in range(0, size - 1):
                 tensor = sum(
-                    α * f.tensor2site(direction) for α, f in zip(weights, forms)
-                )
+                    weights * f.tensor2site(direction)
+                    for weights, f in zip(weights, forms)
+                )  # type: ignore
                 φ.update_2site_right(tensor, n, strategy)
                 for f in forms:
                     f.update(direction)
         else:
             for n in reversed(range(0, size - 1)):
                 tensor = sum(
-                    α * f.tensor2site(direction) for α, f in zip(weights, forms)
-                )
+                    weights * f.tensor2site(direction)
+                    for weights, f in zip(weights, forms)
+                )  # type: ignore
                 φ.update_2site_left(tensor, n, strategy)
                 for f in forms:
                     f.update(direction)
@@ -115,7 +136,7 @@ def combine(
         if normalize:
             φ[last] = B / norm_φsqr
             norm_φsqr = 1.0
-        C = sum(α * f.tensor1site() for α, f in zip(weights, forms))
+        C = sum(weights * f.tensor1site() for weights, f in zip(weights, forms))
         scprod_φψ = np.vdot(B, C)
         old_err = err
         err = 2 * abs(1.0 - scprod_φψ.real / np.sqrt(norm_φsqr * norm_ψsqr))
