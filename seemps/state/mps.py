@@ -87,7 +87,6 @@ class MPS(array.TensorArray):
             Default truncation strategy for algorithms working on this state.
         normalize : bool, default = True
             Whether the state is normalized to compensate truncation errors.
-        ψ: VectorLike :
 
         Returns
         -------

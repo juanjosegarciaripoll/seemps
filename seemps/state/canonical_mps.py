@@ -1,3 +1,4 @@
+from __future__ import annotations
 import warnings
 import numpy as np
 from ..typing import *
@@ -11,19 +12,7 @@ def _update_in_canonical_form(
     Ψ: list[Tensor3], A: Tensor3, site: int, direction: int, truncation: Strategy
 ) -> tuple[int, float]:
     """Insert a tensor in canonical form into the MPS Ψ at the given site.
-    Update the neighboring sites in the process.
-
-    Arguments:
-    ----------
-    Ψ = MPS in CanonicalMPS form
-    A = tensor to be orthonormalized and inserted at "site" of MPS
-    site = the index of the site with respect to which
-    orthonormalization is carried out
-    direction = if greater (less) than zero right (left) orthonormalization
-    is carried out
-    tolerance = truncation tolerance for the singular values
-    (see truncate_vector in File 1a - MPS class)
-    """
+    Update the neighboring sites in the process."""
     if direction > 0:
         if site + 1 == len(Ψ):
             Ψ[site] = A
@@ -44,6 +33,8 @@ def _update_in_canonical_form(
 
 
 def _canonicalize(Ψ: list[Tensor3], center: int, truncation: Strategy) -> float:
+    """Update a list of `Tensor3` objects to be in canonical form
+    with respect to `center`."""
     err = 0.0
     for i in range(0, center):
         _, errk = _update_in_canonical_form(Ψ, Ψ[i], i, +1, truncation)
@@ -64,12 +55,18 @@ class CanonicalMPS(MPS):
 
     Parameters
     ----------
-    data      -- a list of MPS tensors, an MPS or a CanonicalMPS
-    center    -- site to make the canonical form. If defaults either to
-                 the center of the CanonicalMPS or to zero.
-    error     -- norm-2 squared truncation error that we carry on
-    tolerance -- truncation tolerance when creating the canonical form
-    normalize -- normalize the state after finishing the canonical form
+    data : Iterable[Tensor3]
+        A set of tensors that will be orthogonalized. It can be an
+        :class:`MPS` state.
+    center : int, optional
+        The center for the canonical form. Defaults to the first site
+        `center = 0`.
+    normalize : bool, optional
+        Whether to normalize the state to compensate for truncation errors.
+        Defaults to `False`.
+    strategy : Strategy, optional
+        The truncation strategy for the orthogonalization and later
+        algorithms. Defaults to `DEFAULT_STRATEGY`.
     """
 
     center: int
@@ -83,7 +80,7 @@ class CanonicalMPS(MPS):
         data: Iterable[Tensor3],
         center: Optional[int] = None,
         normalize: bool = False,
-        **kwdargs
+        **kwdargs,
     ):
         super().__init__(data, **kwdargs)
         actual_center: int
@@ -109,27 +106,44 @@ class CanonicalMPS(MPS):
         dimensions: Sequence[int],
         strategy: Strategy = DEFAULT_STRATEGY,
         normalize: bool = True,
-        **kwdargs
-    ) -> "CanonicalMPS":
+        **kwdargs,
+    ) -> CanonicalMPS:
+        """Create an MPS in canonical form starting from a state vector.
+
+        Parameters
+        ----------
+        ψ : VectorLike
+            Real or complex vector of a wavefunction.
+        dimensions : Sequence[int]
+            Sequence of integers representing the dimensions of the
+            quantum systems that form this state.
+        strategy : Strategy, default = DEFAULT_STRATEGY
+            Default truncation strategy for algorithms working on this state.
+        normalize : bool, default = True
+            Whether the state is normalized to compensate truncation errors.
+
+        Returns
+        -------
+        CanonicalMPS
+            A valid matrix-product state approximating this state vector.
+
+        See also
+        --------
+        :py:meth:`~seemps.state.MPS.from_vector`
+        """
         return CanonicalMPS(
             schmidt.vector2mps(ψ, dimensions, strategy, normalize),
             center=kwdargs.get("center", 0),
             strategy=strategy,
         )
 
-    def norm2(self) -> float:
-        """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
-        warnings.warn(
-            "method norm2 is deprecated, use norm_squared", category=DeprecationWarning
-        )
-        return self.norm_squared()
-
     def norm_squared(self) -> float:
-        """Return the square of the norm-2 of this state, ‖ψ‖^2 = <ψ|ψ>."""
+        """Norm-2 squared :math:`\\Vert{\psi}\\Vert^2` of this MPS."""
         A = self._data[self.center]
         return np.vdot(A, A)
 
     def left_environment(self, site: int) -> Environment:
+        """Optimized version of :py:meth:`~seemps.state.MPS.left_environment`"""
         start = min(site, self.center)
         ρ = expectation.begin_environment(self[start].shape[0])
         for A in self._data[start:site]:
@@ -137,6 +151,7 @@ class CanonicalMPS(MPS):
         return ρ
 
     def right_environment(self, site: int) -> Environment:
+        """Optimized version of :py:meth:`~seemps.state.MPS.right_environment`"""
         start = max(site, self.center)
         ρ = expectation.begin_environment(self[start].shape[-1])
         for A in self._data[start:site:-1]:
@@ -144,12 +159,26 @@ class CanonicalMPS(MPS):
         return ρ
 
     def entanglement_entropy(self, site: Optional[int] = None) -> Real:
-        """Return the entanglement entropy of the state divided at 'site',
-        which defaults to the canonical state's center."""
+        """Compute the entanglement entropy of the MPS for a bipartition
+        around `site`.
+
+        Parameters
+        ----------
+        site : int, optional
+            Site in the range `[0, self.size)`, defaulting to `self.center`.
+            The system is diveded into `[0, self.site)` and `[self.site, self.size)`.
+
+        Returns
+        -------
+        float
+            Von Neumann entropy of bipartition.
+        """
         if site is None:
             site = self.center
         if site != self.center:
             return self.copy().recenter(site).entanglement_entropy()
+        # TODO: this is for [0, self.center] (self.center, self.size)
+        # bipartitions, but we can also optimizze [0, self.center) [self.center, self.size)
         A = self._data[site]
         d1, d2, d3 = A.shape
         s = schmidt.svd(
@@ -162,25 +191,49 @@ class CanonicalMPS(MPS):
         return -np.sum(2 * s * s * np.log2(s))
 
     def update_canonical(
-        self, A: np.ndarray, direction: int, truncation: Strategy
+        self, A: Tensor3, direction: int, truncation: Strategy
     ) -> float:
+        """Update the state, replacing the tensor at `self.center`
+        and moving the center to `self.center + direction`.
+
+        Parameters
+        ----------
+        A : Tensor3
+            The new tensor.
+        direction : { +1, -1 }
+            Direction in which the update is performed.
+        truncation : Strategy
+            Truncation parameters such as tolerance or maximum
+            bond dimension.
+
+        Returns
+        -------
+        float
+            The truncation error of this update.
+        """
         self.center, err = _update_in_canonical_form(
             self._data, A, self.center, direction, truncation
         )
         self.update_error(err)
         return err
 
+    # TODO: check if `site` is not needed, as it should be self.center
     def update_2site_right(self, AA: Tensor4, site: int, strategy: Strategy) -> None:
         """Split a two-site tensor into two one-site tensors by
         right orthonormalization and insert the tensor in canonical form into
-        the MPS Ψ at the given site and the site on its right. Update the
+        the MPS at the given site and the site on its right. Update the
         neighboring sites in the process.
 
-        Arguments:
+        Parameters
         ----------
-        AA = two-site tensor to be split by orthonormalization
-        site = the index of the site with respect to which orthonormalization is carried out
-        truncation = truncation tolerance for the singular values
+        AA : Tensor4
+            Two-site tensor `A[a,i,j,b]`
+        site : int
+            The index of the site whose quantum number is `i`. The new center
+            will be `self.site+1`.
+        strategy : Strategy
+            Truncation strategy, including relative tolerances and maximum
+            bond dimensions
         """
         self._data[site], self._data[site + 1], err = schmidt.left_orth_2site(
             AA, strategy
@@ -194,11 +247,16 @@ class CanonicalMPS(MPS):
         MPS Ψ at the given site and the site on its right. Update the
         neighboring sites in the process.
 
-        Arguments:
+        Parameters
         ----------
-        AA = two-site tensor to be split by orthonormalization
-        site = the index of the site with respect to which orthonormalization is carried out
-        strategy = truncation tolerance for the singular values
+        AA : Tensor4
+            Two-site tensor `A[a,i,j,b]`
+        site : int
+            The index of the site whose quantum number is `i`. The new center
+            will be `self.site`.
+        strategy : Strategy
+            Truncation strategy, including relative tolerances and maximum
+            bond dimensions
         """
         self._data[site], self._data[site + 1], err = schmidt.right_orth_2site(
             AA, strategy
@@ -207,8 +265,8 @@ class CanonicalMPS(MPS):
         self.update_error(err)
 
     def _interpret_center(self, center: int) -> int:
-        """Converts `center` into an integer between [0,size-1], with the
-        convention that -1 = size-1, -2 = size-2, etc. Trows an exception of
+        """Converts `center` into an integer in `[0,self.size)`, with the
+        convention that `-1 = size-1`, `-2 = size-2`, etc. Trows an exception of
         `center` if out of bounds."""
         size = self.size
         if 0 <= center < size:
@@ -220,9 +278,22 @@ class CanonicalMPS(MPS):
 
     def recenter(
         self, center: int, strategy: Optional[Strategy] = None
-    ) -> "CanonicalMPS":
+    ) -> CanonicalMPS:
         """Update destructively the state to be in canonical form with respect
-        to a different site."""
+        to a different site.
+
+        Parameters
+        ----------
+        center : int
+            The new site for orthogonalization in `[0, self.size)`
+        strategy : Strategy, optional
+            Truncation strategy. Defaults to `self.strategy`
+
+        Returns
+        -------
+        CanonicalMPS
+            This same object.
+        """
         center = self._interpret_center(center)
         old = self.center
         if strategy is None:
@@ -233,22 +304,19 @@ class CanonicalMPS(MPS):
                 self.update_canonical(self._data[i], dr, strategy)
         return self
 
-    def normalize_inplace(self) -> "CanonicalMPS":
+    def normalize_inplace(self) -> CanonicalMPS:
+        """Normalize the state by updating the central tensor."""
         n = self.center
         A = self._data[n]
         self._data[n] = A / np.linalg.norm(A)
         return self
 
     def __copy__(self):
-        #
-        # Return a copy of the MPS with a fresh new array.
-        #
+        """Return a shallow copy of the CanonicalMPS, preserving the tensors."""
         return type(self)(
             self, center=self.center, strategy=self.strategy, error=self.error
         )
 
     def copy(self):
-        """Return a fresh new TensorArray that shares the same tensor as its
-        sibling, but which can be destructively modified without affecting it.
-        """
+        """Return a shallow copy of the CanonicalMPS, preserving the tensors."""
         return self.__copy__()
