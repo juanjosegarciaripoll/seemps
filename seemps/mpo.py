@@ -208,13 +208,13 @@ class MPOList(object):
         self.strategy = strategy
 
     def __mul__(self, n: Weight) -> MPOList:
-        """Multiply an `n * self` by scalar `n`."""
+        """Multiply an MPO by a scalar `n` as in `n * self`."""
         if isinstance(n, (float, complex)):
             return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
         raise InvalidOperation("*", self, n)
 
     def __rmul__(self, n: Weight) -> MPOList:
-        """Multiply an `self * n` by scalar `n`."""
+        """Multiply an MPO by a scalar `n` as in `self * n`."""
         if isinstance(n, (float, complex)):
             return MPOList([n * self.mpos[0]] + self.mpos[1:], self.strategy)
         raise InvalidOperation("*", n, self)

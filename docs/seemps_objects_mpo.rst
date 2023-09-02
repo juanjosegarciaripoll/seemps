@@ -1,10 +1,84 @@
 .. _mpo-classes:
 
-MPO objects
------------
+*********************************************************
+Matrix-product operators (:class:`MPO`, :class:`MPOList`)
+*********************************************************
 
-.. autoclass:: seemps.mpo.MPO
-   :members:
+Similar to the MPS, the matrix-product operator is an efficient representation
+of operators acting on quantum states, based on a tensor-network structure.
 
-.. autoclass:: seemps.mpo.MPOList
-   :members:
+.. math::
+    O = \sum_{\vec{i},\vec{\alpha},\vec{j}}
+        \prod_{n=1}^N B_{\alpha_n,i_n,i_n,\alpha_n}
+        \vert i_1,i_2\ldots i_N\rangle \langle j_1,j_2\ldots j_N\vert
+
+As before, the :math:`i_n,j_n` are indices labelling quantum states of the `N`
+subsystems, while the :math:`\alpha_i` are integer indices connecting
+(correlating) neigboring quantum systems. The difference is that now this
+models an operator, transforming quantum states from :math:`j_n` to :math:`i_n`
+combinations.
+
+In SeeMPS, matrix-product operators are represented by two classes, :class:`MPO`
+and :class:`MPOList`, encoding either one operator :math:`O`, or a sequence of
+them, :math:`O_{M-1} \cdots O_1 \cdot O_0`, in this order, as elements of an
+MPO list `O[m]`.
+
+.. _mpo_creation:
+
+Creation
+========
+
+Matrix product states can be created by supplying the tensors that form the
+state, and in the case of small wavefunctions, they can be reconstructed directly
+from the state vector of the composite quantum state. In addition to this, we
+offer modules offer specific operators for implementing quantum
+:ref:`Fourier transforms <seemps_register>`, QUBO opertors, etc.
+MPO's and their aggregates also can be scaled by a scalar, creating new objects
+with transformed tensors. And finally, MPO's can be enlarged to include new
+quantum subsystems---for instance, when you wish to implement a QFT onto a
+set of qubits, the :py:meth:`~seemps.MPO.extend` function allows you to do it.
+
+.. autosummary::
+    :toctree: generated/
+
+    ~seemps.MPO
+    ~seemps.MPOList
+    ~seemps.MPO.__mul__
+    ~seemps.MPOList.__mul__
+    ~seemps.MPO.extend
+    ~seemps.MPOList.extend
+
+.. _mpo_application:
+
+Application
+===========
+
+Matrix-product operators can be applied onto matrix-product states, producing
+new states. We offer two functions for this. The first one is the
+:py:meth:`seemps.MPO.apply`, which offers a lot of control on the contraction
+and later simplification of the MPS (see
+:doc:`simplification algorithm <seemps_algorithms.rst>`). The other alternative
+is the matrix multiplication operator `@`, which relies on the strategy
+stored in the state for contraction and simplification.
+
+.. autosummary::
+    :toctree: generated/
+
+    ~seemps.MPO.apply
+    ~seemps.MPOList.apply
+    ~seemps.MPO.__matmul__
+    ~seemps.MPOList.__matmul__
+
+.. admonitions:: python
+
+As an example, consider the application of a quantum Fourier transform onto a
+random MPS::
+
+    >>> import seemps
+    >>> mps = seemps.random_mps(2, 10)
+    >>> mpo = seemps.qft.qft_mpo(10)
+    >>> Fmps = mpo @ mps
+
+The same can be done in a slightly more controlled way, as in::
+
+    >>> Fmps = mpo.apply(mps, strategy=seemps.Strategy(tolerance=1e-9))

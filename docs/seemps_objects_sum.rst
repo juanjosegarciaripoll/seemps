@@ -2,9 +2,9 @@
 
 .. _mps_sum_class:
 
-***************
-MPS combination
-***************
+*********************************
+MPS combination (:class:`MPSSum`)
+*********************************
 
 Matrix-product states can be operated as normal quantum states, adding,
 rescaling or subtracting them, as you would normally do with vectors. However,
